@@ -1,0 +1,92 @@
+# 配置文件名称: .github/workflows/build_all.yml
+name: 自动打包全平台软件包 (Mac/Win/Linux)
+
+# 触发条件：1.手动在Actions页面点击运行 2.打Tag时自动运行(推荐) 3.push代码时运行
+on:
+  workflow_dispatch:  # 手动触发（重点，方便测试）
+  push:
+    tags:
+      - 'v*'          # 打版本标签时触发，比如 v1.0.0
+
+# 运行权限
+permissions:
+  contents: write
+
+jobs:
+  # ========== 构建 MAC 版 (核心需求) ==========
+  build-mac:
+    runs-on: macos-latest  # 云端Mac虚拟机，最新版macOS
+    steps:
+      - name: 拉取项目代码
+        uses: actions/checkout@v4
+
+      - name: 配置Python环境 (3.10，和PyQt5完美兼容)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 安装Python依赖 (适配你的项目)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyqt5 pyinstaller
+
+      - name: 执行Pyinstaller打包Mac版 (核心打包命令)
+        run: |
+          pyinstaller -F -w --clean \
+            --name "OpenCode-Config-Manager" \
+            --hidden-import=qfluentwidgets \
+            --paths=. \
+            opencode_config_manager_fluent.py
+
+      - name: 打包成Mac标准.dmg镜像包
+        run: |
+          mkdir -p dist/mac
+          mv dist/OpenCode-Config-Manager dist/mac/
+          hdiutil create dist/OpenCode-Config-Manager-Mac.dmg -volname "OpenCodeConfigManager" -srcfolder dist/mac -ov
+
+      - name: 上传Mac包到GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OpenCode-Config-Manager-Mac.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  # ========== 构建 Windows 版 (附赠，不用删) ==========
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: |
+          python -m pip install --upgrade pip
+          pip install pyqt5 pyinstaller
+      - run: |
+          pyinstaller -F -w --clean --name "OpenCode-Config-Manager" --hidden-import=qfluentwidgets --paths=. opencode_config_manager_fluent.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OpenCode-Config-Manager.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  # ========== 构建 Linux 版 (附赠，不用删) ==========
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: |
+          sudo apt update && sudo apt install -y python3-pyqt5 libxcb-xinerama0
+          python -m pip install --upgrade pip
+          pip install pyqt5 pyinstaller
+      - run: |
+          pyinstaller -F --clean --name "OpenCode-Config-Manager" --hidden-import=qfluentwidgets --paths=. opencode_config_manager_fluent.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OpenCode-Config-Manager
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
