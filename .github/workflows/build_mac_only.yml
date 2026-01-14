@@ -37,12 +37,13 @@ jobs:
 
       - name: 5. PyInstaller打包（Mac终极适配，无任何冗余参数）
         run: |
-          pyinstaller \
+          pyinstaller --clean \
             --name "OpenCode-Config-Manager" \
-            --onedir \          # Mac必用！替代-F，解决窗口模式冲突，无警告
-            --windowed \        # 纯窗口模式，无控制台黑窗
-            --hidden-import=qfluentwidgets \  # 告诉打包工具：这个包是运行依赖，必须打包进去
-            --collect-all PyQt5 \# 解决Qt插件缺失，杜绝闪退，Mac打包必加
+            --onedir \
+            --windowed \
+            --hidden-import=qfluentwidgets \
+            --collect-all PyQt5 \
+            --collect-all qfluentwidgets \
             opencode_config_manager_fluent.py
 
       - name: 6. 打包成Mac标准.dmg镜像包
