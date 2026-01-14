@@ -8,7 +8,6 @@ OpenCode & Oh My OpenCode 配置管理器 v1.0.3 (QFluentWidgets 版本)
 
 v1.0.3 更新：
 - 跨平台路径支持 (Windows/Linux/macOS 统一)
-- 自动日志记录功能 (~/.config/opencode/logs/occm.log)
 - 完善构建脚本 (build_unix.sh + build_windows.bat)
 - Linux 无头服务器自动使用 xvfb
 
@@ -1370,86 +1369,6 @@ class ConfigPaths:
     def get_backup_dir(cls) -> Path:
         """获取备份目录"""
         return cls.get_config_base_dir() / "backups"
-
-    @classmethod
-    def get_log_dir(cls) -> Path:
-        """获取日志目录"""
-        return cls.get_config_base_dir() / "logs"
-
-
-# ==================== 日志管理器 ====================
-class AppLogger:
-    """
-    应用日志管理器 - 自动记录操作日志
-
-    日志文件位置：~/.config/opencode/logs/occm.log
-    日志格式：[时间] [级别] 消息
-    """
-
-    _instance: Optional["AppLogger"] = None
-    _logger: Optional[Any] = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._init_logger()
-        return cls._instance
-
-    def _init_logger(self):
-        """初始化日志器"""
-        import logging
-        from logging.handlers import RotatingFileHandler
-
-        # 创建日志目录
-        log_dir = ConfigPaths.get_log_dir()
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / "occm.log"
-
-        # 配置日志器
-        self._logger = logging.getLogger("OCCM")
-        self._logger.setLevel(logging.INFO)
-
-        # 避免重复添加 handler
-        if not self._logger.handlers:
-            # 文件处理器（轮转，最大 5MB，保留 3 个备份）
-            file_handler = RotatingFileHandler(
-                log_file, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
-            )
-            file_handler.setLevel(logging.INFO)
-
-            # 日志格式
-            formatter = logging.Formatter(
-                "[%(asctime)s] [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-            )
-            file_handler.setFormatter(formatter)
-
-            self._logger.addHandler(file_handler)
-
-    def info(self, message: str):
-        """记录信息日志"""
-        if self._logger:
-            self._logger.info(message)
-
-    def warning(self, message: str):
-        """记录警告日志"""
-        if self._logger:
-            self._logger.warning(message)
-
-    def error(self, message: str):
-        """记录错误日志"""
-        if self._logger:
-            self._logger.error(message)
-
-    def debug(self, message: str):
-        """记录调试日志"""
-        if self._logger:
-            self._logger.debug(message)
-
-
-# 全局日志实例
-def get_logger() -> AppLogger:
-    """获取全局日志实例"""
-    return AppLogger()
 
 
 class ConfigManager:
