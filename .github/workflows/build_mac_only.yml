@@ -76,7 +76,11 @@ jobs:
           
       - name: Create DMG Installer
         run: |
-          create-dmg --overwrite dist/OpenCode-Config-Manager-MacOS.dmg dist/OpenCode-Config-Manager/
+          brew install create-dmg
+          create-dmg \
+              "dist/OpenCode-Config-Manager-MacOS.dmg" \
+              "dist/OpenCode-Config-Manager.app"
+          shell: /bin/bash -e {0}
 
       - name: Upload to Artifacts (手动下载，上传产物到Action Artifacts → 手动下载兜底，零Tag限制)
         uses: actions/upload-artifact@v4
