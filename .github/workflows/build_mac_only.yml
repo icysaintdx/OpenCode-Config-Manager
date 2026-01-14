@@ -76,7 +76,8 @@ jobs:
           
       - name: Create DMG Installer
         run: |
-          brew install create-dmg
+          brew install create-dmg || true
+          rm -f dist/OpenCode-Config-Manager-MacOS.dmg
           create-dmg \
               "dist/OpenCode-Config-Manager-MacOS.dmg" \
               "dist/OpenCode-Config-Manager.app"
