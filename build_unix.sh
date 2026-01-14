@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # OpenCode Config Manager - Unix Build Script (Linux + macOS)
-# v1.0.4 Fluent (PyQt5 + QFluentWidgets)
+# v1.0.5 Fluent (PyQt5 + QFluentWidgets)
 # ============================================================
 # 
 # 使用方法:
@@ -18,7 +18,7 @@
 
 set -e
 
-VERSION="1.0.4"
+VERSION="1.0.5"
 MAIN_SCRIPT="opencode_config_manager_fluent.py"
 
 echo "========================================"
