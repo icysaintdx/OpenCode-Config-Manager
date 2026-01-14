@@ -20,7 +20,7 @@ jobs:
       - name: 3. ✅ 核心修复：安装【无BUG版PyQt5 5.15.7】+ 必装依赖 (100%成功，无任何冲突)
         run: |
           python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
-          pip install PyQt5==5.15.7 pyinstaller==6.8.0 macholib -i https://pypi.tuna.tsinghua.edu.cn/simple
+          python3 -m pip install PyQt5-qt5 PyQt5-sip PyQt5 --force-reinstall -i https://pypi.tuna.tsinghua.edu.cn/simple
 
       - name: 4. ✅ 终极打包命令 (无任何未知参数、无任何报错、6.8.0完美兼容、必成功)
         run: |
