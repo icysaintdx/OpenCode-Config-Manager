@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-OpenCode & Oh My OpenCode 配置管理器 v1.0.4 (QFluentWidgets 版本)
+OpenCode & Oh My OpenCode 配置管理器 v1.0.5 (QFluentWidgets 版本)
 一个可视化的GUI工具，用于管理OpenCode和Oh My OpenCode的配置文件
 
 基于 PyQt5 + QFluentWidgets 重写，提供现代化 Fluent Design 界面
+
+v1.0.5 更新：
+- 跨页面数据同步：新增/编辑/删除配置后自动刷新所有相关页面
+- 版本检查改为 30 分钟定时触发（启动后 5 秒首次检查）
+- 修复首页 MCP 统计显示 0 的问题
 
 v1.0.4 更新：
 - 备份目录支持手动选择和重置
@@ -36,7 +41,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 from PyQt5.QtCore import Qt, QUrl, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon, QDesktopServices, QFont, QPixmap
@@ -107,12 +112,17 @@ from qfluentwidgets import (
 )
 
 
-APP_VERSION = "1.0.4"
+APP_VERSION = "1.0.5"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 AUTHOR_NAME = "IcySaint"
 AUTHOR_GITHUB = "https://github.com/icysaintdx"
+
+# ==================== 版本检查配置 ====================
+STARTUP_VERSION_CHECK_ENABLED = True  # 启动时是否检查版本
+IMMEDIATE_VERSION_CHECK_MS = 5000  # 启动后首次检查延迟 (5秒)
+UPDATE_INTERVAL_MS = 30 * 60 * 1000  # 定时检查间隔 (30分钟)
 
 
 # ==================== 参数说明提示（用于Tooltip） ====================
@@ -897,10 +907,7 @@ PRESET_MODEL_CONFIGS = {
                 "limit": {"context": 200000, "output": 32000},
                 "modalities": {"input": ["text", "image"], "output": ["text"]},
                 "options": {"thinking": {"type": "enabled", "budgetTokens": 16000}},
-                "variants": {
-                    "high": {"thinking": {"type": "enabled", "budgetTokens": 32000}},
-                    "max": {"thinking": {"type": "enabled", "budgetTokens": 64000}},
-                },
+                "variants": {},
                 "description": "最强大的Claude模型，支持extended thinking模式\noptions.thinking.budgetTokens 控制思考预算",
             },
             "claude-sonnet-4-5-20250929": {
@@ -909,10 +916,7 @@ PRESET_MODEL_CONFIGS = {
                 "limit": {"context": 200000, "output": 16000},
                 "modalities": {"input": ["text", "image"], "output": ["text"]},
                 "options": {"thinking": {"type": "enabled", "budgetTokens": 8000}},
-                "variants": {
-                    "high": {"thinking": {"type": "enabled", "budgetTokens": 16000}},
-                    "max": {"thinking": {"type": "enabled", "budgetTokens": 32000}},
-                },
+                "variants": {},
                 "description": "平衡性能与成本的Claude模型，支持thinking模式",
             },
             "claude-sonnet-4-20250514": {
@@ -1488,29 +1492,74 @@ class ConfigManager:
         return False
 
     @staticmethod
-    def save_json(path: Path, data: Dict, warn_jsonc: bool = False) -> bool:
+    def has_jsonc_comments(path: Path) -> bool:
+        """检查文件是否包含 JSONC 注释（// 或 /* */）"""
+        try:
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                # 检查是否包含注释标记（简单检测）
+                # 需要排除字符串内的 // 和 /*
+                in_string = False
+                escape_next = False
+                i = 0
+                while i < len(content):
+                    char = content[i]
+                    if escape_next:
+                        escape_next = False
+                        i += 1
+                        continue
+                    if char == "\\" and in_string:
+                        escape_next = True
+                        i += 1
+                        continue
+                    if char == '"' and not escape_next:
+                        in_string = not in_string
+                        i += 1
+                        continue
+                    if not in_string:
+                        # 检测 // 或 /*
+                        if char == "/" and i + 1 < len(content):
+                            next_char = content[i + 1]
+                            if next_char == "/" or next_char == "*":
+                                return True
+                    i += 1
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def save_json(path: Path, data: Dict, backup_manager=None) -> Tuple[bool, bool]:
         """
         保存为标准 JSON 格式
 
         注意：如果原文件是 JSONC 格式（带注释），保存后注释会丢失。
-        建议在保存前备份原文件。
+        会自动检测并备份 JSONC 文件。
 
         Args:
             path: 保存路径
             data: 要保存的数据
-            warn_jsonc: 是否返回 JSONC 警告信息（用于 UI 提示）
+            backup_manager: 备份管理器实例（用于自动备份 JSONC 文件）
 
         Returns:
-            bool: 保存是否成功
+            Tuple[bool, bool]: (保存是否成功, 是否为 JSONC 文件且注释已丢失)
         """
+        jsonc_warning = False
         try:
+            # 检测是否为 JSONC 文件（包含注释）
+            if path.exists() and ConfigManager.has_jsonc_comments(path):
+                jsonc_warning = True
+                # 自动备份 JSONC 文件
+                if backup_manager:
+                    backup_manager.backup(path, tag="jsonc-auto")
+
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            return True
+            return True, jsonc_warning
         except Exception as e:
             print(f"Save failed {path}: {e}")
-            return False
+            return False, jsonc_warning
 
 
 class BackupManager:
@@ -1837,46 +1886,116 @@ class BaseDialog(QDialog):
         self._apply_theme()
 
     def _apply_theme(self):
-        """应用深色主题样式"""
+        """应用深色主题样式 - 增强对比度和层次感"""
         if isDarkTheme():
             self.setStyleSheet("""
                 QDialog {
-                    background-color: #2d2d2d;
+                    background-color: #1e1e1e;
                     color: #ffffff;
                 }
                 QLabel {
-                    color: #ffffff;
+                    color: #e0e0e0;
                 }
                 QLineEdit, QTextEdit, QSpinBox, QComboBox {
-                    background-color: #3d3d3d;
+                    background-color: #2d2d2d;
                     color: #ffffff;
-                    border: 1px solid #555555;
-                    border-radius: 4px;
-                    padding: 4px;
+                    border: 1px solid #4a4a4a;
+                    border-radius: 6px;
+                    padding: 8px;
+                    min-height: 20px;
                 }
                 QLineEdit:focus, QTextEdit:focus {
-                    border: 1px solid #0078d4;
+                    border: 2px solid #0078d4;
+                    background-color: #333333;
                 }
                 QCheckBox, QRadioButton {
                     color: #ffffff;
                 }
-                QTableWidget {
-                    background-color: #2d2d2d;
+                /* Tab/Pivot 样式增强 - 更明显的对比 */
+                Pivot {
+                    background-color: #2a2a2a;
+                    border-radius: 8px;
+                    padding: 6px;
+                    margin-bottom: 8px;
+                }
+                PivotItem {
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                }
+                PivotItem:checked {
+                    background-color: #0078d4;
                     color: #ffffff;
-                    gridline-color: #555555;
+                }
+                /* 卡片样式增强 */
+                CardWidget {
+                    background-color: #2d2d2d;
+                    border: 1px solid #404040;
+                    border-radius: 10px;
+                    margin: 6px 0;
+                }
+                /* 表格样式增强 - 更明显的层次 */
+                QTableWidget {
+                    background-color: #252525;
+                    color: #ffffff;
+                    border: 1px solid #404040;
+                    border-radius: 8px;
+                    gridline-color: #3a3a3a;
+                    selection-background-color: #0078d4;
                 }
                 QTableWidget::item {
+                    color: #e0e0e0;
+                    padding: 10px 8px;
+                    border-bottom: 1px solid #333333;
+                }
+                QTableWidget::item:selected {
+                    background-color: #0078d4;
                     color: #ffffff;
                 }
+                QTableWidget::item:hover {
+                    background-color: #353535;
+                }
+                /* 表头样式 - 更突出 */
                 QHeaderView::section {
-                    background-color: #3d3d3d;
+                    background-color: #383838;
                     color: #ffffff;
-                    border: 1px solid #555555;
-                    padding: 4px;
+                    border: none;
+                    border-bottom: 2px solid #0078d4;
+                    padding: 10px 8px;
+                    font-weight: bold;
+                    font-size: 13px;
+                }
+                QHeaderView::section:horizontal {
+                    border-right: 1px solid #4a4a4a;
+                }
+                QHeaderView::section:horizontal:last {
+                    border-right: none;
+                }
+                /* 分组标题样式 */
+                CaptionLabel {
+                    color: #0078d4;
+                    font-weight: bold;
+                    font-size: 13px;
+                    padding: 4px 0;
                 }
                 QScrollArea {
-                    background-color: #2d2d2d;
+                    background-color: #1e1e1e;
                     border: none;
+                }
+                /* 列表样式 */
+                QListWidget {
+                    background-color: #252525;
+                    border: 1px solid #404040;
+                    border-radius: 6px;
+                }
+                QListWidget::item {
+                    padding: 8px;
+                    border-bottom: 1px solid #333333;
+                }
+                QListWidget::item:selected {
+                    background-color: #0078d4;
+                }
+                QListWidget::item:hover {
+                    background-color: #353535;
                 }
             """)
         else:
@@ -1962,6 +2081,12 @@ class HomePage(BasePage):
         # 隐藏页面标题
         self.title_label.hide()
         self._setup_ui()
+        self._load_stats()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新统计"""
         self._load_stats()
 
     def _setup_ui(self):
@@ -2295,8 +2420,8 @@ class HomePage(BasePage):
             model_count += len(provider_data.get("models", {}))
         self.model_count_label.setText(str(model_count))
 
-        # MCP 数量
-        mcp_count = len(oc_config.get("mcp", {}).get("servers", {}))
+        # MCP 数量 - MCP 配置直接在 mcp 下，不是 mcp.servers
+        mcp_count = len(oc_config.get("mcp", {}))
         self.mcp_count_label.setText(str(mcp_count))
 
         # OpenCode Agent 数量
@@ -2350,6 +2475,12 @@ class ProviderPage(BasePage):
         super().__init__("Provider 管理", parent)
         self.main_window = main_window
         self._setup_ui()
+        self._load_data()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新数据"""
         self._load_data()
 
     def _setup_ui(self):
@@ -2604,6 +2735,19 @@ class ModelPage(BasePage):
         self.main_window = main_window
         self._setup_ui()
         self._load_providers()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新 Provider 列表和模型"""
+        current_provider = self.provider_combo.currentText()
+        self._load_providers()
+        # 尝试恢复之前选中的 Provider
+        idx = self.provider_combo.findText(current_provider)
+        if idx >= 0:
+            self.provider_combo.setCurrentIndex(idx)
+        elif self.provider_combo.count() > 0:
+            self.provider_combo.setCurrentIndex(0)
 
     def _setup_ui(self):
         # Provider 选择
@@ -2921,31 +3065,55 @@ class ModelDialog(BaseDialog):
         layout.addLayout(btn_layout)
 
     def _setup_options_tab(self, parent):
-        """设置 Options Tab"""
-        layout = QVBoxLayout(parent)
-        layout.setSpacing(8)
+        """设置 Options Tab - 使用 ScrollArea 解决空间不足问题"""
+        # 主布局
+        main_layout = QVBoxLayout(parent)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # 创建滚动区域
+        scroll_area = QScrollArea(parent)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+        )
+
+        # 滚动内容容器
+        scroll_content = QWidget()
+        scroll_content.setStyleSheet("QWidget { background: transparent; }")
+        layout = QVBoxLayout(scroll_content)
+        layout.setSpacing(10)
+        layout.setContentsMargins(4, 8, 4, 8)
 
         # Claude Thinking 快捷按钮
-        claude_card = CardWidget(parent)
+        claude_card = CardWidget(scroll_content)
         claude_layout = QVBoxLayout(claude_card)
-        claude_layout.addWidget(CaptionLabel("Claude Thinking 配置", parent))
+        claude_layout.setContentsMargins(8, 6, 8, 6)
+        claude_layout.setSpacing(6)
+        claude_layout.addWidget(CaptionLabel("Claude Thinking 配置", claude_card))
         claude_btn_layout = QHBoxLayout()
+        claude_btn_layout.setSpacing(6)
 
-        btn_thinking_type = PushButton("thinking.type=enabled", parent)
+        btn_thinking_type = PushButton("type=enabled", claude_card)
         btn_thinking_type.setToolTip(get_tooltip("option_thinking_type"))
+        btn_thinking_type.setFixedHeight(32)
         btn_thinking_type.clicked.connect(
             lambda: self._add_thinking_config("type", "enabled")
         )
         claude_btn_layout.addWidget(btn_thinking_type)
 
-        btn_budget = PushButton("budgetTokens=16000", parent)
+        btn_budget = PushButton("budget=16000", claude_card)
         btn_budget.setToolTip(get_tooltip("option_thinking_budget"))
+        btn_budget.setFixedHeight(32)
         btn_budget.clicked.connect(
             lambda: self._add_thinking_config("budgetTokens", 16000)
         )
         claude_btn_layout.addWidget(btn_budget)
 
-        btn_full = PrimaryPushButton("一键添加 Thinking", parent)
+        btn_full = PrimaryPushButton("一键添加", claude_card)
+        btn_full.setFixedHeight(32)
         btn_full.clicked.connect(self._add_full_thinking_config)
         claude_btn_layout.addWidget(btn_full)
 
@@ -2953,19 +3121,23 @@ class ModelDialog(BaseDialog):
         layout.addWidget(claude_card)
 
         # OpenAI 推理快捷按钮
-        openai_card = CardWidget(parent)
+        openai_card = CardWidget(scroll_content)
         openai_layout = QVBoxLayout(openai_card)
-        openai_layout.addWidget(CaptionLabel("OpenAI 推理配置", parent))
+        openai_layout.setContentsMargins(8, 6, 8, 6)
+        openai_layout.setSpacing(6)
+        openai_layout.addWidget(CaptionLabel("OpenAI 推理配置", openai_card))
         openai_btn_layout = QHBoxLayout()
+        openai_btn_layout.setSpacing(6)
 
         openai_presets = [
-            ("reasoningEffort", "high", "option_reasoningEffort"),
-            ("textVerbosity", "low", "option_textVerbosity"),
-            ("reasoningSummary", "auto", "option_reasoningSummary"),
+            ("reasoning", "high", "option_reasoningEffort"),
+            ("verbosity", "low", "option_textVerbosity"),
+            ("summary", "auto", "option_reasoningSummary"),
         ]
         for key, val, tooltip_key in openai_presets:
-            btn = PushButton(f"{key}={val}", parent)
+            btn = PushButton(f"{key}={val}", openai_card)
             btn.setToolTip(get_tooltip(tooltip_key))
+            btn.setFixedHeight(32)
             btn.clicked.connect(
                 lambda checked, k=key, v=val: self._add_option_preset(k, v)
             )
@@ -2975,18 +3147,23 @@ class ModelDialog(BaseDialog):
         layout.addWidget(openai_card)
 
         # Gemini Thinking 快捷按钮
-        gemini_card = CardWidget(parent)
+        gemini_card = CardWidget(scroll_content)
         gemini_layout = QVBoxLayout(gemini_card)
-        gemini_layout.addWidget(CaptionLabel("Gemini Thinking 配置", parent))
+        gemini_layout.setContentsMargins(8, 6, 8, 6)
+        gemini_layout.setSpacing(6)
+        gemini_layout.addWidget(CaptionLabel("Gemini Thinking 配置", gemini_card))
         gemini_btn_layout = QHBoxLayout()
+        gemini_btn_layout.setSpacing(6)
 
-        btn_gemini_8k = PushButton("thinkingBudget=8000", parent)
+        btn_gemini_8k = PushButton("budget=8000", gemini_card)
         btn_gemini_8k.setToolTip(get_tooltip("option_thinking_budget"))
+        btn_gemini_8k.setFixedHeight(32)
         btn_gemini_8k.clicked.connect(lambda: self._add_gemini_thinking_config(8000))
         gemini_btn_layout.addWidget(btn_gemini_8k)
 
-        btn_gemini_16k = PushButton("thinkingBudget=16000", parent)
+        btn_gemini_16k = PushButton("budget=16000", gemini_card)
         btn_gemini_16k.setToolTip(get_tooltip("option_thinking_budget"))
+        btn_gemini_16k.setFixedHeight(32)
         btn_gemini_16k.clicked.connect(lambda: self._add_gemini_thinking_config(16000))
         gemini_btn_layout.addWidget(btn_gemini_16k)
 
@@ -2994,44 +3171,72 @@ class ModelDialog(BaseDialog):
         layout.addWidget(gemini_card)
 
         # Options 列表
-        options_label = BodyLabel("Options 键值对列表:", parent)
+        options_label = BodyLabel("Options 键值对列表:", scroll_content)
         options_label.setToolTip(get_tooltip("model_options"))
         layout.addWidget(options_label)
-        self.options_table = TableWidget(parent)
+
+        self.options_table = TableWidget(scroll_content)
         self.options_table.setColumnCount(2)
         self.options_table.setHorizontalHeaderLabels(["键", "值"])
         self.options_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.options_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.options_table.setMinimumHeight(120)
+        self.options_table.setMinimumHeight(100)
+        self.options_table.setMaximumHeight(150)
+        self.options_table.verticalHeader().setDefaultSectionSize(28)
+        self.options_table.horizontalHeader().setFixedHeight(35)
+        self.options_table.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
         layout.addWidget(self.options_table)
 
-        # 键值输入
+        # 键值输入 - 单行紧凑布局
         input_layout = QHBoxLayout()
-        input_layout.addWidget(BodyLabel("键:", parent))
-        self.option_key_edit = LineEdit(parent)
-        self.option_key_edit.setPlaceholderText("如: temperature")
-        input_layout.addWidget(self.option_key_edit)
-        input_layout.addWidget(BodyLabel("值:", parent))
-        self.option_value_edit = LineEdit(parent)
-        self.option_value_edit.setPlaceholderText("如: 0.7")
-        input_layout.addWidget(self.option_value_edit)
+        input_layout.setSpacing(8)
+
+        key_label = BodyLabel("键:", scroll_content)
+        key_label.setFixedWidth(24)
+        input_layout.addWidget(key_label)
+
+        self.option_key_edit = LineEdit(scroll_content)
+        self.option_key_edit.setPlaceholderText("temperature")
+        self.option_key_edit.setFixedHeight(32)
+        input_layout.addWidget(self.option_key_edit, 1)
+
+        value_label = BodyLabel("值:", scroll_content)
+        value_label.setFixedWidth(24)
+        input_layout.addWidget(value_label)
+
+        self.option_value_edit = LineEdit(scroll_content)
+        self.option_value_edit.setPlaceholderText("0.7")
+        self.option_value_edit.setFixedHeight(32)
+        input_layout.addWidget(self.option_value_edit, 1)
+
         layout.addLayout(input_layout)
 
         # 添加/删除按钮
         opt_btn_layout = QHBoxLayout()
-        add_opt_btn = PrimaryPushButton("添加", parent)
+        opt_btn_layout.setSpacing(8)
+        add_opt_btn = PrimaryPushButton("添加", scroll_content)
+        add_opt_btn.setFixedHeight(32)
         add_opt_btn.clicked.connect(self._add_option)
         opt_btn_layout.addWidget(add_opt_btn)
-        del_opt_btn = PushButton("删除选中", parent)
+        del_opt_btn = PushButton("删除选中", scroll_content)
+        del_opt_btn.setFixedHeight(32)
         del_opt_btn.clicked.connect(self._delete_option)
         opt_btn_layout.addWidget(del_opt_btn)
         opt_btn_layout.addStretch()
         layout.addLayout(opt_btn_layout)
 
+        # 添加弹性空间
+        layout.addStretch()
+
+        # 设置滚动区域内容
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
+
     def _setup_variants_tab(self, parent):
         """设置 Variants Tab"""
         layout = QVBoxLayout(parent)
-        layout.setSpacing(8)
+        layout.setSpacing(12)
+        layout.setContentsMargins(4, 8, 4, 8)
 
         variants_label = BodyLabel("模型变体配置 (Variants):", parent)
         variants_label.setToolTip(get_tooltip("model_variants"))
@@ -3044,22 +3249,30 @@ class ModelDialog(BaseDialog):
         self.variants_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.variants_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.variants_table.setMinimumHeight(120)
+        self.variants_table.verticalHeader().setDefaultSectionSize(36)
+        self.variants_table.horizontalHeader().setMinimumHeight(32)
         self.variants_table.itemSelectionChanged.connect(self._on_variant_select)
         layout.addWidget(self.variants_table)
 
         # 变体名称输入
         name_layout = QHBoxLayout()
-        name_layout.addWidget(BodyLabel("变体名:", parent))
+        name_layout.setSpacing(8)
+        name_label = BodyLabel("变体名:", parent)
+        name_label.setMinimumWidth(50)
+        name_layout.addWidget(name_label)
         self.variant_name_edit = LineEdit(parent)
-        self.variant_name_edit.setPlaceholderText("如: high, low, thinking")
+        self.variant_name_edit.setPlaceholderText("high, low, thinking")
+        self.variant_name_edit.setMinimumHeight(36)
         name_layout.addWidget(self.variant_name_edit)
         layout.addLayout(name_layout)
 
         # 预设名称按钮
         preset_layout = QHBoxLayout()
-        preset_layout.addWidget(CaptionLabel("预设名称:", parent))
+        preset_layout.setSpacing(6)
+        preset_layout.addWidget(CaptionLabel("预设:", parent))
         for name in ["high", "low", "thinking", "fast", "default"]:
             btn = PushButton(name, parent)
+            btn.setMinimumHeight(30)
             btn.clicked.connect(
                 lambda checked, n=name: self.variant_name_edit.setText(n)
             )
@@ -3071,15 +3284,19 @@ class ModelDialog(BaseDialog):
         layout.addWidget(BodyLabel("配置 (JSON):", parent))
         self.variant_config_edit = TextEdit(parent)
         self.variant_config_edit.setPlaceholderText('{"reasoningEffort": "high"}')
+        self.variant_config_edit.setMinimumHeight(80)
         self.variant_config_edit.setMaximumHeight(100)
         layout.addWidget(self.variant_config_edit)
 
         # 添加/删除按钮
         var_btn_layout = QHBoxLayout()
+        var_btn_layout.setSpacing(8)
         add_var_btn = PrimaryPushButton("添加变体", parent)
+        add_var_btn.setMinimumHeight(36)
         add_var_btn.clicked.connect(self._add_variant)
         var_btn_layout.addWidget(add_var_btn)
         del_var_btn = PushButton("删除变体", parent)
+        del_var_btn.setMinimumHeight(36)
         del_var_btn.clicked.connect(self._delete_variant)
         var_btn_layout.addWidget(del_var_btn)
         var_btn_layout.addStretch()
@@ -3249,12 +3466,32 @@ class ModelDialog(BaseDialog):
 
         if "provider" not in config:
             config["provider"] = {}
-        if self.provider_name not in config["provider"]:
-            config["provider"][self.provider_name] = {"models": {}}
-        if "models" not in config["provider"][self.provider_name]:
-            config["provider"][self.provider_name]["models"] = {}
 
-        models = config["provider"][self.provider_name]["models"]
+        # 验证 Provider 是否存在且结构完整
+        if self.provider_name not in config["provider"]:
+            InfoBar.error(
+                "错误",
+                f'Provider "{self.provider_name}" 不存在，请先在 Provider 管理页面创建',
+                parent=self,
+            )
+            return
+
+        provider = config["provider"][self.provider_name]
+
+        # 检查 Provider 结构是否完整
+        if "npm" not in provider or "options" not in provider:
+            InfoBar.error(
+                "错误",
+                f'Provider "{self.provider_name}" 配置不完整，请先在 Provider 管理页面完善配置',
+                parent=self,
+            )
+            return
+
+        # 确保 models 字段存在
+        if "models" not in provider:
+            provider["models"] = {}
+
+        models = provider["models"]
 
         # 检查名称冲突
         if not self.is_edit and model_id in models:
@@ -3359,12 +3596,32 @@ class PresetModelDialog(BaseDialog):
 
         if "provider" not in config:
             config["provider"] = {}
-        if self.provider_name not in config["provider"]:
-            config["provider"][self.provider_name] = {"models": {}}
-        if "models" not in config["provider"][self.provider_name]:
-            config["provider"][self.provider_name]["models"] = {}
 
-        models = config["provider"][self.provider_name]["models"]
+        # 验证 Provider 是否存在且结构完整
+        if self.provider_name not in config["provider"]:
+            InfoBar.error(
+                "错误",
+                f'Provider "{self.provider_name}" 不存在，请先在 Provider 管理页面创建',
+                parent=self,
+            )
+            return
+
+        provider = config["provider"][self.provider_name]
+
+        # 检查 Provider 结构是否完整
+        if "npm" not in provider or "options" not in provider:
+            InfoBar.error(
+                "错误",
+                f'Provider "{self.provider_name}" 配置不完整，请先在 Provider 管理页面完善配置',
+                parent=self,
+            )
+            return
+
+        # 确保 models 字段存在
+        if "models" not in provider:
+            provider["models"] = {}
+
+        models = provider["models"]
         added = 0
 
         for item in selected:
@@ -3393,6 +3650,12 @@ class MCPPage(BasePage):
         super().__init__("MCP 服务器", parent)
         self.main_window = main_window
         self._setup_ui()
+        self._load_data()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新数据"""
         self._load_data()
 
     def _setup_ui(self):
@@ -3702,6 +3965,12 @@ class OpenCodeAgentPage(BasePage):
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新数据"""
+        self._load_data()
 
     def _setup_ui(self):
         # 工具栏
@@ -3846,13 +4115,18 @@ class OpenCodeAgentDialog(BaseDialog):
         # ===== 基本信息 =====
         basic_card = CardWidget(content)
         basic_layout = QVBoxLayout(basic_card)
+        basic_layout.setSpacing(10)
         basic_layout.addWidget(SubtitleLabel("基本信息", basic_card))
 
         # Agent 名称
         name_layout = QHBoxLayout()
-        name_layout.addWidget(BodyLabel("Agent 名称:", basic_card))
+        name_layout.setSpacing(8)
+        name_label = BodyLabel("Agent 名称:", basic_card)
+        name_label.setMinimumWidth(80)
+        name_layout.addWidget(name_label)
         self.name_edit = LineEdit(basic_card)
-        self.name_edit.setPlaceholderText("如: build, plan, explore")
+        self.name_edit.setPlaceholderText("build, plan, explore")
+        self.name_edit.setMinimumHeight(36)
         self.name_edit.setToolTip(get_tooltip("agent_name"))
         if self.is_edit:
             self.name_edit.setEnabled(False)
@@ -3861,18 +4135,26 @@ class OpenCodeAgentDialog(BaseDialog):
 
         # 描述
         desc_layout = QHBoxLayout()
-        desc_layout.addWidget(BodyLabel("描述:", basic_card))
+        desc_layout.setSpacing(8)
+        desc_label = BodyLabel("描述:", basic_card)
+        desc_label.setMinimumWidth(80)
+        desc_layout.addWidget(desc_label)
         self.desc_edit = LineEdit(basic_card)
         self.desc_edit.setPlaceholderText("Agent 功能描述")
+        self.desc_edit.setMinimumHeight(36)
         self.desc_edit.setToolTip(get_tooltip("agent_description"))
         desc_layout.addWidget(self.desc_edit)
         basic_layout.addLayout(desc_layout)
 
         # 模式
         mode_layout = QHBoxLayout()
-        mode_layout.addWidget(BodyLabel("模式:", basic_card))
+        mode_layout.setSpacing(8)
+        mode_label = BodyLabel("模式:", basic_card)
+        mode_label.setMinimumWidth(80)
+        mode_layout.addWidget(mode_label)
         self.mode_combo = ComboBox(basic_card)
         self.mode_combo.addItems(["primary", "subagent", "all"])
+        self.mode_combo.setMinimumHeight(36)
         self.mode_combo.setToolTip(get_tooltip("opencode_agent_mode"))
         mode_layout.addWidget(self.mode_combo)
         mode_layout.addStretch()
@@ -3880,11 +4162,13 @@ class OpenCodeAgentDialog(BaseDialog):
 
         # 模型 (可选)
         model_layout = QHBoxLayout()
-        model_layout.addWidget(BodyLabel("模型 (可选):", basic_card))
+        model_layout.setSpacing(8)
+        model_label = BodyLabel("模型 (可选):", basic_card)
+        model_label.setMinimumWidth(80)
+        model_layout.addWidget(model_label)
         self.model_edit = LineEdit(basic_card)
-        self.model_edit.setPlaceholderText(
-            "绑定特定模型，如: claude-sonnet-4-5-20250929"
-        )
+        self.model_edit.setPlaceholderText("claude-sonnet-4-5-20250929")
+        self.model_edit.setMinimumHeight(36)
         self.model_edit.setToolTip(get_tooltip("agent_model"))
         model_layout.addWidget(self.model_edit)
         basic_layout.addLayout(model_layout)
@@ -3894,10 +4178,12 @@ class OpenCodeAgentDialog(BaseDialog):
         # ===== 参数配置 =====
         param_card = CardWidget(content)
         param_layout = QVBoxLayout(param_card)
+        param_layout.setSpacing(10)
         param_layout.addWidget(SubtitleLabel("参数配置", param_card))
 
         # Temperature
         temp_layout = QHBoxLayout()
+        temp_layout.setSpacing(8)
         temp_layout.addWidget(BodyLabel("Temperature:", param_card))
         self.temp_slider = Slider(Qt.Orientation.Horizontal, param_card)
         self.temp_slider.setRange(0, 200)
@@ -3913,11 +4199,13 @@ class OpenCodeAgentDialog(BaseDialog):
 
         # 最大步数
         steps_layout = QHBoxLayout()
+        steps_layout.setSpacing(8)
         steps_layout.addWidget(BodyLabel("最大步数 (可选):", param_card))
         self.maxsteps_spin = SpinBox(param_card)
         self.maxsteps_spin.setRange(0, 1000)
         self.maxsteps_spin.setValue(0)
         self.maxsteps_spin.setSpecialValueText("不限制")
+        self.maxsteps_spin.setMinimumHeight(36)
         self.maxsteps_spin.setToolTip(get_tooltip("opencode_agent_maxSteps"))
         steps_layout.addWidget(self.maxsteps_spin)
         steps_layout.addStretch()
@@ -3925,6 +4213,7 @@ class OpenCodeAgentDialog(BaseDialog):
 
         # 复选框
         check_layout = QHBoxLayout()
+        check_layout.setSpacing(16)
         self.hidden_check = CheckBox("隐藏 (仅 subagent)", param_card)
         self.hidden_check.setToolTip(get_tooltip("opencode_agent_hidden"))
         check_layout.addWidget(self.hidden_check)
@@ -3939,6 +4228,7 @@ class OpenCodeAgentDialog(BaseDialog):
         # ===== 工具和权限配置 =====
         tools_card = CardWidget(content)
         tools_layout = QVBoxLayout(tools_card)
+        tools_layout.setSpacing(8)
         tools_layout.addWidget(SubtitleLabel("工具和权限配置", tools_card))
 
         # 工具配置 (JSON)
@@ -3946,10 +4236,9 @@ class OpenCodeAgentDialog(BaseDialog):
         tools_label.setToolTip(get_tooltip("opencode_agent_tools"))
         tools_layout.addWidget(tools_label)
         self.tools_edit = TextEdit(tools_card)
-        self.tools_edit.setPlaceholderText(
-            '{"write": true, "edit": true, "bash": true}'
-        )
-        self.tools_edit.setMaximumHeight(80)
+        self.tools_edit.setPlaceholderText('{"write": true, "edit": true}')
+        self.tools_edit.setMinimumHeight(100)
+        self.tools_edit.setMaximumHeight(150)
         tools_layout.addWidget(self.tools_edit)
 
         # 权限配置 (JSON)
@@ -3958,20 +4247,22 @@ class OpenCodeAgentDialog(BaseDialog):
         tools_layout.addWidget(perm_label)
         self.permission_edit = TextEdit(tools_card)
         self.permission_edit.setPlaceholderText('{"edit": "allow", "bash": "ask"}')
-        self.permission_edit.setMaximumHeight(80)
+        self.permission_edit.setMinimumHeight(150)
+        self.permission_edit.setMaximumHeight(160)
         tools_layout.addWidget(self.permission_edit)
-
+        tools_layout.addWidget(self.permission_edit, stretch=1)
         content_layout.addWidget(tools_card)
 
         # ===== 系统提示词 =====
         prompt_card = CardWidget(content)
         prompt_layout = QVBoxLayout(prompt_card)
+        prompt_layout.setSpacing(8)
         prompt_label = SubtitleLabel("系统提示词", prompt_card)
         prompt_label.setToolTip(get_tooltip("opencode_agent_prompt"))
         prompt_layout.addWidget(prompt_label)
         self.prompt_edit = TextEdit(prompt_card)
         self.prompt_edit.setPlaceholderText("自定义系统提示词...")
-        self.prompt_edit.setMinimumHeight(100)
+        self.prompt_edit.setMinimumHeight(80)
         prompt_layout.addWidget(self.prompt_edit)
 
         content_layout.addWidget(prompt_card)
@@ -3985,10 +4276,12 @@ class OpenCodeAgentDialog(BaseDialog):
         btn_layout.addStretch()
 
         self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn.setMinimumHeight(36)
         self.cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self.cancel_btn)
 
         self.save_btn = PrimaryPushButton("保存", self)
+        self.save_btn.setMinimumHeight(36)
         self.save_btn.clicked.connect(self._on_save)
         btn_layout.addWidget(self.save_btn)
 
@@ -4614,6 +4907,9 @@ Thinking 模式配置示例
 class MainWindow(FluentWindow):
     """主窗口"""
 
+    # 配置变更信号 - 用于跨页面数据同步
+    config_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__()
 
@@ -4641,8 +4937,19 @@ class MainWindow(FluentWindow):
         self._init_window()
         self._init_navigation()
 
-        # 异步检查更新
-        QTimer.singleShot(1000, self.version_checker.check_update_async)
+        # 版本检查定时器
+        if STARTUP_VERSION_CHECK_ENABLED:
+            # 启动后延迟首次检查
+            QTimer.singleShot(
+                IMMEDIATE_VERSION_CHECK_MS, self.version_checker.check_update_async
+            )
+        # 30分钟定时检查
+        self._version_update_timer = QTimer(self)
+        self._version_update_timer.setInterval(UPDATE_INTERVAL_MS)
+        self._version_update_timer.timeout.connect(
+            self.version_checker.check_update_async
+        )
+        self._version_update_timer.start()
 
     def _init_window(self):
         self.setWindowTitle(f"OCCM - OpenCode Config Manager v{APP_VERSION}")
@@ -4772,19 +5079,53 @@ class MainWindow(FluentWindow):
 
     def save_opencode_config(self):
         """保存 OpenCode 配置"""
-        if ConfigManager.save_json(
-            ConfigPaths.get_opencode_config(), self.opencode_config
-        ):
+        success, jsonc_warning = ConfigManager.save_json(
+            ConfigPaths.get_opencode_config(),
+            self.opencode_config,
+            backup_manager=self.backup_manager,
+        )
+        if success:
+            self.notify_config_changed()
+            if jsonc_warning and not getattr(self, "_opencode_jsonc_warned", False):
+                self._opencode_jsonc_warned = True
+                InfoBar.warning(
+                    title="JSONC 注释已丢失",
+                    content="原配置文件包含注释，保存后注释已丢失。已自动备份原文件。",
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=8000,
+                    parent=self,
+                )
             return True
         return False
 
     def save_ohmyopencode_config(self):
         """保存 Oh My OpenCode 配置"""
-        if ConfigManager.save_json(
-            ConfigPaths.get_ohmyopencode_config(), self.ohmyopencode_config
-        ):
+        success, jsonc_warning = ConfigManager.save_json(
+            ConfigPaths.get_ohmyopencode_config(),
+            self.ohmyopencode_config,
+            backup_manager=self.backup_manager,
+        )
+        if success:
+            self.notify_config_changed()
+            if jsonc_warning and not getattr(self, "_ohmyopencode_jsonc_warned", False):
+                self._ohmyopencode_jsonc_warned = True
+                InfoBar.warning(
+                    title="JSONC 注释已丢失",
+                    content="原配置文件包含注释，保存后注释已丢失。已自动备份原文件。",
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=8000,
+                    parent=self,
+                )
             return True
         return False
+
+    def notify_config_changed(self):
+        """通知所有页面配置已变更"""
+        self.config_changed.emit()
 
     def _on_version_check(self, latest_version: str, release_url: str):
         """版本检查回调"""
@@ -4822,6 +5163,12 @@ class OhMyAgentPage(BasePage):
         super().__init__("Oh My Agent", parent)
         self.main_window = main_window
         self._setup_ui()
+        self._load_data()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新数据"""
         self._load_data()
 
     def _setup_ui(self):
@@ -5121,6 +5468,12 @@ class CategoryPage(BasePage):
         super().__init__("Category 管理", parent)
         self.main_window = main_window
         self._setup_ui()
+        self._load_data()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新数据"""
         self._load_data()
 
     def _setup_ui(self):
@@ -5726,6 +6079,7 @@ class RulesPage(BasePage):
         # Instructions 配置卡片
         inst_card = self.add_card("Instructions 配置")
         inst_layout = inst_card.layout()
+        inst_layout.setSpacing(12)
 
         inst_layout.addWidget(
             BodyLabel(
@@ -5740,17 +6094,21 @@ class RulesPage(BasePage):
 
         # 添加输入
         add_layout = QHBoxLayout()
+        add_layout.setSpacing(8)
         self.inst_path_edit = LineEdit(inst_card)
         self.inst_path_edit.setPlaceholderText(
             "文件路径，如: CONTRIBUTING.md, docs/*.md"
         )
+        self.inst_path_edit.setFixedHeight(36)
         add_layout.addWidget(self.inst_path_edit)
 
         add_btn = PushButton(FIF.ADD, "添加", inst_card)
+        add_btn.setFixedHeight(36)
         add_btn.clicked.connect(self._on_add_instruction)
         add_layout.addWidget(add_btn)
 
         del_btn = PushButton(FIF.DELETE, "删除", inst_card)
+        del_btn.setFixedHeight(36)
         del_btn.clicked.connect(self._on_delete_instruction)
         add_layout.addWidget(del_btn)
 
@@ -5758,9 +6116,11 @@ class RulesPage(BasePage):
 
         # 快捷路径
         quick_layout = QHBoxLayout()
+        quick_layout.setSpacing(8)
         quick_layout.addWidget(BodyLabel("快捷:", inst_card))
         for path in ["CONTRIBUTING.md", "docs/*.md", ".cursor/rules/*.md"]:
             btn = PushButton(path, inst_card)
+            btn.setFixedHeight(32)
             btn.clicked.connect(lambda checked, p=path: self.inst_path_edit.setText(p))
             quick_layout.addWidget(btn)
         quick_layout.addStretch()
@@ -5768,15 +6128,18 @@ class RulesPage(BasePage):
 
         # 保存按钮
         save_inst_btn = PrimaryPushButton("保存 Instructions", inst_card)
+        save_inst_btn.setFixedHeight(36)
         save_inst_btn.clicked.connect(self._on_save_instructions)
         inst_layout.addWidget(save_inst_btn)
 
         # AGENTS.md 编辑卡片
         agents_card = self.add_card("AGENTS.md 编辑")
         agents_layout = agents_card.layout()
+        agents_layout.setSpacing(12)
 
         # 位置选择
         loc_layout = QHBoxLayout()
+        loc_layout.setSpacing(12)
         loc_layout.addWidget(BodyLabel("编辑位置:", agents_card))
         self.global_radio = RadioButton("全局", agents_card)
         self.global_radio.setChecked(True)
@@ -5799,15 +6162,19 @@ class RulesPage(BasePage):
 
         # 按钮
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(8)
         save_btn = PrimaryPushButton("保存 AGENTS.md", agents_card)
+        save_btn.setFixedHeight(36)
         save_btn.clicked.connect(self._on_save_agents_md)
         btn_layout.addWidget(save_btn)
 
         reload_btn = PushButton("重新加载", agents_card)
+        reload_btn.setFixedHeight(36)
         reload_btn.clicked.connect(self._load_agents_md)
         btn_layout.addWidget(reload_btn)
 
         template_btn = PushButton("使用模板", agents_card)
+        template_btn.setFixedHeight(36)
         template_btn.clicked.connect(self._use_template)
         btn_layout.addWidget(template_btn)
 
@@ -6036,7 +6403,13 @@ class ImportPage(BasePage):
         self.config_table = TableWidget(detect_card)
         self.config_table.setColumnCount(3)
         self.config_table.setHorizontalHeaderLabels(["来源", "配置路径", "状态"])
-        self.config_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # 设置列宽：第一列25字符，第三列15字符，第二列自动填充
+        header = self.config_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Fixed)
+        self.config_table.setColumnWidth(0, 180)  # 约25字符
+        self.config_table.setColumnWidth(2, 100)  # 约15字符
         self.config_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.config_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.config_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
