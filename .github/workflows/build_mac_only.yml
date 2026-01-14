@@ -76,7 +76,7 @@ jobs:
           
       - name: Create DMG Installer
         run: |
-          create-dmg dist/OpenCode-Config-Manager-MacOS.dmg dist/OpenCode-Config-Manager/
+          create-dmg --overwrite dist/OpenCode-Config-Manager-MacOS.dmg dist/OpenCode-Config-Manager/
 
       - name: Upload to Artifacts (手动下载，上传产物到Action Artifacts → 手动下载兜底，零Tag限制)
         uses: actions/upload-artifact@v4
@@ -87,7 +87,7 @@ jobs:
       - name: 6. 上传到GitHub Release → 解决requires a tag报错，完整配置
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/OCCM-MacOS.dmg
+          files: dist/OpenCode-Config-Manager-MacOS-MacOS.dmg
           overwrite_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           generate_release_notes: true
