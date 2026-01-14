@@ -1,0 +1,4 @@
+pyinstaller>=6.3.0
+PyQt5-sip>=12.18.0
+PyQt5>=5.15.0
+PyQt-Fluent-Widgets>=1.0.0
