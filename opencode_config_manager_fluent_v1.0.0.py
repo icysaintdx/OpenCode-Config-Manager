@@ -1291,7 +1291,7 @@ class ModelPage(BasePage):
 
 
 class ModelDialog(QDialog):
-    """模型编辑对话框"""
+    """模型编辑对话框 - 完整版本，包含 Options/Variants Tab"""
 
     def __init__(
         self, main_window, provider_name: str, model_id: str = None, parent=None
@@ -1301,9 +1301,10 @@ class ModelDialog(QDialog):
         self.provider_name = provider_name
         self.model_id = model_id
         self.is_edit = model_id is not None
+        self.current_model_data = {"options": {}, "variants": {}}
 
         self.setWindowTitle("编辑模型" if self.is_edit else "添加模型")
-        self.setMinimumSize(600, 500)
+        self.setMinimumSize(700, 700)
         self._setup_ui()
 
         if self.is_edit:
@@ -1311,7 +1312,12 @@ class ModelDialog(QDialog):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setSpacing(10)
+
+        # ===== 基本信息区域 =====
+        basic_card = CardWidget(self)
+        basic_layout = QVBoxLayout(basic_card)
+        basic_layout.setSpacing(8)
 
         # 模型ID
         id_layout = QHBoxLayout()
@@ -1321,56 +1327,61 @@ class ModelDialog(QDialog):
         if self.is_edit:
             self.id_edit.setEnabled(False)
         id_layout.addWidget(self.id_edit)
-        layout.addLayout(id_layout)
+        basic_layout.addLayout(id_layout)
 
         # 显示名称
         name_layout = QHBoxLayout()
         name_layout.addWidget(BodyLabel("显示名称:", self))
         self.name_edit = LineEdit(self)
         name_layout.addWidget(self.name_edit)
-        layout.addLayout(name_layout)
+        basic_layout.addLayout(name_layout)
 
         # 支持附件
         self.attachment_check = CheckBox("支持附件 (图片/文档)", self)
-        layout.addWidget(self.attachment_check)
+        basic_layout.addWidget(self.attachment_check)
 
-        # 上下文窗口
-        context_layout = QHBoxLayout()
-        context_layout.addWidget(BodyLabel("上下文窗口:", self))
+        # 上下文窗口和最大输出
+        limit_layout = QHBoxLayout()
+        limit_layout.addWidget(BodyLabel("上下文窗口:", self))
         self.context_spin = SpinBox(self)
         self.context_spin.setRange(0, 10000000)
         self.context_spin.setValue(200000)
-        context_layout.addWidget(self.context_spin)
-        layout.addLayout(context_layout)
-
-        # 最大输出
-        output_layout = QHBoxLayout()
-        output_layout.addWidget(BodyLabel("最大输出:", self))
+        limit_layout.addWidget(self.context_spin)
+        limit_layout.addSpacing(20)
+        limit_layout.addWidget(BodyLabel("最大输出:", self))
         self.output_spin = SpinBox(self)
         self.output_spin.setRange(0, 1000000)
         self.output_spin.setValue(16000)
-        output_layout.addWidget(self.output_spin)
-        layout.addLayout(output_layout)
+        limit_layout.addWidget(self.output_spin)
+        basic_layout.addLayout(limit_layout)
 
-        # Options (JSON)
-        layout.addWidget(BodyLabel("Options (JSON):", self))
-        self.options_edit = TextEdit(self)
-        self.options_edit.setPlaceholderText(
-            '{"thinking": {"type": "enabled", "budgetTokens": 16000}}'
+        layout.addWidget(basic_card)
+
+        # ===== Tab 切换区域 =====
+        self.pivot = Pivot(self)
+        self.stacked_widget = QStackedWidget(self)
+
+        # Options Tab
+        self.options_widget = QWidget()
+        self._setup_options_tab(self.options_widget)
+        self.stacked_widget.addWidget(self.options_widget)
+        self.pivot.addItem(routeKey="options", text="Options 配置")
+
+        # Variants Tab
+        self.variants_widget = QWidget()
+        self._setup_variants_tab(self.variants_widget)
+        self.stacked_widget.addWidget(self.variants_widget)
+        self.pivot.addItem(routeKey="variants", text="Variants 变体")
+
+        self.pivot.currentItemChanged.connect(
+            lambda k: self.stacked_widget.setCurrentIndex(0 if k == "options" else 1)
         )
-        self.options_edit.setMaximumHeight(100)
-        layout.addWidget(self.options_edit)
+        self.pivot.setCurrentItem("options")
 
-        # Variants (JSON)
-        layout.addWidget(BodyLabel("Variants (JSON):", self))
-        self.variants_edit = TextEdit(self)
-        self.variants_edit.setPlaceholderText(
-            '{"high": {"thinking": {"budgetTokens": 32000}}}'
-        )
-        self.variants_edit.setMaximumHeight(100)
-        layout.addWidget(self.variants_edit)
+        layout.addWidget(self.pivot)
+        layout.addWidget(self.stacked_widget, 1)
 
-        # 按钮
+        # ===== 按钮区域 =====
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
@@ -1384,7 +1395,294 @@ class ModelDialog(QDialog):
 
         layout.addLayout(btn_layout)
 
+    def _setup_options_tab(self, parent):
+        """设置 Options Tab"""
+        layout = QVBoxLayout(parent)
+        layout.setSpacing(8)
+
+        # Claude Thinking 快捷按钮
+        claude_card = CardWidget(parent)
+        claude_layout = QVBoxLayout(claude_card)
+        claude_layout.addWidget(CaptionLabel("Claude Thinking 配置", parent))
+        claude_btn_layout = QHBoxLayout()
+
+        btn_thinking_type = PushButton("thinking.type=enabled", parent)
+        btn_thinking_type.clicked.connect(
+            lambda: self._add_thinking_config("type", "enabled")
+        )
+        claude_btn_layout.addWidget(btn_thinking_type)
+
+        btn_budget = PushButton("budgetTokens=16000", parent)
+        btn_budget.clicked.connect(
+            lambda: self._add_thinking_config("budgetTokens", 16000)
+        )
+        claude_btn_layout.addWidget(btn_budget)
+
+        btn_full = PrimaryPushButton("一键添加 Thinking", parent)
+        btn_full.clicked.connect(self._add_full_thinking_config)
+        claude_btn_layout.addWidget(btn_full)
+
+        claude_layout.addLayout(claude_btn_layout)
+        layout.addWidget(claude_card)
+
+        # OpenAI 推理快捷按钮
+        openai_card = CardWidget(parent)
+        openai_layout = QVBoxLayout(openai_card)
+        openai_layout.addWidget(CaptionLabel("OpenAI 推理配置", parent))
+        openai_btn_layout = QHBoxLayout()
+
+        openai_presets = [
+            ("reasoningEffort", "high"),
+            ("textVerbosity", "low"),
+            ("reasoningSummary", "auto"),
+        ]
+        for key, val in openai_presets:
+            btn = PushButton(f"{key}={val}", parent)
+            btn.clicked.connect(
+                lambda checked, k=key, v=val: self._add_option_preset(k, v)
+            )
+            openai_btn_layout.addWidget(btn)
+
+        openai_layout.addLayout(openai_btn_layout)
+        layout.addWidget(openai_card)
+
+        # Gemini Thinking 快捷按钮
+        gemini_card = CardWidget(parent)
+        gemini_layout = QVBoxLayout(gemini_card)
+        gemini_layout.addWidget(CaptionLabel("Gemini Thinking 配置", parent))
+        gemini_btn_layout = QHBoxLayout()
+
+        btn_gemini_8k = PushButton("thinkingBudget=8000", parent)
+        btn_gemini_8k.clicked.connect(lambda: self._add_gemini_thinking_config(8000))
+        gemini_btn_layout.addWidget(btn_gemini_8k)
+
+        btn_gemini_16k = PushButton("thinkingBudget=16000", parent)
+        btn_gemini_16k.clicked.connect(lambda: self._add_gemini_thinking_config(16000))
+        gemini_btn_layout.addWidget(btn_gemini_16k)
+
+        gemini_layout.addLayout(gemini_btn_layout)
+        layout.addWidget(gemini_card)
+
+        # Options 列表
+        layout.addWidget(BodyLabel("Options 键值对列表:", parent))
+        self.options_table = TableWidget(parent)
+        self.options_table.setColumnCount(2)
+        self.options_table.setHorizontalHeaderLabels(["键", "值"])
+        self.options_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.options_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.options_table.setMinimumHeight(120)
+        layout.addWidget(self.options_table)
+
+        # 键值输入
+        input_layout = QHBoxLayout()
+        input_layout.addWidget(BodyLabel("键:", parent))
+        self.option_key_edit = LineEdit(parent)
+        self.option_key_edit.setPlaceholderText("如: temperature")
+        input_layout.addWidget(self.option_key_edit)
+        input_layout.addWidget(BodyLabel("值:", parent))
+        self.option_value_edit = LineEdit(parent)
+        self.option_value_edit.setPlaceholderText("如: 0.7")
+        input_layout.addWidget(self.option_value_edit)
+        layout.addLayout(input_layout)
+
+        # 添加/删除按钮
+        opt_btn_layout = QHBoxLayout()
+        add_opt_btn = PrimaryPushButton("添加", parent)
+        add_opt_btn.clicked.connect(self._add_option)
+        opt_btn_layout.addWidget(add_opt_btn)
+        del_opt_btn = PushButton("删除选中", parent)
+        del_opt_btn.clicked.connect(self._delete_option)
+        opt_btn_layout.addWidget(del_opt_btn)
+        opt_btn_layout.addStretch()
+        layout.addLayout(opt_btn_layout)
+
+    def _setup_variants_tab(self, parent):
+        """设置 Variants Tab"""
+        layout = QVBoxLayout(parent)
+        layout.setSpacing(8)
+
+        layout.addWidget(BodyLabel("模型变体配置 (Variants):", parent))
+
+        # Variants 列表
+        self.variants_table = TableWidget(parent)
+        self.variants_table.setColumnCount(2)
+        self.variants_table.setHorizontalHeaderLabels(["变体名称", "配置"])
+        self.variants_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.variants_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.variants_table.setMinimumHeight(120)
+        self.variants_table.itemSelectionChanged.connect(self._on_variant_select)
+        layout.addWidget(self.variants_table)
+
+        # 变体名称输入
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(BodyLabel("变体名:", parent))
+        self.variant_name_edit = LineEdit(parent)
+        self.variant_name_edit.setPlaceholderText("如: high, low, thinking")
+        name_layout.addWidget(self.variant_name_edit)
+        layout.addLayout(name_layout)
+
+        # 预设名称按钮
+        preset_layout = QHBoxLayout()
+        preset_layout.addWidget(CaptionLabel("预设名称:", parent))
+        for name in ["high", "low", "thinking", "fast", "default"]:
+            btn = PushButton(name, parent)
+            btn.clicked.connect(
+                lambda checked, n=name: self.variant_name_edit.setText(n)
+            )
+            preset_layout.addWidget(btn)
+        preset_layout.addStretch()
+        layout.addLayout(preset_layout)
+
+        # JSON 配置编辑器
+        layout.addWidget(BodyLabel("配置 (JSON):", parent))
+        self.variant_config_edit = TextEdit(parent)
+        self.variant_config_edit.setPlaceholderText('{"reasoningEffort": "high"}')
+        self.variant_config_edit.setMaximumHeight(100)
+        layout.addWidget(self.variant_config_edit)
+
+        # 添加/删除按钮
+        var_btn_layout = QHBoxLayout()
+        add_var_btn = PrimaryPushButton("添加变体", parent)
+        add_var_btn.clicked.connect(self._add_variant)
+        var_btn_layout.addWidget(add_var_btn)
+        del_var_btn = PushButton("删除变体", parent)
+        del_var_btn.clicked.connect(self._delete_variant)
+        var_btn_layout.addWidget(del_var_btn)
+        var_btn_layout.addStretch()
+        layout.addLayout(var_btn_layout)
+
+        layout.addStretch()
+
+    # ===== Options 辅助方法 =====
+    def _add_thinking_config(self, param, value):
+        """添加 Claude thinking 配置参数"""
+        options = self.current_model_data.setdefault("options", {})
+        thinking = options.setdefault("thinking", {})
+        thinking[param] = value
+        self._refresh_options_table()
+
+    def _add_full_thinking_config(self):
+        """一键添加完整的 Claude thinking 配置"""
+        options = self.current_model_data.setdefault("options", {})
+        options["thinking"] = {"type": "enabled", "budgetTokens": 16000}
+        self._refresh_options_table()
+        InfoBar.success(
+            "成功", "已添加 Claude Thinking 配置", parent=self, duration=2000
+        )
+
+    def _add_gemini_thinking_config(self, budget):
+        """添加 Gemini thinking 配置"""
+        options = self.current_model_data.setdefault("options", {})
+        options["thinkingConfig"] = {"thinkingBudget": budget}
+        self._refresh_options_table()
+
+    def _add_option_preset(self, key, value):
+        """添加预设 option"""
+        self.option_key_edit.setText(key)
+        self.option_value_edit.setText(str(value))
+
+    def _add_option(self):
+        """添加自定义 option"""
+        key = self.option_key_edit.text().strip()
+        value = self.option_value_edit.text().strip()
+        if not key:
+            return
+        # 尝试转换值类型
+        try:
+            if value.lower() == "true":
+                value = True
+            elif value.lower() == "false":
+                value = False
+            elif value.isdigit():
+                value = int(value)
+            elif value.replace(".", "", 1).isdigit():
+                value = float(value)
+        except Exception:
+            pass
+        self.current_model_data.setdefault("options", {})[key] = value
+        self._refresh_options_table()
+        self.option_key_edit.clear()
+        self.option_value_edit.clear()
+
+    def _delete_option(self):
+        """删除选中的 option"""
+        selected = self.options_table.selectedItems()
+        if not selected:
+            return
+        row = selected[0].row()
+        key = self.options_table.item(row, 0).text()
+        options = self.current_model_data.get("options", {})
+        if key in options:
+            del options[key]
+            self._refresh_options_table()
+
+    def _refresh_options_table(self):
+        """刷新 options 表格"""
+        self.options_table.setRowCount(0)
+        options = self.current_model_data.get("options", {})
+        for key, value in options.items():
+            row = self.options_table.rowCount()
+            self.options_table.insertRow(row)
+            self.options_table.setItem(row, 0, QTableWidgetItem(str(key)))
+            self.options_table.setItem(row, 1, QTableWidgetItem(str(value)))
+
+    # ===== Variants 辅助方法 =====
+    def _on_variant_select(self):
+        """选中变体时加载配置"""
+        selected = self.variants_table.selectedItems()
+        if not selected:
+            return
+        row = selected[0].row()
+        name = self.variants_table.item(row, 0).text()
+        variants = self.current_model_data.get("variants", {})
+        if name in variants:
+            self.variant_name_edit.setText(name)
+            self.variant_config_edit.setPlainText(
+                json.dumps(variants[name], indent=2, ensure_ascii=False)
+            )
+
+    def _add_variant(self):
+        """添加变体"""
+        name = self.variant_name_edit.text().strip()
+        if not name:
+            InfoBar.warning("提示", "请输入变体名称", parent=self)
+            return
+        try:
+            config = json.loads(self.variant_config_edit.toPlainText().strip() or "{}")
+        except json.JSONDecodeError as e:
+            InfoBar.error("错误", f"JSON 格式错误: {e}", parent=self)
+            return
+        self.current_model_data.setdefault("variants", {})[name] = config
+        self._refresh_variants_table()
+        self.variant_name_edit.clear()
+
+    def _delete_variant(self):
+        """删除选中的变体"""
+        selected = self.variants_table.selectedItems()
+        if not selected:
+            return
+        row = selected[0].row()
+        name = self.variants_table.item(row, 0).text()
+        variants = self.current_model_data.get("variants", {})
+        if name in variants:
+            del variants[name]
+            self._refresh_variants_table()
+
+    def _refresh_variants_table(self):
+        """刷新 variants 表格"""
+        self.variants_table.setRowCount(0)
+        variants = self.current_model_data.get("variants", {})
+        for name, config in variants.items():
+            row = self.variants_table.rowCount()
+            self.variants_table.insertRow(row)
+            self.variants_table.setItem(row, 0, QTableWidgetItem(name))
+            config_str = json.dumps(config, ensure_ascii=False)
+            if len(config_str) > 50:
+                config_str = config_str[:50] + "..."
+            self.variants_table.setItem(row, 1, QTableWidgetItem(config_str))
+
     def _load_model_data(self):
+        """加载模型数据"""
         config = self.main_window.opencode_config or {}
         provider = config.get("provider", {}).get(self.provider_name, {})
         model = provider.get("models", {}).get(self.model_id, {})
@@ -1397,42 +1695,18 @@ class ModelDialog(QDialog):
         self.context_spin.setValue(limit.get("context", 200000))
         self.output_spin.setValue(limit.get("output", 16000))
 
-        options = model.get("options", {})
-        if options:
-            self.options_edit.setPlainText(
-                json.dumps(options, indent=2, ensure_ascii=False)
-            )
-
-        variants = model.get("variants", {})
-        if variants:
-            self.variants_edit.setPlainText(
-                json.dumps(variants, indent=2, ensure_ascii=False)
-            )
+        # 加载 options 和 variants
+        self.current_model_data["options"] = model.get("options", {}).copy()
+        self.current_model_data["variants"] = model.get("variants", {}).copy()
+        self._refresh_options_table()
+        self._refresh_variants_table()
 
     def _on_save(self):
+        """保存模型"""
         model_id = self.id_edit.text().strip()
         if not model_id:
             InfoBar.error("错误", "请输入模型 ID", parent=self)
             return
-
-        # 解析 JSON
-        options = {}
-        options_text = self.options_edit.toPlainText().strip()
-        if options_text:
-            try:
-                options = json.loads(options_text)
-            except json.JSONDecodeError as e:
-                InfoBar.error("错误", f"Options JSON 格式错误: {e}", parent=self)
-                return
-
-        variants = {}
-        variants_text = self.variants_edit.toPlainText().strip()
-        if variants_text:
-            try:
-                variants = json.loads(variants_text)
-            except json.JSONDecodeError as e:
-                InfoBar.error("错误", f"Variants JSON 格式错误: {e}", parent=self)
-                return
 
         config = self.main_window.opencode_config
         if config is None:
@@ -1462,8 +1736,10 @@ class ModelDialog(QDialog):
                 "output": self.output_spin.value(),
             },
         }
+        options = self.current_model_data.get("options", {})
         if options:
             model_data["options"] = options
+        variants = self.current_model_data.get("variants", {})
         if variants:
             model_data["variants"] = variants
 
@@ -1966,7 +2242,7 @@ class OpenCodeAgentPage(BasePage):
 
 
 class OpenCodeAgentDialog(QDialog):
-    """OpenCode Agent 编辑对话框"""
+    """OpenCode Agent 编辑对话框 - 完整版本"""
 
     def __init__(self, main_window, agent_name: str = None, parent=None):
         super().__init__(parent)
@@ -1975,7 +2251,7 @@ class OpenCodeAgentDialog(QDialog):
         self.is_edit = agent_name is not None
 
         self.setWindowTitle("编辑 Agent" if self.is_edit else "添加 Agent")
-        self.setMinimumSize(550, 450)
+        self.setMinimumSize(600, 700)
         self._setup_ui()
 
         if self.is_edit:
@@ -1983,57 +2259,141 @@ class OpenCodeAgentDialog(QDialog):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setSpacing(10)
+
+        # 使用滚动区域
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setSpacing(10)
+
+        # ===== 基本信息 =====
+        basic_card = CardWidget(content)
+        basic_layout = QVBoxLayout(basic_card)
+        basic_layout.addWidget(SubtitleLabel("基本信息", basic_card))
 
         # Agent 名称
         name_layout = QHBoxLayout()
-        name_layout.addWidget(BodyLabel("Agent 名称:", self))
-        self.name_edit = LineEdit(self)
+        name_layout.addWidget(BodyLabel("Agent 名称:", basic_card))
+        self.name_edit = LineEdit(basic_card)
         self.name_edit.setPlaceholderText("如: build, plan, explore")
         if self.is_edit:
             self.name_edit.setEnabled(False)
         name_layout.addWidget(self.name_edit)
-        layout.addLayout(name_layout)
+        basic_layout.addLayout(name_layout)
+
+        # 描述
+        desc_layout = QHBoxLayout()
+        desc_layout.addWidget(BodyLabel("描述:", basic_card))
+        self.desc_edit = LineEdit(basic_card)
+        self.desc_edit.setPlaceholderText("Agent 功能描述")
+        desc_layout.addWidget(self.desc_edit)
+        basic_layout.addLayout(desc_layout)
 
         # 模式
         mode_layout = QHBoxLayout()
-        mode_layout.addWidget(BodyLabel("模式:", self))
-        self.mode_combo = ComboBox(self)
+        mode_layout.addWidget(BodyLabel("模式:", basic_card))
+        self.mode_combo = ComboBox(basic_card)
         self.mode_combo.addItems(["primary", "subagent", "all"])
         mode_layout.addWidget(self.mode_combo)
-        layout.addLayout(mode_layout)
+        mode_layout.addStretch()
+        basic_layout.addLayout(mode_layout)
+
+        # 模型 (可选)
+        model_layout = QHBoxLayout()
+        model_layout.addWidget(BodyLabel("模型 (可选):", basic_card))
+        self.model_edit = LineEdit(basic_card)
+        self.model_edit.setPlaceholderText(
+            "绑定特定模型，如: claude-sonnet-4-5-20250929"
+        )
+        model_layout.addWidget(self.model_edit)
+        basic_layout.addLayout(model_layout)
+
+        content_layout.addWidget(basic_card)
+
+        # ===== 参数配置 =====
+        param_card = CardWidget(content)
+        param_layout = QVBoxLayout(param_card)
+        param_layout.addWidget(SubtitleLabel("参数配置", param_card))
 
         # Temperature
         temp_layout = QHBoxLayout()
-        temp_layout.addWidget(BodyLabel("Temperature:", self))
-        self.temp_slider = Slider(Qt.Orientation.Horizontal, self)
+        temp_layout.addWidget(BodyLabel("Temperature:", param_card))
+        self.temp_slider = Slider(Qt.Orientation.Horizontal, param_card)
         self.temp_slider.setRange(0, 200)
-        self.temp_slider.setValue(70)
-        self.temp_label = BodyLabel("0.7", self)
+        self.temp_slider.setValue(30)
+        self.temp_label = BodyLabel("0.3", param_card)
         self.temp_slider.valueChanged.connect(
             lambda v: self.temp_label.setText(f"{v / 100:.1f}")
         )
         temp_layout.addWidget(self.temp_slider)
         temp_layout.addWidget(self.temp_label)
-        layout.addLayout(temp_layout)
+        param_layout.addLayout(temp_layout)
 
-        # 描述
-        layout.addWidget(BodyLabel("描述:", self))
-        self.desc_edit = TextEdit(self)
-        self.desc_edit.setMaximumHeight(60)
-        layout.addWidget(self.desc_edit)
+        # 最大步数
+        steps_layout = QHBoxLayout()
+        steps_layout.addWidget(BodyLabel("最大步数 (可选):", param_card))
+        self.maxsteps_spin = SpinBox(param_card)
+        self.maxsteps_spin.setRange(0, 1000)
+        self.maxsteps_spin.setValue(0)
+        self.maxsteps_spin.setSpecialValueText("不限制")
+        steps_layout.addWidget(self.maxsteps_spin)
+        steps_layout.addStretch()
+        param_layout.addLayout(steps_layout)
 
-        # 系统提示词
-        layout.addWidget(BodyLabel("系统提示词:", self))
-        self.prompt_edit = TextEdit(self)
-        self.prompt_edit.setMaximumHeight(80)
-        layout.addWidget(self.prompt_edit)
+        # 复选框
+        check_layout = QHBoxLayout()
+        self.hidden_check = CheckBox("隐藏 (仅 subagent)", param_card)
+        check_layout.addWidget(self.hidden_check)
+        self.disable_check = CheckBox("禁用此 Agent", param_card)
+        check_layout.addWidget(self.disable_check)
+        check_layout.addStretch()
+        param_layout.addLayout(check_layout)
 
-        # 隐藏
-        self.hidden_check = CheckBox("在 @ 自动完成中隐藏", self)
-        layout.addWidget(self.hidden_check)
+        content_layout.addWidget(param_card)
 
-        # 按钮
+        # ===== 工具和权限配置 =====
+        tools_card = CardWidget(content)
+        tools_layout = QVBoxLayout(tools_card)
+        tools_layout.addWidget(SubtitleLabel("工具和权限配置", tools_card))
+
+        # 工具配置 (JSON)
+        tools_layout.addWidget(BodyLabel("工具配置 (JSON):", tools_card))
+        self.tools_edit = TextEdit(tools_card)
+        self.tools_edit.setPlaceholderText(
+            '{"write": true, "edit": true, "bash": true}'
+        )
+        self.tools_edit.setMaximumHeight(80)
+        tools_layout.addWidget(self.tools_edit)
+
+        # 权限配置 (JSON)
+        tools_layout.addWidget(BodyLabel("权限配置 (JSON):", tools_card))
+        self.permission_edit = TextEdit(tools_card)
+        self.permission_edit.setPlaceholderText('{"edit": "allow", "bash": "ask"}')
+        self.permission_edit.setMaximumHeight(80)
+        tools_layout.addWidget(self.permission_edit)
+
+        content_layout.addWidget(tools_card)
+
+        # ===== 系统提示词 =====
+        prompt_card = CardWidget(content)
+        prompt_layout = QVBoxLayout(prompt_card)
+        prompt_layout.addWidget(SubtitleLabel("系统提示词", prompt_card))
+        self.prompt_edit = TextEdit(prompt_card)
+        self.prompt_edit.setPlaceholderText("自定义系统提示词...")
+        self.prompt_edit.setMinimumHeight(100)
+        prompt_layout.addWidget(self.prompt_edit)
+
+        content_layout.addWidget(prompt_card)
+        content_layout.addStretch()
+
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
+
+        # ===== 按钮 =====
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
@@ -2052,21 +2412,45 @@ class OpenCodeAgentDialog(QDialog):
         agent = config.get("agent", {}).get(self.agent_name, {})
 
         self.name_edit.setText(self.agent_name)
+        self.desc_edit.setText(agent.get("description", ""))
 
         mode = agent.get("mode", "subagent")
         self.mode_combo.setCurrentText(mode)
 
-        temp = agent.get("temperature", 0.7)
+        self.model_edit.setText(agent.get("model", ""))
+
+        temp = agent.get("temperature", 0.3)
         self.temp_slider.setValue(int(temp * 100))
 
-        self.desc_edit.setPlainText(agent.get("description", ""))
-        self.prompt_edit.setPlainText(agent.get("prompt", ""))
+        maxsteps = agent.get("maxSteps", 0)
+        self.maxsteps_spin.setValue(maxsteps if maxsteps else 0)
+
         self.hidden_check.setChecked(agent.get("hidden", False))
+        self.disable_check.setChecked(agent.get("disable", False))
+
+        tools = agent.get("tools", {})
+        if tools:
+            self.tools_edit.setPlainText(
+                json.dumps(tools, indent=2, ensure_ascii=False)
+            )
+
+        permission = agent.get("permission", {})
+        if permission:
+            self.permission_edit.setPlainText(
+                json.dumps(permission, indent=2, ensure_ascii=False)
+            )
+
+        self.prompt_edit.setPlainText(agent.get("prompt", ""))
 
     def _on_save(self):
         name = self.name_edit.text().strip()
         if not name:
             InfoBar.error("错误", "请输入 Agent 名称", parent=self)
+            return
+
+        desc = self.desc_edit.text().strip()
+        if not desc:
+            InfoBar.error("错误", "请输入 Agent 描述", parent=self)
             return
 
         config = self.main_window.opencode_config
@@ -2082,20 +2466,57 @@ class OpenCodeAgentDialog(QDialog):
             return
 
         agent_data = {
+            "description": desc,
             "mode": self.mode_combo.currentText(),
-            "temperature": self.temp_slider.value() / 100,
         }
 
-        desc = self.desc_edit.toPlainText().strip()
-        if desc:
-            agent_data["description"] = desc
+        # 模型
+        model = self.model_edit.text().strip()
+        if model:
+            agent_data["model"] = model
 
+        # Temperature (只有非默认值才保存)
+        temp = self.temp_slider.value() / 100
+        if temp != 0.3:
+            agent_data["temperature"] = temp
+
+        # 最大步数
+        maxsteps = self.maxsteps_spin.value()
+        if maxsteps > 0:
+            agent_data["maxSteps"] = maxsteps
+
+        # 复选框
+        if self.hidden_check.isChecked():
+            agent_data["hidden"] = True
+        if self.disable_check.isChecked():
+            agent_data["disable"] = True
+
+        # 工具配置
+        tools_text = self.tools_edit.toPlainText().strip()
+        if tools_text:
+            try:
+                tools = json.loads(tools_text)
+                if tools:
+                    agent_data["tools"] = tools
+            except json.JSONDecodeError as e:
+                InfoBar.error("错误", f"工具配置 JSON 格式错误: {e}", parent=self)
+                return
+
+        # 权限配置
+        perm_text = self.permission_edit.toPlainText().strip()
+        if perm_text:
+            try:
+                permission = json.loads(perm_text)
+                if permission:
+                    agent_data["permission"] = permission
+            except json.JSONDecodeError as e:
+                InfoBar.error("错误", f"权限配置 JSON 格式错误: {e}", parent=self)
+                return
+
+        # 系统提示词
         prompt = self.prompt_edit.toPlainText().strip()
         if prompt:
             agent_data["prompt"] = prompt
-
-        if self.hidden_check.isChecked():
-            agent_data["hidden"] = True
 
         config["agent"][name] = agent_data
         self.main_window.save_opencode_config()

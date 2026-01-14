@@ -1,7 +1,28 @@
 # -*- coding: utf-8 -*-
 """
 OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 1: 常量定义和预设数据
+完整合并版本
+
+功能特性：
+- 服务商配置管理（支持18种预设SDK）
+- 模型配置管理（Token限制、上下文窗口、特性支持）
+- MCP服务器配置（本地/远程类型）
+- Agent管理（自定义Agent、预设模板）
+- 权限配置（allow/ask/deny列表、Bash命令权限）
+- 分类配置（Temperature滑块、预设分类模板）
+- 技能配置（SKILL.md编辑器）
+- 规则配置（AGENTS.md编辑器、全局指令）
+- 上下文压缩配置
+- 导入导出功能
+- 备份恢复功能
+- 主题切换（明/暗）
+
+依赖：
+- PyQt5
+- qfluentwidgets
+
+作者: OpenCode Team
+版本: 0.9.0
 """
 
 import os
@@ -13,6 +34,40 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
+
+from PyQt5.QtCore import Qt, QSize, pyqtSignal, QUrl, QTimer
+from PyQt5.QtGui import QIcon, QFont, QDesktopServices
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QStackedWidget, QLabel, QFrame, QSizePolicy, QSpacerItem,
+    QSplitter, QDialog, QDialogButtonBox, QFileDialog
+)
+
+from qfluentwidgets import (
+    FluentWindow, NavigationInterface, NavigationItemPosition,
+    FluentIcon, Theme, setTheme, isDarkTheme,
+    InfoBar, InfoBarPosition, MessageBox,
+    PushButton, PrimaryPushButton, TransparentPushButton,
+    SubtitleLabel, BodyLabel, CaptionLabel, TitleLabel,
+    CardWidget, SimpleCardWidget, ElevatedCardWidget,
+    ScrollArea, SmoothScrollArea,
+    ComboBox, LineEdit, TextEdit, SpinBox, DoubleSpinBox,
+    SwitchButton, CheckBox, RadioButton,
+    Slider, ProgressBar,
+    TableWidget, ListWidget, TreeWidget,
+    ToolTipFilter, ToolTipPosition,
+    Action, RoundMenu,
+    StateToolTip,
+    setThemeColor, NavigationAvatarWidget,
+    SplashScreen, HyperlinkButton, Dialog
+)
+from qfluentwidgets import FluentIcon as FIF
+
+
+
+# ======================================================================
+# Part 1: 常量定义和预设数据
+# ======================================================================
 
 # ==================== 版本信息 ====================
 VERSION = "0.9.0"
@@ -316,20 +371,11 @@ DEFAULT_CONFIG = {
         "trimOldOutput": False
     }
 }
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 2: 服务类
-"""
 
-import os
-import json
-import shutil
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, field
 
+# ======================================================================
+# Part 2: 服务类
+# ======================================================================
 
 class ConfigPaths:
     """配置文件路径管理"""
@@ -877,39 +923,11 @@ class MarkdownFileManager:
         except Exception as e:
             print(f"写入SKILL.md失败: {e}")
             return False
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 3: 主窗口架构
-"""
 
-import sys
-from PyQt5.QtCore import Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget,
-    QLabel, QFrame, QSizePolicy, QSpacerItem
-)
 
-from qfluentwidgets import (
-    FluentWindow, NavigationInterface, NavigationItemPosition,
-    FluentIcon, Theme, setTheme, isDarkTheme,
-    InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton, TransparentPushButton,
-    SubtitleLabel, BodyLabel, CaptionLabel,
-    CardWidget, SimpleCardWidget, ElevatedCardWidget,
-    ScrollArea, SmoothScrollArea,
-    ComboBox, LineEdit, TextEdit, SpinBox, DoubleSpinBox,
-    SwitchButton, CheckBox, RadioButton,
-    Slider, ProgressBar,
-    TableWidget, ListWidget, TreeWidget,
-    ToolTipFilter, ToolTipPosition,
-    Action, RoundMenu,
-    StateToolTip,
-    setThemeColor
-)
-from qfluentwidgets import FluentIcon as FIF
-
+# ======================================================================
+# Part 3: 主窗口架构和UI组件
+# ======================================================================
 
 class BasePage(ScrollArea):
     """页面基类"""
@@ -1329,37 +1347,11 @@ class ListCard(CardWidget):
     def get_all_items(self) -> list:
         """获取所有列表项"""
         return [self.list_widget.item(i).text() for i in range(self.list_widget.count())]
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 4: Provider页面和Model页面
-"""
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QSplitter, QDialog, QDialogButtonBox
-)
 
-from qfluentwidgets import (
-    FluentIcon as FIF, InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton, TransparentPushButton,
-    SubtitleLabel, BodyLabel, CaptionLabel,
-    CardWidget, SimpleCardWidget,
-    ComboBox, LineEdit, TextEdit, SpinBox, DoubleSpinBox,
-    SwitchButton, CheckBox, RadioButton,
-    ListWidget, TableWidget,
-    ToolTipFilter, ToolTipPosition,
-    Dialog
-)
-
-from part3_mainwindow import (
-    BasePage, SettingCard, SwitchSettingCard, ComboBoxSettingCard,
-    SpinBoxSettingCard, LineEditSettingCard, ButtonSettingCard,
-    FormCard, ListCard
-)
-
+# ======================================================================
+# Part 4: Provider页面和Model页面
+# ======================================================================
 
 class ProviderDialog(Dialog):
     """服务商编辑对话框"""
@@ -1927,37 +1919,11 @@ class ModelPage(BasePage):
             self.show_success("成功", "Options/Variants配置已保存")
         except json.JSONDecodeError as e:
             self.show_error("JSON格式错误", str(e))
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 5: MCP页面和Agent页面
-"""
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QSplitter
-)
 
-from qfluentwidgets import (
-    FluentIcon as FIF, InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton, TransparentPushButton,
-    SubtitleLabel, BodyLabel, CaptionLabel,
-    CardWidget, SimpleCardWidget,
-    ComboBox, LineEdit, TextEdit, SpinBox, DoubleSpinBox,
-    SwitchButton, CheckBox, RadioButton,
-    ListWidget, TableWidget,
-    ToolTipFilter, ToolTipPosition,
-    Dialog
-)
-
-from part3_mainwindow import (
-    BasePage, SettingCard, SwitchSettingCard, ComboBoxSettingCard,
-    SpinBoxSettingCard, LineEditSettingCard, ButtonSettingCard,
-    FormCard, ListCard
-)
-
+# ======================================================================
+# Part 5: MCP页面和Agent页面
+# ======================================================================
 
 class MCPDialog(Dialog):
     """MCP服务器编辑对话框"""
@@ -2610,38 +2576,11 @@ class AgentPage(BasePage):
         self.config_manager.add_agent(name, config)
         self._load_data()
         self.show_success("成功", f"已保存Agent: {name}")
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 6: Category页面和Permission页面
-"""
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QSplitter
-)
 
-from qfluentwidgets import (
-    FluentIcon as FIF, InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton, TransparentPushButton,
-    SubtitleLabel, BodyLabel, CaptionLabel,
-    CardWidget, SimpleCardWidget,
-    ComboBox, LineEdit, TextEdit, SpinBox, DoubleSpinBox,
-    SwitchButton, CheckBox, RadioButton,
-    ListWidget, TableWidget,
-    Slider,
-    ToolTipFilter, ToolTipPosition,
-    Dialog
-)
-
-from part3_mainwindow import (
-    BasePage, SettingCard, SwitchSettingCard, ComboBoxSettingCard,
-    SpinBoxSettingCard, SliderSettingCard, LineEditSettingCard,
-    ButtonSettingCard, FormCard, ListCard
-)
-
+# ======================================================================
+# Part 6: Category页面和Permission页面
+# ======================================================================
 
 class CategoryPage(BasePage):
     """分类配置页面 - Temperature滑块和预设分类模板"""
@@ -3087,37 +3026,11 @@ class PermissionPage(BasePage):
 
         self.config_manager.set_permissions(permissions)
         self.show_success("成功", "权限配置已保存")
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 7: Skill页面和Rules页面
-"""
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QSplitter, QFileDialog
-)
 
-from qfluentwidgets import (
-    FluentIcon as FIF, InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton, TransparentPushButton,
-    SubtitleLabel, BodyLabel, CaptionLabel,
-    CardWidget, SimpleCardWidget,
-    ComboBox, LineEdit, TextEdit, SpinBox,
-    SwitchButton, CheckBox, RadioButton,
-    ListWidget,
-    ToolTipFilter, ToolTipPosition,
-    Dialog
-)
-
-from part3_mainwindow import (
-    BasePage, SettingCard, SwitchSettingCard, ComboBoxSettingCard,
-    SpinBoxSettingCard, LineEditSettingCard, ButtonSettingCard,
-    FormCard, ListCard
-)
-
+# ======================================================================
+# Part 7: Skill页面和Rules页面
+# ======================================================================
 
 class SkillPage(BasePage):
     """技能配置页面"""
@@ -3405,38 +3318,11 @@ class RulesPage(BasePage):
                 self.agents_editor.setText(current + "\n\n" + template)
         else:
             self.agents_editor.setText(template)
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 8: Compaction页面和Import页面
-"""
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QSplitter, QFileDialog
-)
 
-from qfluentwidgets import (
-    FluentIcon as FIF, InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton, TransparentPushButton,
-    SubtitleLabel, BodyLabel, CaptionLabel,
-    CardWidget, SimpleCardWidget,
-    ComboBox, LineEdit, TextEdit, SpinBox,
-    SwitchButton, CheckBox, RadioButton,
-    ListWidget, TableWidget,
-    ProgressBar,
-    ToolTipFilter, ToolTipPosition,
-    Dialog
-)
-
-from part3_mainwindow import (
-    BasePage, SettingCard, SwitchSettingCard, ComboBoxSettingCard,
-    SpinBoxSettingCard, LineEditSettingCard, ButtonSettingCard,
-    FormCard, ListCard
-)
-
+# ======================================================================
+# Part 8: Compaction页面和Import页面
+# ======================================================================
 
 class CompactionPage(BasePage):
     """上下文压缩配置页面"""
@@ -3828,38 +3714,11 @@ class ImportPage(BasePage):
                 self.show_success("成功", f"配置已导出到: {file_path}")
             else:
                 self.show_error("错误", "导出配置失败")
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 9: Help页面和备份恢复功能
-"""
 
-from PyQt5.QtCore import Qt, pyqtSignal, QUrl
-from PyQt5.QtGui import QFont, QDesktopServices
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QSplitter
-)
 
-from qfluentwidgets import (
-    FluentIcon as FIF, InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton, TransparentPushButton,
-    SubtitleLabel, BodyLabel, CaptionLabel, TitleLabel,
-    CardWidget, SimpleCardWidget,
-    ComboBox, LineEdit, TextEdit, SpinBox,
-    SwitchButton, CheckBox, RadioButton,
-    ListWidget, TableWidget,
-    HyperlinkButton,
-    ToolTipFilter, ToolTipPosition,
-    Dialog
-)
-
-from part3_mainwindow import (
-    BasePage, SettingCard, SwitchSettingCard, ComboBoxSettingCard,
-    SpinBoxSettingCard, LineEditSettingCard, ButtonSettingCard,
-    FormCard, ListCard
-)
-
+# ======================================================================
+# Part 9: Help页面和备份恢复功能
+# ======================================================================
 
 class HelpPage(BasePage):
     """帮助页面"""
@@ -4245,43 +4104,11 @@ class VersionChecker:
             return 0
         except Exception:
             return 0
-# -*- coding: utf-8 -*-
-"""
-OpenCode 配置管理器 v0.9.0 - PyQt5 + QFluentWidgets 版本
-Part 10: 主窗口和应用入口
-"""
 
-import sys
-from PyQt5.QtCore import Qt, QSize, QTimer
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout
 
-from qfluentwidgets import (
-    FluentWindow, NavigationInterface, NavigationItemPosition,
-    FluentIcon as FIF, Theme, setTheme, isDarkTheme,
-    InfoBar, InfoBarPosition, MessageBox,
-    PushButton, PrimaryPushButton,
-    SubtitleLabel, BodyLabel,
-    setThemeColor, NavigationAvatarWidget,
-    SplashScreen
-)
-
-from part1_constants import (
-    VERSION, APP_NAME, APP_TITLE,
-    PRESET_SDKS, PRESET_MODEL_CONFIGS, PRESET_AGENTS, CATEGORY_PRESETS
-)
-from part2_services import (
-    ConfigPaths, ConfigManager, BackupManager,
-    ModelRegistry, ImportService, MarkdownFileManager
-)
-from part3_mainwindow import BasePage
-from part4_provider_model import ProviderPage, ModelPage
-from part5_mcp_agent import MCPPage, OpenCodeAgentPage, AgentPage
-from part6_category_permission import CategoryPage, PermissionPage
-from part7_skill_rules import SkillPage, RulesPage
-from part8_compaction_import import CompactionPage, ImportPage
-from part9_help_backup import HelpPage, BackupDialog, VersionChecker
-
+# ======================================================================
+# Part 10: 主窗口和应用入口
+# ======================================================================
 
 class MainWindow(FluentWindow):
     """主窗口"""
