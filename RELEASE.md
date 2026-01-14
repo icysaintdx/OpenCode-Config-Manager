@@ -52,7 +52,7 @@
 - 优化深色/浅色主题配色方案
 - 新增 hover/press 状态颜色配置
 - 完善 setup_modern_styles 函数
-
+- 在模型管理 variants、agent管理中的模式、权限管理各个工具添加tooltip说明解释，解释其作用和使用方法
 ---
 
 ## v0.6.3 (2026-01-14)
@@ -75,6 +75,44 @@
 - 新增 ModernCombobox、ModernCheckbutton 组件
 - 优化 Treeview、Notebook 等控件的现代化样式
 
+v0.6.3 更新内容
+1. 修复 Bug
+SkillTab.refresh_list 报错: 修复了 permission.skill 可能是字符串而非字典导致的 AttributeError: 'str' object has no attribute 'items' 错误
+2. 新增顶部工具栏功能
+GitHub 链接: ⭐ GitHub 按钮，点击跳转项目主页
+作者信息: by IcySaint，点击跳转作者 GitHub
+版本同步检查: 自动检测 GitHub 最新 release，有新版本时显示绿色徽章
+3. 新增 "Oh My OpenCode" 帮助说明 Tab
+包含以下关键信息：
+
+内容	说明
+🪄 魔法关键词 ultrawork/ulw	只需在提示词中包含即可激活所有高级功能
+🤖 内置 Agent 团队	Sisyphus、Oracle、Librarian、Explore、Frontend UI/UX Engineer 等
+🔧 LSP 工具集	lsp_hover、lsp_goto_definition、lsp_find_references 等 11 个工具
+🔍 AST 工具	ast_grep_search、ast_grep_replace
+📚 会话管理工具	session_list、session_read、session_search、session_info
+📁 配置加载器	命令加载器、Skill 加载器、Agent 加载器、MCP 加载器的路径说明
+⚙️ 兼容性开关	claude_code 配置对象说明（mcp、commands、skills、agents、hooks、plugins）
+🎯 其他核心功能	Todo 持续执行器、注释检查器、思考模式、上下文窗口监控等
+4. 界面美化
+新增 ModernCombobox、ModernCheckbutton 组件
+优化 ModernEntry 支持占位符
+统一 Treeview、Notebook、Scrollbar 样式
+新增配色：text_muted、primary_light、success_light 等
+5. 关于兼容性开关的说明
+根据 Oh My OpenCode 文档，兼容性开关用于禁用 Claude Code 兼容层的特定功能，而不是影响 OpenCode 原生功能：
+
+{
+  "claude_code": {
+    "mcp": false,      // 禁用从 ~/.claude/.mcp.json 等加载 MCP
+    "commands": false, // 禁用从 ~/.claude/commands/ 加载命令
+    "skills": false,   // 禁用从 ~/.claude/skills/ 加载 Skill
+    "agents": false,   // 禁用从 ~/.claude/agents/ 加载 Agent
+    "hooks": false,    // 禁用 Claude Code Hooks
+    "plugins": false   // 禁用 Claude Code 插件
+  }
+}
+这些开关默认都是 true（启用），只有当用户想要禁用某些 Claude Code 兼容功能时才需要设置为 false。这不会影响 OpenCode 的内置功能。
 ---
 
 ## v0.6.2 (2026-01-14)
