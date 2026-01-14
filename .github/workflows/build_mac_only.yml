@@ -58,39 +58,46 @@ jobs:
 
       - name: 5. 打包成DMG镜像包 (用户可用，原生Mac应用)
         run: |
-          # 创建dmg安装包，参数完美适配你的产物
+          # 核心新增：先安装create-dmg（解决command not found致命错误）
+          brew install create-dmg
+          # 你的原命令完全不变，直接复用，参数完美适配
           create-dmg \
-          --volname "OpenCode-Config-Manager" \
-          --volicon "/System/Applications/Utilities/Terminal.app/Contents/Resources/Terminal.icns" \
-          --window-pos 200 120 \
-          --window-size 800 400 \
-          --icon-size 100 \
-          --icon "OpenCode-Config-Manager.app" 200 190 \
-          --hide-extension "OpenCode-Config-Manager.app" \
-          --app-drop-link 600 185 \
-          "dist/OpenCode-Config-Manager-MacOS.dmg" \
-          "dist/OpenCode-Config-Manager/"
+            --volname "OpenCode-Config-Manager" \
+            --volicon "/System/Applications/Utilities/Terminal.app/Contents/Resources/Terminal.icns" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "OpenCode-Config-Manager.app" 200 190 \
+            --hide-extension "OpenCode-Config-Manager.app" \
+            --app-drop-link 600 185 \
+            "dist/OpenCode-Config-Manager-MacOS.dmg" \
+            "dist/OpenCode-Config-Manager/"
         shell: /bin/bash -e {0}
 
       - name: Unsigned Sign (免证书，解决运行弹窗)
         run: |
           xattr -cr dist/OpenCode-Config-Manager/OpenCode-Config-Manager.app
           codesign --force --deep --sign - dist/OpenCode-Config-Manager/OpenCode-Config-Manager.app
+        shell: /bin/bash -e {0}
+          
       - name: Create DMG Installer
         run: |
           create-dmg dist/OpenCode-Config-Manager-MacOS.dmg dist/OpenCode-Config-Manager/
 
-      - name: Upload to Artifacts (手动下载)
+      - name: Upload to Artifacts (手动下载，上传产物到Action Artifacts → 手动下载兜底，零Tag限制)
         uses: actions/upload-artifact@v4
         with:
           name: OpenCode-Config-Manager-MacOS-arm64
           path: dist/OpenCode-Config-Manager-MacOS.dmg
 
-      - name: 6. 上传到GitHub Release
+      - name: 6. 上传到GitHub Release → 解决requires a tag报错，完整配置
         uses: softprops/action-gh-release@v2
         with:
           files: dist/OCCM-MacOS.dmg
           overwrite_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           generate_release_notes: true
+          tag_name: v1.0.0 # 强制指定Tag，解决核心报错
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
