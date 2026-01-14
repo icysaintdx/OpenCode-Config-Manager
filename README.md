@@ -1,8 +1,12 @@
+# OpenCode Config Manager
 
-# <img width="180" height="180" alt="logo" src="https://github.com/user-attachments/assets/fe4b0399-1cf8-4617-b45d-469cd656f8e0" /> <p>  <strong>可视化管理 OpenCode 和 Oh My OpenCode 配置文件</strong></p>
- <OpenCode Config Manager>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/fe4b0399-1cf8-4617-b45d-469cd656f8e0" alt="OCCM Logo" width="180" height="180">
+</p>
 
-
+<p align="center">
+  <strong>可视化管理 OpenCode 和 Oh My OpenCode 配置文件的 GUI 工具</strong>
+</p>
 
 <p align="center">
   <a href="#功能特性">功能特性</a> •
@@ -14,14 +18,26 @@
 
 ---
 
+## 🎨 v1.0.0 - Fluent Design 全面重构版
+
+**全新 UI 框架**：从 ttkbootstrap 迁移至 **PyQt5 + QFluentWidgets**，采用微软 Fluent Design 设计语言。
+
+### 主要变化
+- 🎨 **Fluent Design 风格**：现代化卡片布局、侧边栏导航
+- 🌓 **智能主题切换**：默认跟随系统深浅色，支持手动切换
+- 📦 **新依赖**：PyQt5 + PyQt5-Fluent-Widgets（移除 ttkbootstrap）
+
+---
+
 ## 功能特性
 
-### 主题系统 (v0.7.0 新增)
-- **10 种内置主题**：深色/浅色各 5 种风格
-  - 深色：Darkly、Superhero、Cyborg、Vapor、Solar
-  - 浅色：Cosmo、Flatly、Litera、Minty、Pulse
-- **实时主题切换**：无需重启应用
-- 基于 ttkbootstrap 现代化 UI 框架
+### 主题系统 (v1.0.0 重构)
+- **Fluent Design 风格**：采用微软 Fluent Design 设计语言
+- **智能主题切换**：
+  - 默认跟随系统深浅色自动切换
+  - 支持手动切换深色/浅色模式
+  - 使用 SystemThemeListener 实时监听系统主题变化
+- **现代化卡片布局**：所有页面采用 SimpleCardWidget 卡片式设计
 
 ### Provider 管理
 - 添加/编辑/删除自定义 API 提供商
@@ -41,13 +57,13 @@
   - OpenAI: `reasoningEffort` (high/medium/low/xhigh)
   - Gemini: `thinkingConfig.thinkingBudget`
 
-### MCP 服务器管理 (v0.6.0 新增)
+### MCP 服务器管理
 - 配置本地和远程 MCP 服务器
 - **Local 类型**：配置启动命令和环境变量
 - **Remote 类型**：配置服务器 URL 和请求头
 - 支持启用/禁用、超时设置
 
-### OpenCode Agent 配置 (v0.6.0 新增)
+### OpenCode Agent 配置
 - 配置 OpenCode 原生 Agent
 - **模式设置**：primary（主Agent）/ subagent（子Agent）/ all
 - **参数配置**：temperature、maxSteps、hidden、disable
@@ -84,7 +100,7 @@
 - **多版本备份管理**
 - 恢复备份对话框
 
-### 其他特性 (v0.6.3 新增)
+### 其他特性
 - **GitHub 版本检查**：自动检测最新版本
 - **更新提示徽章**：有新版本时显示
 - **顶部工具栏**：GitHub 链接和作者信息
@@ -101,11 +117,10 @@
 
 从 [Releases](https://github.com/icysaintdx/OpenCode-Config-Manager/releases) 下载对应平台的可执行文件：
 
-| 平台 | 文件 |
-|------|------|
-| Windows | `OpenCodeConfigManager_vX.X.X.exe` |
-| macOS | `OpenCodeConfigManager.app` |
-| Linux | `OpenCodeConfigManager` |
+| 平台 | 文件 | 说明 |
+|------|------|------|
+| Windows | `OpenCodeConfigManager_v1.0.0.exe` | Fluent 版本 (推荐) |
+| Windows | `OpenCodeConfigManager_v0.7.0.exe` | ttkbootstrap 版本 (兼容旧系统) |
 
 ### 方式二：从源码运行
 
@@ -114,11 +129,15 @@
 git clone https://github.com/icysaintdx/OpenCode-Config-Manager.git
 cd OpenCode-Config-Manager
 
-# 安装依赖
-pip install ttkbootstrap
+# 安装依赖 (Fluent 版本)
+pip install PyQt5 PyQt5-Fluent-Widgets
 
-# 运行
-python opencode_config_manager.py
+# 运行 Fluent 版本
+python opencode_config_manager_fluent_v1.0.0.py
+
+# 或运行 ttkbootstrap 版本 (兼容旧系统)
+pip install ttkbootstrap
+python opencode_config_manager_v0.7.0.py
 ```
 
 **系统要求**：Python 3.8+
@@ -176,37 +195,29 @@ python opencode_config_manager.py
 
 ## 构建指南
 
-### Windows
+### Windows (Fluent 版本)
+
+```batch
+# 安装依赖
+pip install PyQt5 PyQt5-Fluent-Widgets pyinstaller
+
+# 使用 spec 文件构建
+pyinstaller OpenCodeConfigManager_Fluent.spec --noconfirm
+```
+
+输出：`dist/OpenCodeConfigManager_v1.0.0.exe`
+
+### Windows (ttkbootstrap 版本)
 
 ```batch
 # 安装依赖
 pip install ttkbootstrap pyinstaller
 
-# 使用 spec 文件构建（推荐）
+# 使用 spec 文件构建
 pyinstaller OpenCodeConfigManager.spec --noconfirm
-
-# 或运行构建脚本
-build_windows.bat
 ```
 
-输出：`dist/OpenCodeConfigManager_vX.X.X.exe`
-
-### macOS / Linux
-
-```bash
-# 安装依赖
-pip install ttkbootstrap pyinstaller
-
-# 添加执行权限
-chmod +x build_unix.sh
-
-# 运行构建脚本
-./build_unix.sh
-```
-
-输出：
-- macOS: `dist/OpenCodeConfigManager.app`
-- Linux: `dist/OpenCodeConfigManager`
+输出：`dist/OpenCodeConfigManager_v0.7.0.exe`
 
 ---
 
@@ -214,42 +225,35 @@ chmod +x build_unix.sh
 
 ```
 opencode-config-manager/
-├── opencode_config_manager.py    # 主程序（单文件）
-├── OpenCodeConfigManager.spec    # PyInstaller 构建配置
-├── build_windows.bat             # Windows 构建脚本
-├── build_unix.sh                 # macOS/Linux 构建脚本
-├── README.md                     # 说明文档
-├── RELEASE.md                    # 发布说明
-├── LICENSE                       # 许可证
+├── opencode_config_manager_fluent_v1.0.0.py  # Fluent 版本主程序 (推荐)
+├── opencode_config_manager_v0.7.0.py         # ttkbootstrap 版本 (兼容)
+├── OpenCodeConfigManager_Fluent.spec         # Fluent 版本构建配置
+├── OpenCodeConfigManager.spec                # ttkbootstrap 版本构建配置
+├── README.md                                 # 说明文档
+├── CHANGELOG.md                              # 更新日志
+├── VERSION.json                              # 版本信息
+├── LICENSE                                   # 许可证
 └── assets/
-    ├── icon.ico                  # Windows 图标
-    └── icon.png                  # 通用图标
+    ├── icon.ico                              # Windows 图标
+    ├── icon.png                              # 通用图标
+    ├── logo.png                              # Logo
+    └── logo1.png                             # 首页 Logo
 ```
 
 ---
 
 ## 更新日志
 
+详见 [CHANGELOG.md](CHANGELOG.md)
+
+### v1.0.0 (最新)
+- 🎨 全新 Fluent Design 界面 (PyQt5 + QFluentWidgets)
+- 🌓 智能主题切换（跟随系统 + 手动切换）
+- 📦 现代化卡片布局
+
 ### v0.7.0
 - 集成 ttkbootstrap 现代化 UI 框架
-- 支持 10 种内置主题（深色/浅色各 5 种）
-- 实时主题切换，无需重启应用
-
-### v0.6.3 - v0.6.5
-- 新增 GitHub 版本检查和更新提示
-- 优化主题配色（Fluent Design 风格）
-- 实现实时主题切换
-
-### v0.6.0 - v0.6.2
-- 新增 MCP 服务器配置管理
-- 新增 OpenCode Agent 配置
-- 新增 Skill/Rules 管理功能
-- 新增上下文压缩配置
-
-### v0.5.0
-- 完善模型预设配置
-- 备份恢复功能
-- 外部导入重构
+- 支持 10 种内置主题
 
 ---
 

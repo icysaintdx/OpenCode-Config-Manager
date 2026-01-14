@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "codename": "Fluent Design 全面重构版",
+  "releaseDate": "2026-01-14T08:00:00",
+  "framework": "PyQt5 + QFluentWidgets",
+  "previousFramework": "ttkbootstrap",
+  "features": [
+    "Fluent Design 风格界面",
+    "深浅色主题自动跟随系统",
+    "手动主题切换",
+    "现代化卡片布局",
+    "侧边栏导航"
+  ],
+  "dependencies": {
+    "PyQt5": ">=5.15.0",
+    "PyQt5-Fluent-Widgets": ">=1.5.0"
+  },
+  "files": {
+    "fluent": "opencode_config_manager_fluent_v1.0.0.py",
+    "legacy": "opencode_config_manager_v0.7.0.py"
+  }
+}
