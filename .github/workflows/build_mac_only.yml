@@ -66,7 +66,7 @@ jobs:
             --volname "OpenCode-Config-Manager" \
             "dist/OpenCode-Config-Manager-MacOS.dmg" \
             "dist/OpenCode-Config-Manager/"
-          shell: /bin/bash -e {0}
+        shell: /bin/bash -e {0}
 
       - name: Unsigned Sign (免证书，解决运行弹窗)
         run: |
