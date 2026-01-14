@@ -1,5 +1,5 @@
 
-# <img width="180" height="180" alt="logo" src="https://github.com/user-attachments/assets/fe4b0399-1cf8-4617-b45d-469cd656f8e0" /> <p>  <strong>可视化管理 OpenCode 和 Oh My OpenCode 配置文件的 GUI 工具</strong></p>
+# <img width="180" height="180" alt="logo" src="https://github.com/user-attachments/assets/fe4b0399-1cf8-4617-b45d-469cd656f8e0" /> <p>  <strong>可视化管理 OpenCode 和 Oh My OpenCode 配置文件</strong></p>
  <OpenCode Config Manager>
 
 
