@@ -175,9 +175,11 @@ jobs:
       - name: 8. 上传到GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/OpenCode-Config-Manager-Linux-x64.tar.gz
-          overwrite_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          generate_release_notes: true
+           files: |
+            dist/OpenCode-Config-Manager-MacOS.dmg
+            dist/OpenCode-Config-Manager-Linux-x64.tar.gz
+           overwrite_files: true
+           fail_on_unmatched_files: false
+           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
