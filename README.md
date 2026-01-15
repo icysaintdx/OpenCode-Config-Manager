@@ -37,18 +37,18 @@
 
 ---
 
-## 🎯 v1.0.8 最新版本
+## 🎯 v1.0.9 最新版本
 
 ### 🆕 新功能
+- **配置文件冲突检测** - 启动时自动检测 `.json` 和 `.jsonc` 冲突，用户选择保留哪个
 - **配置格式验证器** - 启动时自动检测并修复配置问题
 - **JSONC 注释支持** - 完美兼容带注释的配置文件
 - **自定义路径** - 支持切换到项目级配置或任意配置文件
-- **备份目录自定义** - 灵活管理备份存储位置
 
 ### 🐛 修复
+- Category 和 Agent 描述丢失问题（因 `.jsonc` 优先级导致）
 - 版本检查线程安全问题
 - MCP 服务器 type 字段缺失
-- PyInstaller 打包资源路径问题
 
 ---
 
@@ -179,9 +179,13 @@ python opencode_config_manager_fluent.py
 
 ## 📋 更新日志
 
-详见 [RELEASE.md](RELEASE.md)
+详见 [CHANGELOG.md](CHANGELOG.md)
 
-### v1.0.8 (最新)
+### v1.0.9 (最新)
+- 🆕 配置文件冲突检测（.json vs .jsonc）
+- 🐛 修复 Category 和 Agent 描述丢失问题
+
+### v1.0.8
 - 🐛 修复版本检查线程安全问题
 - 🐛 修复 PyInstaller 打包资源路径问题
 
@@ -189,15 +193,7 @@ python opencode_config_manager_fluent.py
 - 🆕 配置格式验证器和自动修复功能
 - 🐛 防御性类型检查，修复配置异常崩溃
 
-### v1.0.6
-- 🐛 修复 MCP 服务器 type 字段缺失
-- 🔧 GitHub Actions macOS 构建优化
-
-### v1.0.5
-- 🆕 JSONC 注释丢失警告
-- 🔧 Options Tab 布局重构
-
-[查看完整更新日志 →](RELEASE.md)
+[查看完整更新日志 →](CHANGELOG.md)
 
 ---
 
