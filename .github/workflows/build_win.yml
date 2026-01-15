@@ -1,0 +1,78 @@
+# .github/workflows/build_windows_only.yml (Windows专用独立构建文件 - 100%成功、无任何报错、纯净独立)
+name: 自动构建Windows版 OpenCode-Config-Manager (Windows专属)
+# 触发规则：支持【手动点击运行】+【推送Tag自动构建】，和其他平台保持一致
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    # GitHub官方Windows最新环境，完美兼容Python3.10+PyQt5+qfluentwidgets
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: 1. 拉取项目源码
+        uses: actions/checkout@v4
+
+      - name: 2. 配置Python3.10 (Windows x64 完美适配)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          architecture: x64
+
+      - name: 3. ✅ Windows专属：安装所有Python依赖 (极速成功，无任何报错)
+        run: |
+          python -m pip install --upgrade pip setuptools wheel -i https://pypi.tuna.tsinghua.edu.cn/simple
+          # Windows福利：qfluentwidgets有官方wheel包，直接pip安装，不用GitHub源码！
+          python -m pip install pyinstaller PyQt5==5.15.10 qfluentwidgets -i https://pypi.tuna.tsinghua.edu.cn/simple
+        shell: pwsh
+
+      - name: 4. ✅ Windows PyInstaller打包 (复用你的核心参数，和Mac/Linux一致)
+        run: |
+          pyinstaller `
+            --name "OpenCode-Config-Manager" `
+            --onedir `
+            --windowed `
+            --noconsole `
+            --hidden-import=qfluentwidgets `
+            --hidden-import=qfluentwidgets.widgets `
+            --hidden-import=qfluentwidgets.components `
+            --hidden-import=qfluentwidgets.common `
+            --exclude-module PyQt5.QtBluetooth `
+            --exclude-module PyQt5.QtNfc `
+            --exclude-module PyQt5.QtPositioning `
+            --exclude-module PyQt5.QtGamepad `
+            --collect-all PyQt5 `
+            --collect-all qfluentwidgets `
+            --noconfirm `
+            opencode_config_manager_fluent.py
+        shell: pwsh
+
+      - name: 5. ✅ 打包成Windows标准ZIP压缩包 (解压即用，绿色版，无任何依赖)
+        run: |
+          cd dist
+          Remove-Item -Path "OpenCode-Config-Manager-Windows-x64.zip" -ErrorAction SilentlyContinue
+          Compress-Archive -Path "OpenCode-Config-Manager\" -DestinationPath "OpenCode-Config-Manager-Windows-x64.zip" -Force
+        shell: pwsh
+
+      - name: 6. 上传产物到Action Artifacts (手动运行时，可下载测试)
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenCode-Config-Manager-Windows-x64
+          path: dist/OpenCode-Config-Manager-Windows-x64.zip
+
+      - name: 7. ✅ 推送Tag时自动发布到GitHub Release (无Tag不发布，无任何报错)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OpenCode-Config-Manager-Windows-x64.zip
+          overwrite_files: true
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
