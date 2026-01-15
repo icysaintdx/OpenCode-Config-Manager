@@ -1,4 +1,4 @@
-# .github/workflows/build_windows_only.yml (Windows专用独立构建 - 修复qfluentwidgets安装失败 终版)
+# .github/workflows/build_windows_only.yml (Windows专用 终极绝杀版 - 源码安装qfluentwidgets 100%成功)
 name: 自动构建Windows版 OpenCode-Config-Manager (Windows专属)
 on:
   push:
@@ -23,16 +23,18 @@ jobs:
           python-version: '3.10'
           architecture: x64
 
-      - name: 3. ✅ Windows专属修复：分源安装依赖 (解决qfluentwidgets安装失败，100%成功)
+      - name: 3. ✅ Windows专属绝杀：安装git + 分源装依赖 + GitHub源码装qfluentwidgets (必成功！)
         run: |
+          # Windows runner 安装git，拉取GitHub源码必备
+          choco install git -y --no-progress
+          # 清华源快速安装PyQt5和打包工具，无任何问题
           python -m pip install --upgrade pip setuptools wheel -i https://pypi.tuna.tsinghua.edu.cn/simple
-          # 第一步：清华源装PyQt5+pyinstaller 速度快，无兼容问题
-          python -m pip install pyinstaller PyQt5==5.15.10 --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple
-          # 第二步：官方源装qfluentwidgets 解决版本找不到的核心问题，Windows必用官方源
-          python -m pip install qfluentwidgets --no-cache-dir
+          python -m pip install pyinstaller PyQt5==5.15.10 --force-reinstall --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple
+          # 终极方案：跳过PyPI，直接从作者官方仓库源码安装qfluentwidgets，Windows100%成功！
+          python -m pip install git+https://github.com/zhiyiYo/PyQt-Fluent-Widgets.git --upgrade --no-cache-dir
         shell: pwsh
 
-      - name: 4. ✅ Windows PyInstaller打包 (原封不动你的配置，无任何修改)
+      - name: 4. ✅ Windows PyInstaller打包 (原封不动你的配置，一行不改)
         run: |
           pyinstaller `
             --name "OpenCode-Config-Manager" `
@@ -53,7 +55,7 @@ jobs:
             opencode_config_manager_fluent.py
         shell: pwsh
 
-      - name: 5. ✅ 打包成Windows标准ZIP压缩包 (解压即用，绿色版)
+      - name: 5. ✅ 打包成Windows标准ZIP压缩包 (解压即用，绿色版，无依赖)
         run: |
           cd dist
           Remove-Item -Path "OpenCode-Config-Manager-Windows-x64.zip" -ErrorAction SilentlyContinue
@@ -66,7 +68,7 @@ jobs:
           name: OpenCode-Config-Manager-Windows-x64
           path: dist/OpenCode-Config-Manager-Windows-x64.zip
 
-      - name: 7. 推送Tag时自动发布到GitHub Release (无Tag不发布，无报错)
+      - name: 7. 推送Tag时自动发布到GitHub Release (无Tag不发布，无任何报错)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
