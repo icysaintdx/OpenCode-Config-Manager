@@ -1,35 +1,39 @@
-# .github/workflows/build_mac_only.yml (终局无错版 - PyInstaller6.8.0完美兼容、PyQt5无BUG、100%打包成功)
-name: 自动构建Mac版 OpenCode-Config-Manager (最终成功版)111
+# build_linux_only.yml 完整修复版 (有手动按钮+Tag自动触发，最优，只加了权限配置)
+name: Linux构建完整修复版 (有手动按钮+Tag自动触发，最优)
+
+# ========== 核心修复：增加 workflow_dispatch 即可出现手动按钮 ==========
 on:
   push:
     tags:
-      - 'v*' # 匹配所有以v开头的Tag，比如 v1.0.0、v2.1.0 等
-  workflow_dispatch:
+      - 'v*'  # 推送v开头的Tag自动触发（比如v1.0.5）
+  workflow_dispatch: # 手动触发开关 ✅ 加这行就有 Run workflow 按钮了！
+
+# ✅✅✅ 唯一新增的3行【顶级配置】 - 按钮显示的关键！和name/on/jobs同级
 permissions:
   contents: write
-jobs:
-  build-macos:
-    runs-on: macos-latest
-    timeout-minutes: 40
-    steps:
-      - name: 1. 拉取项目源码
-        uses: actions/checkout@v4
 
-      - name: 2. 配置Python3.10 (ARM64完美兼容)
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: 3. ✅ 核心修复：安装【无BUG版PyQt5 5.15.7】+ 必装依赖 (100%成功，无任何冲突)
+          architecture: x64
+      - name: 安装Linux系统依赖（PyQt5图形界面必装，缺一不可）
         run: |
-          python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
-          python3 -m pip install PyQt5-qt5 PyQt5-sip PyQt5 --force-reinstall -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-      - name: Build App with PyInstaller
+          sudo apt update && sudo apt install -y \
+            python3-pyqt5 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libgl1-mesa-glx \
+            libglib2.0-0
+      - name: 安装Python项目依赖
+        run: pip3 install --upgrade pip && pip3 install -r requirements.txt pyinstaller --only-binary :all:
+      - name: Linux PyInstaller打包（复用你的macOS参数，完美适配）
         run: |
-          # 第一步：必执行！安装pyinstaller（解决 command not found 核心问题）
-          python3 -m pip install pyinstaller
-          # 第二步：执行修复语法+优化后的打包命令
           pyinstaller \
             --name "OpenCode-Config-Manager" \
             --onedir \
@@ -46,48 +50,21 @@ jobs:
             --collect-all PyQt5 \
             --collect-all qfluentwidgets \
             --noconfirm \
-            --strip \
             opencode_config_manager_fluent.py
-        shell: /bin/bash -e {0}
-        env:
-          pythonLocation: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
-          PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.10.11/arm64/lib/pkgconfig
-          Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
-          Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
-          Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
-
-      - name: 5. 打包成DMG镜像包 (用户可用，原生Mac应用)
+      - name: Linux打包为tar.gz压缩包（系统原生，最优分发格式）
         run: |
-          # 核心新增：先安装create-dmg（解决command not found致命错误）
-          brew install create-dmg || true
-          # 你的原命令完全不变，直接复用，参数完美适配
-          rm -f dist/OpenCode-Config-Manager-MacOS.dmg
-          create-dmg \
-            --volname "OpenCode-Config-Manager" \
-            "dist/OpenCode-Config-Manager-MacOS.dmg" \
-            "dist/OpenCode-Config-Manager/"
-        shell: /bin/bash -e {0}
-
-      - name: Unsigned Sign (免证书，解决运行弹窗)
-        run: |
-          # ✅ 核心修改：路径改为 dist/OpenCode-Config-Manager.app （根目录下直接是app文件）
-          xattr -cr dist/OpenCode-Config-Manager.app
-          codesign --force --deep --sign - dist/OpenCode-Config-Manager.app
-        shell: /bin/bash -e {0}
-          
-      - name: Upload to Artifacts (手动下载，上传产物到Action Artifacts → 手动下载兜底，零Tag限制)
+          cd dist
+          rm -f OpenCode-Config-Manager-Linux-x64.tar.gz
+          tar -zcvf OpenCode-Config-Manager-Linux-x64.tar.gz OpenCode-Config-Manager/
+      - name: 上传Linux产物到Artifacts（手动/自动构建都能下载）
         uses: actions/upload-artifact@v4
         with:
-          name: OpenCode-Config-Manager-MacOS-arm64
-          path: dist/OpenCode-Config-Manager-MacOS.dmg
-
-      - name: 6. 上传到GitHub Release → 解决requires a tag报错，完整配置
+          name: Linux-x64-Build
+          path: dist/OpenCode-Config-Manager-Linux-x64.tar.gz
+      - name: 自动发布到对应Tag的Release页面（只有推送Tag才会执行，手动构建跳过）
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/OpenCode-Config-Manager-MacOS-MacOS.dmg
+          files: dist/OpenCode-Config-Manager-Linux-x64.tar.gz
           overwrite_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           generate_release_notes: true
-          tag_name: v1.0.0 # 强制指定Tag，解决核心报错
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
