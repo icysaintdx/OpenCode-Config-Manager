@@ -121,12 +121,15 @@ jobs:
             libxcb-render-util0 \
             libxcb-shape0 \
             libxcb-xkb1 \
-            libxkbcommon-x11-0
+            libxkbcommon-x11-0 \
+            python3-dev \
+            build-essential \
+            pyqt5-dev-tools
 
       - name: 4. 安装Python项目依赖+PyInstaller (清华源提速，无冲突)
         run: |
-          python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
-          python3 -m pip install -r requirements.txt pyinstaller qfluentwidgets PyQt5 --force-reinstall -i https://pypi.tuna.tsinghua.edu.cn/simple
+          python3 -m pip install --upgrade pip setuptools wheel -i https://pypi.tuna.tsinghua.edu.cn/simple
+          python3 -m pip install -r requirements.txt pyinstaller PyQt5==5.15.10 qfluentwidgets==1.10.4 --force-reinstall --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple
 
       - name: 5. Linux PyInstaller打包 (完全复用你的Mac打包参数，一模一样)
         run: |
