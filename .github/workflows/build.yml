@@ -23,8 +23,10 @@ jobs:
 
       - name: 3. ✅ 核心修复：安装【无BUG版PyQt5 5.15.7】+ 必装依赖 (100%成功，无任何冲突)
         run: |
-          python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
-          python3 -m pip install PyQt5-qt5 PyQt5-sip PyQt5 --force-reinstall -i https://pypi.tuna.tsinghua.edu.cn/simple
+          python3 -m pip install --upgrade pip setuptools wheel -i https://pypi.tuna.tsinghua.edu.cn/simple
+          python3 -m pip install -r requirements.txt pyinstaller PyQt5==5.15.10 --force-reinstall --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple
+          # 核心：直接从GitHub仓库安装qfluentwidgets源码，跳过PyPI，Linux必装成功
+          python3 -m pip install git+https://github.com/zhiyiYo/PyQt-Fluent-Widgets.git --no-cache-dir
 
       - name: Build App with PyInstaller
         run: |
