@@ -72,6 +72,7 @@ from qfluentwidgets import (
     MessageBox as FluentMessageBox,
     InfoBar,
     InfoBarPosition,
+    InfoBarIcon,
     PushButton,
     PrimaryPushButton,
     TransparentPushButton,
@@ -122,7 +123,7 @@ AUTHOR_GITHUB = "https://github.com/icysaintdx"
 # ==================== 版本检查配置 ====================
 STARTUP_VERSION_CHECK_ENABLED = True  # 启动时是否检查版本
 IMMEDIATE_VERSION_CHECK_MS = 5000  # 启动后首次检查延迟 (5秒)
-UPDATE_INTERVAL_MS = 30 * 60 * 1000  # 定时检查间隔 (30分钟)
+UPDATE_INTERVAL_MS = 60 * 1000  # 定时检查间隔 (1分钟)
 
 
 def get_resource_path(relative_path: str) -> Path:
@@ -5312,6 +5313,7 @@ class MainWindow(FluentWindow):
         )
         self.latest_version = None
         self.release_url = None
+        self._version_info_bar = None
 
         self._init_window()
         self._init_navigation()
@@ -5509,15 +5511,77 @@ class MainWindow(FluentWindow):
     def _on_version_check(self, latest_version: str, release_url: str):
         """版本检查回调"""
         if VersionChecker.compare_versions(APP_VERSION, latest_version):
-            InfoBar.info(
-                title="发现新版本",
-                content=f"v{latest_version} 可用，点击查看",
+            self.latest_version = latest_version
+            self.release_url = release_url
+            if self._version_info_bar:
+                self._version_info_bar.close()
+
+            info_bar = InfoBar(
+                InfoBarIcon.INFORMATION,
+                "发现新版本",
+                f"v{latest_version} 可用，点击查看",
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
+                duration=-1,
                 position=InfoBarPosition.TOP_RIGHT,
-                duration=10000,
                 parent=self,
             )
+            info_bar.setCursor(Qt.PointingHandCursor)
+
+            if isDarkTheme():
+                info_bar.setCustomBackgroundColor("#E3F2FD", "#1A237E")
+                info_bar.setStyleSheet(
+                    """
+                    InfoBar {
+                        border: 1px solid #283593;
+                        border-radius: 6px;
+                    }
+                    InfoBar > QLabel#titleLabel {
+                        color: #BBDEFB;
+                        font-weight: bold;
+                    }
+                    InfoBar > QLabel#contentLabel {
+                        color: #E3F2FD;
+                    }
+                    """
+                )
+            else:
+                info_bar.setCustomBackgroundColor("#FFF8E1", "#3E2723")
+                info_bar.setStyleSheet(
+                    """
+                    InfoBar {
+                        border: 1px solid #FFB74D;
+                        border-radius: 6px;
+                    }
+                    InfoBar > QLabel#titleLabel {
+                        color: #E65100;
+                        font-weight: bold;
+                    }
+                    InfoBar > QLabel#contentLabel {
+                        color: #BF360C;
+                    }
+                    """
+                )
+
+            def _open_release(event):
+                # 点击提示条直接打开发布页面
+                if event.button() == Qt.LeftButton:
+                    self._open_release_url()
+
+            def _clear_info_bar():
+                if self._version_info_bar is info_bar:
+                    self._version_info_bar = None
+
+            info_bar.mousePressEvent = _open_release
+            info_bar.closedSignal.connect(_clear_info_bar)
+            info_bar.show()
+            self._version_info_bar = info_bar
+
+    def _open_release_url(self):
+        """打开版本发布页面"""
+        release_url = self.release_url or f"{GITHUB_URL}/releases"
+        if release_url:
+            QDesktopServices.openUrl(QUrl(release_url))
 
     def _toggle_theme(self):
         """切换深浅色主题 (手动切换会停止跟随系统)"""
