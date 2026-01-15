@@ -108,12 +108,21 @@ jobs:
 
       - name: 3. ✅ 安装Linux系统依赖（PyQt5图形界面必装，缺一不可，解决xcb/GL报错）
         run: |
-          sudo apt update -y && sudo apt install -y \
+          sudo apt update -y && sudo apt install -y --no-install-recommends \
             python3-pyqt5 \
             libxcb-xinerama0 \
             libxcb-cursor0 \
-            libgl1-mesa-glx \
-            libglib2.0-0
+            libgl1-mesa-glx:i386 \
+            libgl1 \
+            libglib2.0-0 \
+            libxcb-randr0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-xkb1 \
+            libxkbcommon-x11-0
 
       - name: 4. 安装Python项目依赖+PyInstaller (清华源提速，无冲突)
         run: |
