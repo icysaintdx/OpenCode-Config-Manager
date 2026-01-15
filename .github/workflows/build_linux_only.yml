@@ -1,26 +1,23 @@
-name: Linux构建完整修复版 (有手动按钮+Tag自动触发，最优)
+# build_linux_only.yml 完整修复版 (有手动按钮+Tag自动触发，最优，只加了权限配置)
+name: Linux构建完整修复版 (有手动按钮+Tag自动触发 最优)
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
-
+      - 'v*'  # 推送v开头的Tag自动触发（比如v1.0.5）
+  workflow_dispatch: # 手动触发开关 ✅ 加这行就有 Run workflow 按钮了！
 permissions:
   contents: write
-
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python 3.10 x64
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           architecture: x64
-
-      - name: Install Linux System Dependencies (PyQt5 GUI Must Have)
+      - name: 安装Linux系统依赖（PyQt5图形界面必装，缺一不可）
         run: |
           sudo apt update && sudo apt install -y \
             python3-pyqt5 \
@@ -28,11 +25,9 @@ jobs:
             libxcb-cursor0 \
             libgl1-mesa-glx \
             libglib2.0-0
-
-      - name: Install Python Dependencies
+      - name: 安装Python项目依赖
         run: pip3 install --upgrade pip && pip3 install -r requirements.txt pyinstaller --only-binary :all:
-
-      - name: Build App with PyInstaller
+      - name: Linux PyInstaller打包（复用你的macOS参数，完美适配）
         run: |
           pyinstaller \
             --name "OpenCode-Config-Manager" \
@@ -51,20 +46,17 @@ jobs:
             --collect-all qfluentwidgets \
             --noconfirm \
             opencode_config_manager_fluent.py
-
-      - name: Package to tar.gz (Linux Standard Format)
+      - name: Linux打包为tar.gz压缩包（系统原生，最优分发格式）
         run: |
           cd dist
           rm -f OpenCode-Config-Manager-Linux-x64.tar.gz
           tar -zcvf OpenCode-Config-Manager-Linux-x64.tar.gz OpenCode-Config-Manager/
-
-      - name: Upload Linux Build Artifact
+      - name: 上传Linux产物到Artifacts（手动/自动构建都能下载）
         uses: actions/upload-artifact@v4
         with:
           name: Linux-x64-Build
           path: dist/OpenCode-Config-Manager-Linux-x64.tar.gz
-
-      - name: Upload to GitHub Release
+      - name: 自动发布到对应Tag的Release页面（只有推送Tag才会执行，手动构建跳过）
         uses: softprops/action-gh-release@v2
         with:
           files: dist/OpenCode-Config-Manager-Linux-x64.tar.gz
