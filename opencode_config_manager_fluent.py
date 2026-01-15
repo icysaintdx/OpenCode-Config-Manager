@@ -113,7 +113,7 @@ from qfluentwidgets import (
 )
 
 
-APP_VERSION = "1.0.9"
+APP_VERSION = "1.1.0"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -3368,6 +3368,30 @@ class ModelDialog(BaseDialog):
         self.attachment_check.setToolTip(get_tooltip("model_attachment"))
         basic_layout.addWidget(self.attachment_check)
 
+        # Modalities 输入/输出模态
+        modalities_layout = QHBoxLayout()
+        modalities_layout.addWidget(BodyLabel("输入模态:", self))
+        self.input_text_check = CheckBox("text", self)
+        self.input_text_check.setChecked(True)
+        modalities_layout.addWidget(self.input_text_check)
+        self.input_image_check = CheckBox("image", self)
+        modalities_layout.addWidget(self.input_image_check)
+        self.input_audio_check = CheckBox("audio", self)
+        modalities_layout.addWidget(self.input_audio_check)
+        self.input_video_check = CheckBox("video", self)
+        modalities_layout.addWidget(self.input_video_check)
+        modalities_layout.addSpacing(20)
+        modalities_layout.addWidget(BodyLabel("输出模态:", self))
+        self.output_text_check = CheckBox("text", self)
+        self.output_text_check.setChecked(True)
+        modalities_layout.addWidget(self.output_text_check)
+        self.output_image_check = CheckBox("image", self)
+        modalities_layout.addWidget(self.output_image_check)
+        self.output_audio_check = CheckBox("audio", self)
+        modalities_layout.addWidget(self.output_audio_check)
+        modalities_layout.addStretch()
+        basic_layout.addLayout(modalities_layout)
+
         # 上下文窗口和最大输出
         limit_layout = QHBoxLayout()
         limit_layout.addWidget(BodyLabel("上下文窗口:", self))
@@ -3813,6 +3837,18 @@ class ModelDialog(BaseDialog):
         self.name_edit.setText(model.get("name", ""))
         self.attachment_check.setChecked(model.get("attachment", False))
 
+        # 加载 modalities
+        modalities = model.get("modalities", {})
+        input_modalities = modalities.get("input", ["text"])
+        output_modalities = modalities.get("output", ["text"])
+        self.input_text_check.setChecked("text" in input_modalities)
+        self.input_image_check.setChecked("image" in input_modalities)
+        self.input_audio_check.setChecked("audio" in input_modalities)
+        self.input_video_check.setChecked("video" in input_modalities)
+        self.output_text_check.setChecked("text" in output_modalities)
+        self.output_image_check.setChecked("image" in output_modalities)
+        self.output_audio_check.setChecked("audio" in output_modalities)
+
         limit = model.get("limit", {})
         self.context_spin.setValue(limit.get("context", 200000))
         self.output_spin.setValue(limit.get("output", 16000))
@@ -3878,6 +3914,30 @@ class ModelDialog(BaseDialog):
                 "output": self.output_spin.value(),
             },
         }
+
+        # 保存 modalities
+        input_modalities = []
+        if self.input_text_check.isChecked():
+            input_modalities.append("text")
+        if self.input_image_check.isChecked():
+            input_modalities.append("image")
+        if self.input_audio_check.isChecked():
+            input_modalities.append("audio")
+        if self.input_video_check.isChecked():
+            input_modalities.append("video")
+        output_modalities = []
+        if self.output_text_check.isChecked():
+            output_modalities.append("text")
+        if self.output_image_check.isChecked():
+            output_modalities.append("image")
+        if self.output_audio_check.isChecked():
+            output_modalities.append("audio")
+        if input_modalities or output_modalities:
+            model_data["modalities"] = {
+                "input": input_modalities if input_modalities else ["text"],
+                "output": output_modalities if output_modalities else ["text"],
+            }
+
         options = self.current_model_data.get("options", {})
         if options:
             model_data["options"] = options
