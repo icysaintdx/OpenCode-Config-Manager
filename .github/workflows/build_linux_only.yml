@@ -1,0 +1,26 @@
+name: Build Linux Version Only
+on: [push, workflow_dispatch]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: 安装Linux系统依赖（必加，PyQt5运行核心依赖）
+        run: sudo apt update && sudo apt install -y python3-pyqt5 libxcb-xinerama0 libxcb-cursor0 libgl1-mesa-glx libglib2.0-0
+      - name: 安装Python依赖
+        run: pip3 install -r requirements.txt pyinstaller --only-binary :all:
+      - name: PyInstaller打包
+        run: |
+          pyinstaller --name "OpenCode-Config-Manager" --onedir --windowed --noconfirm opencode_config_manager_fluent.py
+      - name: 打包为tar.gz
+        run: cd dist && tar -zcvf OpenCode-Config-Manager-Linux-x64.tar.gz OpenCode-Config-Manager/
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-Build
+          path: dist/*.tar.gz
