@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-15-intel  # Intel Mac，PyQt5有预编译wheel
     timeout-minutes: 25  # 延长超时，防止Mac打包慢
     steps:
       - name: 1. 拉取项目源码【完整检出！修复核心缺失文件问题】

@@ -4,6 +4,27 @@
 
 ---
 
+## [v1.0.6] - 2026-01-15 15:00
+**版本代号**: MCP 类型修复版
+
+### 🐛 Bug 修复
+- **MCP 服务器 type 字段缺失**：修复添加/编辑 MCP 服务器时未写入 `type` 字段的问题
+  - Local MCP 现在正确写入 `"type": "local"`
+  - Remote MCP 现在正确写入 `"type": "remote"`
+
+### 🔧 优化改进
+- **GitHub Actions 构建配置更新**：
+  - macOS 构建从 `macos-latest` 切换到 `macos-15-intel`（Intel 架构，PyQt5 有预编译 wheel）
+  - 解决 ARM64 macOS 上 PyQt5 编译失败的问题
+
+### 📁 文件变更
+- 更新：`opencode_config_manager_fluent.py`
+- 更新：`.github/workflows/build.yml`
+- 更新：`.github/workflows/build_all.yml`
+- 新增：`OpenCodeConfigManager_v1.0.6.spec`
+
+---
+
 ## [v1.0.5] - 2026-01-14 19:50
 **版本代号**: UI 优化增强版
 

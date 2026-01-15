@@ -3916,6 +3916,7 @@ class MCPDialog(BaseDialog):
             return
 
         mcp_data = {
+            "type": self.mcp_type,
             "enabled": self.enabled_check.isChecked(),
             "timeout": self.timeout_spin.value(),
         }
