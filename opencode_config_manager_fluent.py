@@ -43,7 +43,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 
-from PyQt5.QtCore import Qt, QUrl, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, QUrl, pyqtSignal, QTimer, QObject
 from PyQt5.QtGui import QIcon, QDesktopServices, QFont, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
@@ -112,7 +112,7 @@ from qfluentwidgets import (
 )
 
 
-APP_VERSION = "1.0.5"
+APP_VERSION = "1.0.8"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -123,6 +123,17 @@ AUTHOR_GITHUB = "https://github.com/icysaintdx"
 STARTUP_VERSION_CHECK_ENABLED = True  # 启动时是否检查版本
 IMMEDIATE_VERSION_CHECK_MS = 5000  # 启动后首次检查延迟 (5秒)
 UPDATE_INTERVAL_MS = 30 * 60 * 1000  # 定时检查间隔 (30分钟)
+
+
+def get_resource_path(relative_path: str) -> Path:
+    """获取资源文件路径 - 兼容 PyInstaller 打包后的环境"""
+    try:
+        # PyInstaller 打包后，资源文件在临时目录
+        base_path = Path(sys._MEIPASS)
+    except AttributeError:
+        # 开发环境，使用脚本所在目录
+        base_path = Path(__file__).parent
+    return base_path / relative_path
 
 
 # ==================== 参数说明提示（用于Tooltip） ====================
@@ -2133,14 +2144,21 @@ class ImportService:
         return result
 
 
-class VersionChecker:
-    """GitHub 版本检查服务"""
+class VersionChecker(QObject):
+    """GitHub 版本检查服务 - 线程安全"""
 
-    def __init__(self, callback=None):
+    # 信号：在主线程中安全地更新 UI
+    update_available = pyqtSignal(str, str)  # (latest_version, release_url)
+
+    def __init__(self, callback=None, parent=None):
+        super().__init__(parent)
         self.callback = callback
         self.latest_version: Optional[str] = None
         self.release_url: Optional[str] = None
         self.checking = False
+        # 连接信号到回调
+        if callback:
+            self.update_available.connect(callback)
 
     def check_update_async(self):
         """异步检查更新"""
@@ -2163,8 +2181,8 @@ class VersionChecker:
                 if version_match:
                     self.latest_version = version_match.group(1)
                     self.release_url = data.get("html_url", GITHUB_URL + "/releases")
-                    if self.callback:
-                        self.callback(self.latest_version, self.release_url)
+                    # 通过信号在主线程中安全地调用回调
+                    self.update_available.emit(self.latest_version, self.release_url)
         except Exception as e:
             print(f"Version check failed: {e}")
         finally:
@@ -2399,7 +2417,7 @@ class HomePage(BasePage):
         about_layout = about_card.layout()
 
         # Logo 图片 - 保持原始比例，设置固定尺寸确保完整显示
-        logo_path = Path(__file__).parent / "assets" / "logo1.png"
+        logo_path = get_resource_path("assets/logo1.png")
         logo_label = QLabel(about_card)
         logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         if logo_path.exists():
@@ -4991,7 +5009,7 @@ class HelpPage(BasePage):
         about_card_layout.setSpacing(12)
 
         # Logo 图片
-        logo_path = Path(__file__).parent / "assets" / "logo1.png"
+        logo_path = get_resource_path("assets/logo1.png")
         logo_label = QLabel(about_card)
         if logo_path.exists():
             pixmap = QPixmap(str(logo_path))
@@ -5247,7 +5265,9 @@ class MainWindow(FluentWindow):
         self._validate_config_on_startup()
 
         # 版本检查器
-        self.version_checker = VersionChecker(callback=self._on_version_check)
+        self.version_checker = VersionChecker(
+            callback=self._on_version_check, parent=self
+        )
         self.latest_version = None
         self.release_url = None
 
@@ -5281,12 +5301,12 @@ class MainWindow(FluentWindow):
         self.themeListener.start()
 
         # 设置窗口图标 - 使用 assets/icon.png
-        icon_path = Path(__file__).parent / "assets" / "icon.png"
+        icon_path = get_resource_path("assets/icon.png")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
             # 备用 icon.ico
-            icon_path = Path(__file__).parent / "assets" / "icon.ico"
+            icon_path = get_resource_path("assets/icon.ico")
             if icon_path.exists():
                 self.setWindowIcon(QIcon(str(icon_path)))
             else:

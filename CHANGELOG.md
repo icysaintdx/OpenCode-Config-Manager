@@ -4,6 +4,29 @@
 
 ---
 
+## [v1.0.8] - 2026-01-15 18:30
+**版本代号**: 版本检查修复版
+
+### 🐛 Bug 修复
+- **版本检查线程安全问题**：
+  - 修复版本检查回调在子线程调用导致程序卡死的问题
+  - 使用 `pyqtSignal` 从子线程安全地通知主线程更新 UI
+  - `VersionChecker` 改为继承 `QObject`，支持信号槽机制
+
+- **PyInstaller 打包资源路径问题**：
+  - 新增 `get_resource_path()` 函数，正确处理打包后的资源路径
+  - 修复打包后 logo/icon 图片加载失败导致的 temp 目录错误
+  - 兼容开发环境和 PyInstaller 打包环境
+
+### 🔧 优化改进
+- **APP_VERSION 同步更新**：版本号从 1.0.5 更新到 1.0.8
+
+### 📁 文件变更
+- 更新：`opencode_config_manager_fluent.py`
+- 新增：`OpenCodeConfigManager_v1.0.8.spec`
+
+---
+
 ## [v1.0.7] - 2026-01-15 17:50
 **版本代号**: 配置验证修复版
 
