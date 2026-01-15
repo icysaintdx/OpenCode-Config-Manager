@@ -176,8 +176,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
            files: |
-            dist/OpenCode-Config-Manager-MacOS.dmg
-            dist/OpenCode-Config-Manager-Linux-x64.tar.gz
+             ./dist/OpenCode-Config-Manager-MacOS.dmg
+             ./dist/OpenCode-Config-Manager-Linux-x64.tar.gz
            overwrite_files: true
            fail_on_unmatched_files: false
            generate_release_notes: true
