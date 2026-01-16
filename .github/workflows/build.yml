@@ -78,6 +78,7 @@ jobs:
             --exclude-module pygments `
             --exclude-module psutil `
             --icon "assets/icon.ico" `
+            --strip ` 
             --noconfirm `
             --clean `
             opencode_config_manager_fluent.py
@@ -126,6 +127,8 @@ jobs:
             --onedir \
             --windowed \
             --noconsole \
+            --add-data "assets:assets" \ # 和Windows对应，静态资源打包，冒号是mac/linux分隔符
+            --icon "assets/icon.icns" \ # mac专用图标格式，必须是icns，和windows的ico区分
             --hidden-import=qfluentwidgets \
             --hidden-import=qfluentwidgets.widgets \
             --hidden-import=qfluentwidgets.components \
@@ -147,20 +150,34 @@ jobs:
           Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
           Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
 
-      - name: 5. 打包成 DMG 镜像
+      - name: 5. ✅ 关键步骤：先清理属性+完整签名 .app 包 (修复顺序：签名在前！)
         run: |
-          brew install create-dmg || true
-          rm -f dist/OpenCode-Config-Manager-MacOS.dmg
-          create-dmg \
-            --volname "OpenCode-Config-Manager" \
-            "dist/OpenCode-Config-Manager-MacOS.dmg" \
-            "dist/OpenCode-Config-Manager/"
+          # 清理macOS扩展属性，彻底解决「文件已损坏」警告
+          xattr -cr dist/OpenCode-Config-Manager.app
+          # 深度强制签名，--deep递归签所有依赖，--force覆盖旧签名，--sign - 免证书签名
+          codesign --force --deep --options runtime --sign - dist/OpenCode-Config-Manager.app
+          # 验证签名是否成功，无报错即正常
+          codesign -vvv dist/OpenCode-Config-Manager.app
         shell: /bin/bash -e {0}
 
-      - name: 6. 免证书签名
+      - name: 6. ✅ 带拖拽引导的标准DMG打包 (核心修复：完整参数配置)
         run: |
-          xattr -cr dist/OpenCode-Config-Manager.app
-          codesign --force --deep --sign - dist/OpenCode-Config-Manager.app
+          # 安装create-dmg，已存在则跳过
+          brew install create-dmg || true
+          # 删除旧的dmg包，避免冲突
+          rm -rf dist/OpenCode-Config-Manager-MacOS.dmg
+          # 生成Mac标准带拖拽引导的DMG镜像
+          create-dmg \
+            --volname "OpenCode Config Manager" \
+            --window-size 800 450 \          # DMG打开后的窗口大小
+            --icon-size 128 \                # App图标大小
+            --icon "OpenCode-Config-Manager.app" 200 200 \ # App图标在窗口的位置
+            --app-drop-link 600 200 \        # 右侧拖拽到Applications的快捷链接位置
+            --hide-extension "OpenCode-Config-Manager.app" \ # 隐藏.app后缀，更美观
+            --volicon "assets/icon.icns" \   # DMG镜像本身的图标
+            --no-internet-enable \           # 关闭无用的网络功能，减小体积
+            "dist/OpenCode-Config-Manager-MacOS.dmg" \
+            "dist/OpenCode-Config-Manager.app" # 只打包签名后的.app，而非整个文件夹
         shell: /bin/bash -e {0}
 
       - name: 7. 上传构建产物
@@ -205,7 +222,8 @@ jobs:
             python3-dev \
             build-essential \
             pyqt5-dev-tools \
-            git
+            git \
+            libxcb-randr0-dev libxcb-xtest0-dev
 
       - name: 4. 安装 Python 依赖
         run: |
@@ -232,6 +250,7 @@ jobs:
             --collect-all qfluentwidgets \
             --noconfirm \
             --strip \
+            --add-data "assets:assets" \
             opencode_config_manager_fluent.py
         shell: /bin/bash -e {0}
 
