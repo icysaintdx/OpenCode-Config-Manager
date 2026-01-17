@@ -83,7 +83,7 @@ jobs:
             --exclude-module pygments `
             --exclude-module psutil `
             --icon "assets/icon.ico" `
-            --strip ` 
+            --strip `
             --noconfirm `
             --clean `
             opencode_config_manager_fluent.py
@@ -135,8 +135,8 @@ jobs:
             --onedir \
             --windowed \
             --noconsole \
-            --add-data "assets:assets" \ # 和Windows对应，静态资源打包，冒号是mac/linux分隔符
-            --icon "assets/icon.icns" \ # mac专用图标格式，必须是icns，和windows的ico区分
+            --add-data "assets:assets" \
+            --icon "assets/icon.icns" \
             --hidden-import=qfluentwidgets \
             --hidden-import=qfluentwidgets.widgets \
             --hidden-import=qfluentwidgets.components \
@@ -268,15 +268,15 @@ jobs:
       - name: 6. 打包成 tar.gz
         run: |
           cd dist
-          rm -f OpenCode-Config-Manager-Linux-x64.tar.gz
-          tar -zcvf OpenCode-Config-Manager-Linux-x64.tar.gz OpenCode-Config-Manager/
+          rm -f OCCM_${{ env.TAG_NAME }}-Linux-x64.tar.gz
+          tar -zcvf OCCM_${{ env.TAG_NAME }}-Linux-x64.tar.gz OCCM_${{ env.TAG_NAME }}/
         shell: /bin/bash -e {0}
 
       - name: 7. 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: dist/OpenCode-Config-Manager-Linux-x64.tar.gz
+          path: dist/OCCM_${{ env.TAG_NAME }}-Linux-x64.tar.gz
 
   # ==================== 统一发布 ====================
   release:
@@ -311,8 +311,8 @@ jobs:
         with:
           files: |
             ./dist/*.exe
-            ./dist/OpenCode-Config-Manager-MacOS.dmg
-            ./dist/OpenCode-Config-Manager-Linux-x64.tar.gz
+            ./dist/*.dmg
+            ./dist/*-Linux-x64.tar.gz
           overwrite_files: true
           body_path: ./RELEASE.md
           generate_release_notes: false
