@@ -51,7 +51,7 @@ jobs:
         run: |
           pyinstaller `
             --name "OCCM_${{ env.TAG_NAME }}" `
-            --onedir `
+            --onefile `
             --windowed `
             --noconsole `
             --add-data "assets;assets" `
@@ -87,16 +87,16 @@ jobs:
             --clean `
             opencode_config_manager_fluent.py
 
-      - name: 5. 打包成 zip
+      - name: 5. 重命名 exe 文件
         run: |
           cd dist
-          Compress-Archive -Path "OCCM_${{ env.TAG_NAME }}" -DestinationPath "OCCM_${{ env.TAG_NAME }}-Windows-x64.zip"
+          Rename-Item "OCCM_${{ env.TAG_NAME }}.exe" "OCCM_${{ env.TAG_NAME }}-Windows-x64.exe"
 
       - name: 6. 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/OCCM_${{ env.TAG_NAME }}-Windows-x64.zip
+          path: dist/OCCM_${{ env.TAG_NAME }}-Windows-x64.exe
 
   # ==================== macOS 构建 ====================
   build-macos:
@@ -314,7 +314,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./dist/*.zip
+            ./dist/*.exe
             ./dist/*.dmg
             ./dist/*-Linux-x64.tar.gz
           overwrite_files: true
