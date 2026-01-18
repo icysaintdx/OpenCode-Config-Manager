@@ -123,20 +123,21 @@ STATUS_LABELS = {
     "no_config": "未配置",
 }
 
+# 状态颜色 - 与 UIConfig 配色方案一致
 STATUS_COLORS = {
-    "operational": "#3CCB7F",
-    "degraded": "#F3B94E",
-    "failed": "#E05A5A",
-    "error": "#E05A5A",
-    "no_config": "#9AA4B2",
+    "operational": "#4CAF50",  # UIConfig.COLOR_SUCCESS
+    "degraded": "#FF9800",  # UIConfig.COLOR_WARNING
+    "failed": "#F44336",  # UIConfig.COLOR_ERROR
+    "error": "#F44336",  # UIConfig.COLOR_ERROR
+    "no_config": "#9E9E9E",  # UIConfig.COLOR_TEXT_SECONDARY
 }
 
 STATUS_BG_COLORS = {
-    "operational": "#1F3D2B",
-    "degraded": "#3E3320",
-    "failed": "#3B2323",
-    "error": "#3B2323",
-    "no_config": "#2A2F36",
+    "operational": "#1B3D1B",
+    "degraded": "#3D3018",
+    "failed": "#3D1B1B",
+    "error": "#3D1B1B",
+    "no_config": "#2D2D2D",
 }
 
 
@@ -271,7 +272,105 @@ from qfluentwidgets import (
 )
 
 
-APP_VERSION = "1.1.0"
+# ==================== UI 样式配置 ====================
+class UIConfig:
+    """全局 UI 配置"""
+
+    # 字体配置
+    FONT_FAMILY = "JetBrains Mono"
+    FONT_SIZE_TITLE = 16
+    FONT_SIZE_BODY = 14
+    FONT_SIZE_SMALL = 12
+    FONT_SIZE_NUMBER = 20
+
+    # 状态颜色（不随主题变化）
+    COLOR_PRIMARY = "#2196F3"  # 高亮/主色
+    COLOR_SUCCESS = "#4CAF50"  # 成功
+    COLOR_WARNING = "#FF9800"  # 警告
+    COLOR_ERROR = "#F44336"  # 错误
+
+    # 布局
+    WINDOW_WIDTH = 1200
+    WINDOW_HEIGHT = 820
+
+    @staticmethod
+    def get_stylesheet() -> str:
+        """获取全局 QSS 样式表 - 仅设置字体，颜色由 QFluentWidgets 主题控制"""
+        return f"""
+            /* ==================== 全局字体 ==================== */
+            * {{
+                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", "Monaco", "Courier New", monospace;
+            }}
+            QWidget {{
+                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", "Monaco", "Courier New", monospace;
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+
+            /* ==================== 字体大小层级 ==================== */
+            TitleLabel {{
+                font-size: 18px;
+                font-weight: bold;
+            }}
+            SubtitleLabel {{
+                font-size: {UIConfig.FONT_SIZE_TITLE}px;
+                font-weight: bold;
+            }}
+            BodyLabel {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+            CaptionLabel {{
+                font-size: {UIConfig.FONT_SIZE_SMALL}px;
+            }}
+            StrongBodyLabel {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-weight: bold;
+            }}
+
+            /* ==================== 按钮字体 ==================== */
+            QPushButton, PushButton, PrimaryPushButton, TransparentPushButton, ToolButton {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+
+            /* ==================== 输入框字体 ==================== */
+            QLineEdit, LineEdit, QTextEdit, TextEdit, QPlainTextEdit, PlainTextEdit {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+
+            /* ==================== 下拉框字体 ==================== */
+            QComboBox, ComboBox {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+
+            /* ==================== 表格字体 ==================== */
+            QTableWidget, TableWidget {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+            QHeaderView::section {{
+                font-weight: bold;
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+
+            /* ==================== 列表字体 ==================== */
+            QListWidget, ListWidget {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+            }}
+
+            /* ==================== 滚动条样式（紧凑） ==================== */
+            QScrollBar:vertical {{
+                width: 8px;
+            }}
+            QScrollBar:horizontal {{
+                height: 8px;
+            }}
+
+            /* ==================== 工具提示字体 ==================== */
+            QToolTip {{
+                font-size: {UIConfig.FONT_SIZE_SMALL}px;
+            }}
+        """
+
+
+APP_VERSION = "1.1.2"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -3197,127 +3296,99 @@ class VersionChecker(QObject):
 
 # ==================== 基础页面类 ====================
 class BaseDialog(QDialog):
-    """对话框基类 - 所有对话框继承此类，自动适配深色主题"""
+    """对话框基类 - 所有对话框继承此类，自动适配主题"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # 监听主题变化
+        qconfig.themeChanged.connect(self._apply_theme)
+
+    def showEvent(self, event):
+        """显示时应用当前主题"""
+        super().showEvent(event)
         self._apply_theme()
 
     def _apply_theme(self):
-        """应用深色主题样式 - 增强对比度和层次感"""
+        """根据当前主题应用样式"""
         if isDarkTheme():
+            # 深色主题
             self.setStyleSheet("""
                 QDialog {
-                    background-color: #1e1e1e;
-                    color: #ffffff;
+                    background-color: #202020;
+                    color: #E0E0E0;
                 }
                 QLabel {
-                    color: #e0e0e0;
+                    color: #E0E0E0;
                 }
-                QLineEdit, QTextEdit, QSpinBox, QComboBox {
-                    background-color: #2d2d2d;
-                    color: #ffffff;
-                    border: 1px solid #4a4a4a;
-                    border-radius: 6px;
-                    padding: 8px;
-                    min-height: 20px;
+                SubtitleLabel {
+                    color: #FFFFFF;
                 }
-                QLineEdit:focus, QTextEdit:focus {
-                    border: 2px solid #0078d4;
-                    background-color: #333333;
-                }
-                QCheckBox, QRadioButton {
-                    color: #ffffff;
-                }
-                /* Tab/Pivot 样式增强 - 更明显的对比 */
-                Pivot {
-                    background-color: #2a2a2a;
-                    border-radius: 8px;
-                    padding: 6px;
-                    margin-bottom: 8px;
-                }
-                PivotItem {
-                    padding: 8px 16px;
-                    border-radius: 6px;
-                }
-                PivotItem:checked {
-                    background-color: #0078d4;
-                    color: #ffffff;
-                }
-                /* 卡片样式增强 */
-                CardWidget {
-                    background-color: #2d2d2d;
-                    border: 1px solid #404040;
-                    border-radius: 10px;
-                    margin: 6px 0;
-                }
-                /* 表格样式增强 - 更明显的层次 */
                 QTableWidget {
-                    background-color: #252525;
-                    color: #ffffff;
+                    background-color: #2D2D2D;
+                    color: #E0E0E0;
+                    gridline-color: #404040;
                     border: 1px solid #404040;
-                    border-radius: 8px;
-                    gridline-color: #3a3a3a;
-                    selection-background-color: #0078d4;
                 }
                 QTableWidget::item {
-                    color: #e0e0e0;
-                    padding: 10px 8px;
-                    border-bottom: 1px solid #333333;
+                    padding: 6px;
                 }
                 QTableWidget::item:selected {
-                    background-color: #0078d4;
-                    color: #ffffff;
+                    background-color: #0078D4;
                 }
-                QTableWidget::item:hover {
-                    background-color: #353535;
-                }
-                /* 表头样式 - 更突出 */
                 QHeaderView::section {
-                    background-color: #383838;
-                    color: #ffffff;
+                    background-color: #333333;
+                    color: #B0B0B0;
                     border: none;
-                    border-bottom: 2px solid #0078d4;
-                    padding: 10px 8px;
-                    font-weight: bold;
-                    font-size: 13px;
-                }
-                QHeaderView::section:horizontal {
-                    border-right: 1px solid #4a4a4a;
-                }
-                QHeaderView::section:horizontal:last {
-                    border-right: none;
-                }
-                /* 分组标题样式 */
-                CaptionLabel {
-                    color: #0078d4;
-                    font-weight: bold;
-                    font-size: 13px;
-                    padding: 4px 0;
-                }
-                QScrollArea {
-                    background-color: #1e1e1e;
-                    border: none;
-                }
-                /* 列表样式 */
-                QListWidget {
-                    background-color: #252525;
-                    border: 1px solid #404040;
-                    border-radius: 6px;
-                }
-                QListWidget::item {
+                    border-bottom: 1px solid #404040;
                     padding: 8px;
-                    border-bottom: 1px solid #333333;
+                    font-weight: bold;
                 }
-                QListWidget::item:selected {
-                    background-color: #0078d4;
-                }
-                QListWidget::item:hover {
-                    background-color: #353535;
+                QTextEdit, TextEdit {
+                    background-color: #2D2D2D;
+                    color: #E0E0E0;
+                    border: 1px solid #404040;
                 }
             """)
         else:
-            self.setStyleSheet("")
+            # 浅色主题 - 奶白色背景（参考左侧软件）
+            self.setStyleSheet("""
+                QDialog {
+                    background-color: #F7F8FA;
+                    color: #1A1A1A;
+                }
+                QLabel {
+                    color: #1A1A1A;
+                }
+                SubtitleLabel {
+                    color: #000000;
+                }
+                QTableWidget {
+                    background-color: #FFFFFF;
+                    color: #1A1A1A;
+                    gridline-color: #E8E8E8;
+                    border: 1px solid #E0E0E0;
+                }
+                QTableWidget::item {
+                    padding: 6px;
+                }
+                QTableWidget::item:selected {
+                    background-color: #2979FF;
+                    color: #FFFFFF;
+                }
+                QHeaderView::section {
+                    background-color: #F0F1F3;
+                    color: #505050;
+                    border: none;
+                    border-bottom: 1px solid #E0E0E0;
+                    padding: 8px;
+                    font-weight: bold;
+                }
+                QTextEdit, TextEdit {
+                    background-color: #FFFFFF;
+                    color: #1A1A1A;
+                    border: 1px solid #E0E0E0;
+                }
+            """)
 
 
 class BasePage(QWidget):
@@ -7652,7 +7723,10 @@ class MainWindow(FluentWindow):
     def _init_window(self):
         self.setWindowTitle(f"OCCM - OpenCode Config Manager v{APP_VERSION}")
         self.setMinimumSize(1000, 700)
-        self.resize(1200, 820)
+        self.resize(UIConfig.WINDOW_WIDTH, UIConfig.WINDOW_HEIGHT)
+
+        # 设置主题色为蓝色（参考左侧软件的蓝色）
+        setThemeColor("#2979FF")
 
         # 设置主题跟随系统
         setTheme(Theme.AUTO)
@@ -7674,22 +7748,25 @@ class MainWindow(FluentWindow):
                 self.setWindowIcon(FIF.CODE.icon())
 
         # 设置导航栏始终展开，不折叠
-        self.navigationInterface.setExpandWidth(200)
+        self.navigationInterface.setExpandWidth(180)
         self.navigationInterface.setCollapsible(False)
 
-        # 减少导航菜单项间距，让底部菜单能完整显示
-        self.navigationInterface.setStyleSheet("""
-            NavigationTreeWidget {
+        # 导航栏样式 - 紧凑布局确保底部菜单可见（颜色由主题控制）
+        self.navigationInterface.setStyleSheet(f"""
+            NavigationTreeWidget {{
+                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", monospace;
                 font-size: 13px;
-            }
-            NavigationTreeWidget::item {
-                height: 36px;
-                margin: 2px 0px;
-            }
-            NavigationSeparator {
+            }}
+            NavigationTreeWidget::item {{
+                height: 32px;
+                margin: 1px 4px;
+                padding: 0px 8px;
+                border-radius: 4px;
+            }}
+            NavigationSeparator {{
                 height: 1px;
-                margin: 4px 0px;
-            }
+                margin: 2px 8px;
+            }}
         """)
 
     def _init_navigation(self):
@@ -9575,6 +9652,8 @@ class MonitorPage(BasePage):
         self._pending_targets: Dict[str, float] = {}
         self._timeout_timer: Optional[QTimer] = None
         self._request_timeout_sec = 15
+        # 是否启用对话延迟测试
+        self._chat_test_enabled = True
         self._setup_ui()
         self._load_targets()
         self._start_polling()
@@ -9586,6 +9665,16 @@ class MonitorPage(BasePage):
         """配置变更时重新加载目标"""
         self._load_targets()
         self._refresh_ui()
+
+    def _toggle_chat_test(self):
+        """切换对话延迟测试状态"""
+        self._chat_test_enabled = not self._chat_test_enabled
+        if self._chat_test_enabled:
+            self.stop_monitor_btn.setText("停止监控")
+            self.stop_monitor_btn.setIcon(FIF.PAUSE)
+        else:
+            self.stop_monitor_btn.setText("恢复监控")
+            self.stop_monitor_btn.setIcon(FIF.PLAY)
 
     def _setup_ui(self):
         """构建监控页面 UI"""
@@ -9628,10 +9717,17 @@ class MonitorPage(BasePage):
         self.manual_check_btn.clicked.connect(self._do_poll)
         wrapper_layout.addWidget(self.manual_check_btn, 0, 12)
 
-        self.poll_status_label = CaptionLabel("", wrapper)
-        wrapper_layout.addWidget(self.poll_status_label, 0, 13)
+        self.stop_monitor_btn = PushButton(FIF.PAUSE, "停止监控", wrapper)
+        self.stop_monitor_btn.setToolTip(
+            "我们使用最小 token 测试完整返回，但仍会产生费用；不需要可停止；停止仅影响对话延迟测试，其他不影响"
+        )
+        self.stop_monitor_btn.clicked.connect(self._toggle_chat_test)
+        wrapper_layout.addWidget(self.stop_monitor_btn, 0, 13)
 
-        wrapper_layout.setColumnStretch(14, 1)
+        self.poll_status_label = CaptionLabel("", wrapper)
+        wrapper_layout.addWidget(self.poll_status_label, 0, 14)
+
+        wrapper_layout.setColumnStretch(15, 1)
         self._layout.addWidget(wrapper)
 
     def _build_table(self):
@@ -9891,7 +9987,20 @@ class MonitorPage(BasePage):
         status = "no_config"
         message = ""
 
-        if not target.base_url:
+        if not getattr(self, "_chat_test_enabled", True):
+            # 对话测试已暂停，根据 Ping 结果判定状态
+            if not target.base_url:
+                message = "未配置 baseURL"
+            elif ping_ms is not None:
+                status = "operational"
+                message = "对话测试已暂停 (Ping 正常)"
+            elif origin:
+                status = "error"
+                message = "Ping 失败"
+            else:
+                status = "no_config"
+                message = "未配置有效的主机"
+        elif not target.base_url:
             message = "未配置 baseURL"
         elif not target.api_key:
             message = "未配置 apiKey"
@@ -10894,6 +11003,11 @@ class BackupDialog(BaseDialog):
 
 # ==================== 程序入口 ====================
 def main():
+    # 抑制 Qt 字体枚举警告
+    import os
+
+    os.environ["QT_LOGGING_RULES"] = "qt.qpa.fonts.warning=false"
+
     # 启用高DPI支持
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
@@ -10905,7 +11019,19 @@ def main():
     app.setApplicationName("OpenCode Config Manager")
     app.setApplicationVersion(APP_VERSION)
 
+    # 设置全局字体 - 使用 JetBrains Mono 并提供回退
+    font = QFont()
+    font.setFamilies(
+        ["JetBrains Mono", "Consolas", "Monaco", "Courier New", "monospace"]
+    )
+    font.setPointSize(10)
+    app.setFont(font)
+
+    # 应用全局样式（根据当前主题）
+    app.setStyleSheet(UIConfig.get_stylesheet())
+
     window = MainWindow()
+
     window.show()
 
     sys.exit(app.exec_())
