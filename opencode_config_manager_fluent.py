@@ -8808,6 +8808,10 @@ class MainWindow(FluentWindow):
                 self.stackedWidget.setStyleSheet("")
             if hasattr(self, 'navigationInterface'):
                 self._update_nav_style()
+        
+        # 更新监控页面统计卡片样式
+        if hasattr(self, 'monitor_page') and hasattr(self.monitor_page, '_apply_stat_card_theme'):
+            self.monitor_page._apply_stat_card_theme()
 
     def _init_navigation(self):
         # ===== 顶部工具栏区域 =====
@@ -11412,18 +11416,16 @@ class MonitorPage(BasePage):
         stats_row = QHBoxLayout()
         stats_row.setSpacing(8)
 
+        # 保存卡片引用以便主题切换时更新
+        self._stat_cards: List[QFrame] = []
+        self._stat_labels: List[CaptionLabel] = []
+
         # 统计卡片样式
         def create_stat_card(icon, label_text, value_text, color="#58a6ff"):
             card = QFrame()
             card.setFrameShape(QFrame.StyledPanel)
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #161b22;
-                    border: 1px solid #30363d;
-                    border-radius: 6px;
-                }
-            """)
             card.setFixedSize(95, 50)
+            self._stat_cards.append(card)
             
             layout = QVBoxLayout(card)
             layout.setContentsMargins(8, 4, 8, 4)
@@ -11445,7 +11447,8 @@ class MonitorPage(BasePage):
             
             # 标签
             label = CaptionLabel(label_text)
-            label.setStyleSheet("color: #7d8590; font-size: 10px;")
+            label.setStyleSheet("font-size: 10px;")
+            self._stat_labels.append(label)
             layout.addWidget(label)
             
             return card, value
@@ -11474,6 +11477,9 @@ class MonitorPage(BasePage):
         card, self.last_checked_value = create_stat_card(FIF.HISTORY, "最近", "—", "#7d8590")
         card.setFixedSize(110, 50)
         stats_row.addWidget(card)
+        
+        # 应用初始主题样式
+        self._apply_stat_card_theme()
 
         stats_row.addStretch()
 
@@ -11855,6 +11861,33 @@ class MonitorPage(BasePage):
             checked_at=checked_at,
             message=message,
         )
+
+    def _apply_stat_card_theme(self):
+        """应用统计卡片的主题样式"""
+        if isDarkTheme():
+            card_style = """
+                QFrame {
+                    background-color: #161b22;
+                    border: 1px solid #30363d;
+                    border-radius: 6px;
+                }
+            """
+            label_color = "#7d8590"
+        else:
+            card_style = """
+                QFrame {
+                    background-color: #ffffff;
+                    border: 1px solid #d0d7de;
+                    border-radius: 6px;
+                }
+            """
+            label_color = "#57606a"
+        
+        for card in self._stat_cards:
+            card.setStyleSheet(card_style)
+        
+        for label in self._stat_labels:
+            label.setStyleSheet(f"color: {label_color}; font-size: 10px;")
 
     def _refresh_ui(self):
         """刷新所有 UI 组件"""
