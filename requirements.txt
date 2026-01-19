@@ -5,5 +5,9 @@
 PyQt5>=5.15.0
 PyQt-Fluent-Widgets>=1.0.0
 
+# Testing dependencies
+pytest>=7.0.0
+hypothesis>=6.0.0
+
 # Build dependencies (optional, for creating executables)
 # pyinstaller>=6.0.0

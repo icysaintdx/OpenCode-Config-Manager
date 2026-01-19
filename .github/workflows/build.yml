@@ -1,6 +1,6 @@
 # 统一构建工作流 - Windows + macOS + Linux 三平台自动构建发布
 # 触发：推送 main 分支 / 推送 Tag / 手动触发
-# 发布：仅在推送 Tag 时自动发布到 GitHub Release，使用 RELEASE.md 作为发布说明
+# 发布：仅在推送 Tag 时自动发布到 GitHub Release 使用 RELEASE.md 作为发布说明
 
 name: 🚀 自动构建发布 (Windows + macOS + Linux)
 
@@ -33,7 +33,7 @@ jobs:
         run: |
           echo "TAG_NAME=${{ github.ref_name }}" >> $env:GITHUB_ENV
 
-      # ======== pip 缓存优化（提速 50%+）========
+      # ======== pip 缓存优化 (提速 50%+）========
       - name: 缓存 Python 依赖包
         uses: actions/cache@v4
         with:
@@ -115,7 +115,7 @@ jobs:
       - name: 2.1 读取版本号
         run: echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
 
-      # ======== pip 缓存优化（提速 50%+）========
+      # ======== pip 缓存优化 (提速 50%+）========
       - name: 缓存 Python 依赖包
         uses: actions/cache@v4
         with:
@@ -129,7 +129,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel -i https://pypi.tuna.tsinghua.edu.cn/simple
           python3 -m pip install PyQt5-qt5 PyQt5-sip PyQt5 --force-reinstall -i https://pypi.tuna.tsinghua.edu.cn/simple
           python3 -m pip install pyinstaller -i https://pypi.tuna.tsinghua.edu.cn/simple
-          # macOS ARM64 没有 qfluentwidgets 预编译包，从 GitHub 源码安装
+          # macOS ARM64 没有 qfluentwidgets 预编译包 从 GitHub 源码安装
           python3 -m pip install git+https://github.com/zhiyiYo/PyQt-Fluent-Widgets.git --no-cache-dir
 
       - name: 4. PyInstaller 打包
@@ -162,23 +162,23 @@ jobs:
           Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
           Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
 
-      - name: 5. ✅ 关键步骤：先清理属性+完整签名 .app 包 (修复顺序：签名在前！)
+      - name: 5. 清理扩展属性 + 签名 .app 包
         run: |
-          # 清理macOS扩展属性，彻底解决「文件已损坏」警告
+          # 清理 macOS 扩展属性 彻底解决「文件已损坏」警告
           xattr -cr dist/OCCM_${{ env.TAG_NAME }}.app
-          # 深度强制签名，--deep递归签所有依赖，--force覆盖旧签名，--sign - 免证书签名
+          # 深度强制签名 --deep 递归签所有依赖 --force 覆盖旧签名 --sign - 免证书签名
           codesign --force --deep --options runtime --sign - dist/OCCM_${{ env.TAG_NAME }}.app
-          # 验证签名是否成功，无报错即正常
+          # 验证签名是否成功
           codesign -vvv dist/OCCM_${{ env.TAG_NAME }}.app
         shell: /bin/bash -e {0}
 
-      - name: 6. ✅ 带拖拽引导的标准DMG打包 (核心修复：完整参数配置)
+      - name: 6. 打包 DMG 镜像
         run: |
-          # 安装create-dmg，已存在则跳过
+          # 安装 create-dmg 已存在则跳过
           brew install create-dmg || true
-          # 删除旧的dmg包，避免冲突
+          # 删除旧的 dmg 包 避免冲突
           rm -rf dist/OCCM_${{ env.TAG_NAME }}.dmg
-          # 生成Mac标准带拖拽引导的DMG镜像
+          # 生成 Mac 标准带拖拽引导的 DMG 镜像
           create-dmg \
             --volname "OCCM ${{ env.TAG_NAME }}" \
             --window-size 800 450 \
@@ -192,11 +192,28 @@ jobs:
             "dist/OCCM_${{ env.TAG_NAME }}.app"
         shell: /bin/bash -e {0}
 
-      - name: 7. 上传构建产物
+      - name: 7. 签名 DMG 文件 (修复签名失效问题)
+        run: |
+          # 签名 DMG 文件本身 防止 create-dmg 破坏签名
+          codesign --force --sign - "dist/OCCM_${{ env.TAG_NAME }}.dmg"
+          # 验证 DMG 签名
+          codesign -vvv "dist/OCCM_${{ env.TAG_NAME }}.dmg" || echo "DMG 签名验证完成"
+        shell: /bin/bash -e {0}
+
+      - name: 8. 打包 ZIP 版本 (解压即用)
+        run: |
+          cd dist
+          # 打包 .app 为 zip 方便用户直接解压使用
+          zip -r "OCCM_${{ env.TAG_NAME }}-macOS.zip" "OCCM_${{ env.TAG_NAME }}.app"
+        shell: /bin/bash -e {0}
+
+      - name: 9. 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: dist/OCCM_${{ env.TAG_NAME }}.dmg
+          path: |
+            dist/OCCM_${{ env.TAG_NAME }}.dmg
+            dist/OCCM_${{ env.TAG_NAME }}-macOS.zip
 
   # ==================== Linux 构建 ====================
   build-linux:
@@ -216,7 +233,7 @@ jobs:
       - name: 2.1 读取版本号
         run: echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
 
-      # ======== pip 缓存优化（提速 50%+）========
+      # ======== pip 缓存优化 (提速 50%+）========
       - name: 缓存 Python 依赖包
         uses: actions/cache@v4
         with:
@@ -238,7 +255,9 @@ jobs:
             build-essential \
             pyqt5-dev-tools \
             git \
-            libxcb-randr0-dev libxcb-xtest0-dev
+            libxcb-randr0-dev libxcb-xtest0-dev \
+            fuse libfuse2 \
+            file
 
       - name: 4. 安装 Python 依赖
         run: |
@@ -276,11 +295,96 @@ jobs:
           tar -zcvf OCCM_${{ env.TAG_NAME }}-Linux-x64.tar.gz OCCM_${{ env.TAG_NAME }}/
         shell: /bin/bash -e {0}
 
-      - name: 7. 上传构建产物
+      - name: 7. 创建 AppImage (单文件可执行)
+        run: |
+          # 下载 appimagetool
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          chmod +x appimagetool
+          
+          # 创建 AppDir 结构
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          
+          # 复制应用文件
+          cp -r dist/OCCM_${{ env.TAG_NAME }}/* AppDir/usr/bin/
+          
+          # 创建启动脚本
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/bin:${LD_LIBRARY_PATH}"
+          exec "${HERE}/usr/bin/OCCM_${{ env.TAG_NAME }}" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          
+          # 创建 .desktop 文件
+          cat > AppDir/OCCM.desktop << EOF
+          [Desktop Entry]
+          Type=Application
+          Name=OCCM
+          Comment=OpenCode Config Manager
+          Exec=OCCM_${{ env.TAG_NAME }}
+          Icon=occm
+          Categories=Development;Utility;
+          Terminal=false
+          EOF
+          cp AppDir/OCCM.desktop AppDir/usr/share/applications/
+          
+          # 复制图标 (如果存在)
+          if [ -f "assets/icon.png" ]; then
+            cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/occm.png
+            cp assets/icon.png AppDir/occm.png
+          else
+            # 创建一个简单的占位图标
+            echo "No icon found, using placeholder"
+            touch AppDir/occm.png
+          fi
+          
+          # 打包 AppImage
+          ARCH=x86_64 ./appimagetool AppDir "dist/OCCM_${{ env.TAG_NAME }}-Linux-x86_64.AppImage"
+        shell: /bin/bash -e {0}
+
+      - name: 8. 创建 DEB 包 (Debian/Ubuntu)
+        run: |
+          # 安装 fpm
+          sudo gem install fpm
+          
+          # 创建 deb 包
+          fpm -s dir -t deb \
+            --name occm \
+            --version "${{ env.TAG_NAME }}" \
+            --description "OpenCode Config Manager - 可视化管理 OpenCode 配置" \
+            --maintainer "IcySaint <icysaintdx@github.com>" \
+            --url "https://github.com/icysaintdx/OpenCode-Config-Manager" \
+            --license "MIT" \
+            --architecture amd64 \
+            --depends "libxcb-xinerama0" \
+            --depends "libxcb-cursor0" \
+            --depends "libgl1" \
+            --depends "libglib2.0-0" \
+            --depends "libxkbcommon-x11-0" \
+            --after-install /dev/null \
+            --package "dist/OCCM_${{ env.TAG_NAME }}-Linux-amd64.deb" \
+            "dist/OCCM_${{ env.TAG_NAME }}/=/opt/occm" \
+            "AppDir/OCCM.desktop=/usr/share/applications/occm.desktop"
+          
+          # 创建符号链接脚本 (安装后执行)
+          echo '#!/bin/bash' > postinst
+          echo 'ln -sf /opt/occm/OCCM_${{ env.TAG_NAME }} /usr/local/bin/occm' >> postinst
+          chmod +x postinst
+        shell: /bin/bash -e {0}
+
+      - name: 9. 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: dist/OCCM_${{ env.TAG_NAME }}-Linux-x64.tar.gz
+          path: |
+            dist/OCCM_${{ env.TAG_NAME }}-Linux-x64.tar.gz
+            dist/OCCM_${{ env.TAG_NAME }}-Linux-x86_64.AppImage
+            dist/OCCM_${{ env.TAG_NAME }}-Linux-amd64.deb
 
   # ==================== 统一发布 ====================
   release:
@@ -289,7 +393,7 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: 拉取项目源码（获取 RELEASE.md）
+      - name: 拉取项目源码 (获取 RELEASE.md）
         uses: actions/checkout@v4
 
       - name: 下载 Windows 构建产物
@@ -310,13 +414,19 @@ jobs:
           name: linux-build
           path: ./dist
 
+      - name: 列出所有构建产物
+        run: ls -la ./dist/
+
       - name: 发布到 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ./dist/*.exe
             ./dist/*.dmg
+            ./dist/*.zip
             ./dist/*-Linux-x64.tar.gz
+            ./dist/*.AppImage
+            ./dist/*.deb
           overwrite_files: true
           body_path: ./RELEASE.md
           generate_release_notes: false
