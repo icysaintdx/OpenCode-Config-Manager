@@ -9395,7 +9395,11 @@ class OpenCodeAgentDialog(BaseDialog):
         self.agent_name = agent_name
         self.is_edit = agent_name is not None
 
-        self.setWindowTitle("编辑 Agent" if self.is_edit else "添加 Agent")
+        self.setWindowTitle(
+            tr("agent.dialog.edit_title")
+            if self.is_edit
+            else tr("agent.dialog.add_title")
+        )
         self.setMinimumSize(600, 700)
         self._setup_ui()
         self._apply_scroll_style()
@@ -9439,16 +9443,18 @@ class OpenCodeAgentDialog(BaseDialog):
         basic_card = CardWidget(content)
         basic_layout = QVBoxLayout(basic_card)
         basic_layout.setSpacing(10)
-        basic_layout.addWidget(SubtitleLabel("基本信息", basic_card))
+        basic_layout.addWidget(
+            SubtitleLabel(tr("agent.dialog.agent_key_label"), basic_card)
+        )
 
         # Agent 名称
         name_layout = QHBoxLayout()
         name_layout.setSpacing(8)
-        name_label = BodyLabel("Agent 名称:", basic_card)
+        name_label = BodyLabel(tr("agent.dialog.agent_key_label"), basic_card)
         name_label.setMinimumWidth(80)
         name_layout.addWidget(name_label)
         self.name_edit = LineEdit(basic_card)
-        self.name_edit.setPlaceholderText("build, plan, explore")
+        self.name_edit.setPlaceholderText(tr("agent.dialog.agent_key_placeholder"))
         self.name_edit.setMinimumHeight(36)
         self.name_edit.setToolTip(get_tooltip("agent_name"))
         if self.is_edit:
@@ -9459,7 +9465,7 @@ class OpenCodeAgentDialog(BaseDialog):
         # 描述
         desc_layout = QHBoxLayout()
         desc_layout.setSpacing(8)
-        desc_label = BodyLabel("描述:", basic_card)
+        desc_label = BodyLabel(tr("common.description") + ":", basic_card)
         desc_label.setMinimumWidth(80)
         desc_layout.addWidget(desc_label)
         self.desc_edit = LineEdit(basic_card)
@@ -9472,7 +9478,7 @@ class OpenCodeAgentDialog(BaseDialog):
         # 模式
         mode_layout = QHBoxLayout()
         mode_layout.setSpacing(8)
-        mode_label = BodyLabel("模式:", basic_card)
+        mode_label = BodyLabel(tr("agent.dialog.mode_label"), basic_card)
         mode_label.setMinimumWidth(80)
         mode_layout.addWidget(mode_label)
         self.mode_combo = ComboBox(basic_card)
@@ -9507,7 +9513,9 @@ class OpenCodeAgentDialog(BaseDialog):
         # Temperature
         temp_layout = QHBoxLayout()
         temp_layout.setSpacing(8)
-        temp_layout.addWidget(BodyLabel("Temperature:", param_card))
+        temp_layout.addWidget(
+            BodyLabel(tr("agent.dialog.temperature_label"), param_card)
+        )
         self.temp_slider = Slider(Qt.Orientation.Horizontal, param_card)
         self.temp_slider.setRange(0, 200)
         self.temp_slider.setValue(30)
@@ -9523,7 +9531,9 @@ class OpenCodeAgentDialog(BaseDialog):
         # 最大步数
         steps_layout = QHBoxLayout()
         steps_layout.setSpacing(8)
-        steps_layout.addWidget(BodyLabel("最大步数 (可选):", param_card))
+        steps_layout.addWidget(
+            BodyLabel(tr("agent.dialog.max_steps_label"), param_card)
+        )
         self.maxsteps_spin = SpinBox(param_card)
         self.maxsteps_spin.setRange(0, 1000)
         self.maxsteps_spin.setValue(0)
@@ -9537,10 +9547,10 @@ class OpenCodeAgentDialog(BaseDialog):
         # 复选框
         check_layout = QHBoxLayout()
         check_layout.setSpacing(16)
-        self.hidden_check = CheckBox("隐藏 (仅 subagent)", param_card)
+        self.hidden_check = CheckBox(tr("agent.dialog.hidden_checkbox"), param_card)
         self.hidden_check.setToolTip(get_tooltip("opencode_agent_hidden"))
         check_layout.addWidget(self.hidden_check)
-        self.disable_check = CheckBox("禁用此 Agent", param_card)
+        self.disable_check = CheckBox(tr("agent.dialog.disable_checkbox"), param_card)
         self.disable_check.setToolTip(get_tooltip("opencode_agent_disable"))
         check_layout.addWidget(self.disable_check)
         check_layout.addStretch()
@@ -9555,11 +9565,11 @@ class OpenCodeAgentDialog(BaseDialog):
         tools_layout.addWidget(SubtitleLabel("工具和权限配置", tools_card))
 
         # 工具配置 (JSON)
-        tools_label = BodyLabel("工具配置 (JSON):", tools_card)
+        tools_label = BodyLabel(tr("agent.dialog.tools_label"), tools_card)
         tools_label.setToolTip(get_tooltip("opencode_agent_tools"))
         tools_layout.addWidget(tools_label)
         self.tools_edit = TextEdit(tools_card)
-        self.tools_edit.setPlaceholderText('{"write": true, "edit": true}')
+        self.tools_edit.setPlaceholderText(tr("agent.dialog.tools_placeholder"))
         self.tools_edit.setMinimumHeight(100)
         self.tools_edit.setMaximumHeight(150)
         tools_layout.addWidget(self.tools_edit)
@@ -9598,12 +9608,12 @@ class OpenCodeAgentDialog(BaseDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
         self.cancel_btn.setMinimumHeight(36)
         self.cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self.cancel_btn)
 
-        self.save_btn = PrimaryPushButton("保存", self)
+        self.save_btn = PrimaryPushButton(tr("common.save"), self)
         self.save_btn.setMinimumHeight(36)
         self.save_btn.clicked.connect(self._on_save)
         btn_layout.addWidget(self.save_btn)
@@ -9648,12 +9658,14 @@ class OpenCodeAgentDialog(BaseDialog):
     def _on_save(self):
         name = self.name_edit.text().strip()
         if not name:
-            InfoBar.error("错误", "请输入 Agent 名称", parent=self)
+            InfoBar.error(
+                tr("common.error"), tr("agent.dialog.key_required"), parent=self
+            )
             return
 
         desc = self.desc_edit.text().strip()
         if not desc:
-            InfoBar.error("错误", "请输入 Agent 描述", parent=self)
+            InfoBar.error(tr("common.error"), "请输入 Agent 描述", parent=self)
             return
 
         config = self.main_window.opencode_config
@@ -9665,7 +9677,9 @@ class OpenCodeAgentDialog(BaseDialog):
             config["agent"] = {}
 
         if not self.is_edit and name in config["agent"]:
-            InfoBar.error("错误", f'Agent "{name}" 已存在', parent=self)
+            InfoBar.error(
+                tr("common.error"), tr("agent.dialog.key_exists"), parent=self
+            )
             return
 
         agent_data = {
@@ -9702,7 +9716,11 @@ class OpenCodeAgentDialog(BaseDialog):
                 if tools:
                     agent_data["tools"] = tools
             except json.JSONDecodeError as e:
-                InfoBar.error("错误", f"工具配置 JSON 格式错误: {e}", parent=self)
+                InfoBar.error(
+                    tr("common.error"),
+                    tr("agent.dialog.tools_invalid").format(error=str(e)),
+                    parent=self,
+                )
                 return
 
         # 权限配置
@@ -9713,7 +9731,9 @@ class OpenCodeAgentDialog(BaseDialog):
                 if permission:
                     agent_data["permission"] = permission
             except json.JSONDecodeError as e:
-                InfoBar.error("错误", f"权限配置 JSON 格式错误: {e}", parent=self)
+                InfoBar.error(
+                    tr("common.error"), f"权限配置 JSON 格式错误: {e}", parent=self
+                )
                 return
 
         # 系统提示词
@@ -9733,7 +9753,7 @@ class PresetOpenCodeAgentDialog(BaseDialog):
         super().__init__(parent)
         self.main_window = main_window
 
-        self.setWindowTitle("从预设添加 Agent")
+        self.setWindowTitle(tr("agent.preset_dialog.title"))
         self.setMinimumSize(450, 350)
         self._setup_ui()
 
