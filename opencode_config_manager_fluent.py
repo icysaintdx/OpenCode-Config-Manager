@@ -5123,7 +5123,7 @@ class HomePage(BasePage):
     """首页 - 显示配置文件路径、统计信息、工具栏"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("首页", parent)
+        super().__init__(tr("home.title"), parent)
         self.main_window = main_window
         # 隐藏页面标题
         self.title_label.hide()
@@ -5174,18 +5174,20 @@ class HomePage(BasePage):
 
         right_layout.addWidget(
             BodyLabel(
-                "一个可视化的GUI工具，用于管理OpenCode和Oh My OpenCode的配置文件",
+                tr("home.welcome"),
                 about_card,
             )
         )
 
         # 链接按钮
         link_layout = QHBoxLayout()
-        github_btn = PrimaryPushButton(FIF.GITHUB, "GitHub 项目主页", about_card)
+        github_btn = PrimaryPushButton(FIF.GITHUB, tr("help.github"), about_card)
         github_btn.clicked.connect(lambda: webbrowser.open(GITHUB_URL))
         link_layout.addWidget(github_btn)
 
-        author_btn = PushButton(FIF.PEOPLE, f"作者: {AUTHOR_NAME}", about_card)
+        author_btn = PushButton(
+            FIF.PEOPLE, f"{tr('help.author')}: {AUTHOR_NAME}", about_card
+        )
         author_btn.clicked.connect(lambda: webbrowser.open(AUTHOR_GITHUB))
         link_layout.addWidget(author_btn)
 
@@ -5197,7 +5199,7 @@ class HomePage(BasePage):
         about_layout.addLayout(hero_layout)
 
         # ===== 配置文件路径卡片 =====
-        paths_card = self.add_card("配置文件路径")
+        paths_card = self.add_card(tr("home.config_path"))
         paths_layout = paths_card.layout()
 
         # 路径标签样式
@@ -5216,19 +5218,19 @@ class HomePage(BasePage):
         oc_layout.addWidget(self.oc_path_label, 1)
 
         oc_copy_btn = ToolButton(FIF.COPY, paths_card)
-        oc_copy_btn.setToolTip("复制路径")
+        oc_copy_btn.setToolTip(tr("common.copy"))
         oc_copy_btn.clicked.connect(
             lambda: self._copy_to_clipboard(self.oc_path_label.text())
         )
         oc_layout.addWidget(oc_copy_btn)
 
         oc_browse_btn = ToolButton(FIF.FOLDER, paths_card)
-        oc_browse_btn.setToolTip("选择配置文件")
+        oc_browse_btn.setToolTip(tr("home.select_config"))
         oc_browse_btn.clicked.connect(lambda: self._browse_config("opencode"))
         oc_layout.addWidget(oc_browse_btn)
 
         self.oc_reset_btn = ToolButton(FIF.SYNC, paths_card)
-        self.oc_reset_btn.setToolTip("重置为默认路径")
+        self.oc_reset_btn.setToolTip(tr("home.reset_path"))
         self.oc_reset_btn.clicked.connect(lambda: self._reset_config_path("opencode"))
         self.oc_reset_btn.setVisible(ConfigPaths.is_custom_path("opencode"))
         oc_layout.addWidget(self.oc_reset_btn)
@@ -5245,19 +5247,19 @@ class HomePage(BasePage):
         ohmy_layout.addWidget(self.ohmy_path_label, 1)
 
         ohmy_copy_btn = ToolButton(FIF.COPY, paths_card)
-        ohmy_copy_btn.setToolTip("复制路径")
+        ohmy_copy_btn.setToolTip(tr("common.copy"))
         ohmy_copy_btn.clicked.connect(
             lambda: self._copy_to_clipboard(self.ohmy_path_label.text())
         )
         ohmy_layout.addWidget(ohmy_copy_btn)
 
         ohmy_browse_btn = ToolButton(FIF.FOLDER, paths_card)
-        ohmy_browse_btn.setToolTip("选择配置文件")
+        ohmy_browse_btn.setToolTip(tr("home.select_config"))
         ohmy_browse_btn.clicked.connect(lambda: self._browse_config("ohmyopencode"))
         ohmy_layout.addWidget(ohmy_browse_btn)
 
         self.ohmy_reset_btn = ToolButton(FIF.SYNC, paths_card)
-        self.ohmy_reset_btn.setToolTip("重置为默认路径")
+        self.ohmy_reset_btn.setToolTip(tr("home.reset_path"))
         self.ohmy_reset_btn.clicked.connect(
             lambda: self._reset_config_path("ohmyopencode")
         )
@@ -5268,7 +5270,7 @@ class HomePage(BasePage):
 
         # 备份目录路径
         backup_layout = QHBoxLayout()
-        backup_layout.addWidget(create_path_label("备份目录:"))
+        backup_layout.addWidget(create_path_label(tr("home.backup_path") + ":"))
         self.backup_path_label = CaptionLabel(
             str(ConfigPaths.get_backup_dir()), paths_card
         )
@@ -5276,19 +5278,19 @@ class HomePage(BasePage):
         backup_layout.addWidget(self.backup_path_label, 1)
 
         backup_copy_btn = ToolButton(FIF.COPY, paths_card)
-        backup_copy_btn.setToolTip("复制路径")
+        backup_copy_btn.setToolTip(tr("common.copy"))
         backup_copy_btn.clicked.connect(
             lambda: self._copy_to_clipboard(self.backup_path_label.text())
         )
         backup_layout.addWidget(backup_copy_btn)
 
         backup_browse_btn = ToolButton(FIF.FOLDER, paths_card)
-        backup_browse_btn.setToolTip("选择备份目录")
+        backup_browse_btn.setToolTip(tr("home.select_backup_dir"))
         backup_browse_btn.clicked.connect(self._browse_backup_dir)
         backup_layout.addWidget(backup_browse_btn)
 
         self.backup_reset_btn = ToolButton(FIF.SYNC, paths_card)
-        self.backup_reset_btn.setToolTip("重置为默认路径")
+        self.backup_reset_btn.setToolTip(tr("home.reset_path"))
         self.backup_reset_btn.clicked.connect(self._reset_backup_dir)
         self.backup_reset_btn.setVisible(ConfigPaths.is_custom_path("backup"))
         backup_layout.addWidget(self.backup_reset_btn)
@@ -5296,7 +5298,7 @@ class HomePage(BasePage):
         paths_layout.addLayout(backup_layout)
 
         # ===== 统计信息卡片 =====
-        stats_card = self.add_card("配置统计")
+        stats_card = self.add_card(tr("home.config_stats"))
         stats_layout = stats_card.layout()
 
         stats_row = QHBoxLayout()
@@ -5344,20 +5346,22 @@ class HomePage(BasePage):
         stats_layout.addLayout(stats_row)
 
         # ===== 操作按钮卡片 =====
-        action_card = self.add_card("快捷操作")
+        action_card = self.add_card(tr("home.quick_actions"))
         action_layout = action_card.layout()
 
         btn_layout = QHBoxLayout()
 
-        reload_btn = PrimaryPushButton(FIF.SYNC, "重新加载配置", action_card)
+        reload_btn = PrimaryPushButton(FIF.SYNC, tr("home.reload_config"), action_card)
         reload_btn.clicked.connect(self._on_reload)
         btn_layout.addWidget(reload_btn)
 
-        backup_btn = PushButton(FIF.SAVE, "备份配置", action_card)
+        backup_btn = PushButton(FIF.SAVE, tr("home.backup_now"), action_card)
         backup_btn.clicked.connect(self._on_backup)
         btn_layout.addWidget(backup_btn)
 
-        self.validate_btn = PushButton(FIF.SEARCH, "配置检测", action_card)
+        self.validate_btn = PushButton(
+            FIF.SEARCH, tr("home.validate_config"), action_card
+        )
         self.validate_btn.clicked.connect(self._on_validate_config)
         btn_layout.addWidget(self.validate_btn)
 
@@ -5365,11 +5369,11 @@ class HomePage(BasePage):
         action_layout.addLayout(btn_layout)
 
         # ===== 配置检测详情卡片 =====
-        validate_card = self.add_card("配置检测详情")
+        validate_card = self.add_card(tr("home.validation_details"))
         validate_layout = validate_card.layout()
         self.validation_details = PlainTextEdit(validate_card)
         self.validation_details.setReadOnly(True)
-        self.validation_details.setPlaceholderText("尚未执行配置检测")
+        self.validation_details.setPlaceholderText(tr("home.no_validation_yet"))
         self.validation_details.setMinimumHeight(120)
         self.validation_details.setMaximumHeight(200)
         self.validation_details.setStyleSheet("""
@@ -5389,10 +5393,14 @@ class HomePage(BasePage):
 
     def _format_validation_details(self, issues: List[Dict]) -> str:
         if not issues:
-            return "✅ 未发现配置问题"
+            return tr("home.validation_no_issues")
         lines = []
         for index, issue in enumerate(issues, start=1):
-            level_label = "错误" if issue.get("level") == "error" else "警告"
+            level_label = (
+                tr("home.validation_error_label")
+                if issue.get("level") == "error"
+                else tr("home.validation_warning_label")
+            )
             path = issue.get("path", "")
             message = issue.get("message", "")
             lines.append(f"{index}. [{level_label}] {path} - {message}")
@@ -5419,13 +5427,23 @@ class HomePage(BasePage):
         errors = [i for i in issues if i.get("level") == "error"]
         warnings = [i for i in issues if i.get("level") == "warning"]
         if not issues:
-            self.show_success("检测完成", "未发现配置问题")
+            self.show_success(
+                tr("home.validation_complete"), tr("home.validation_no_issues_msg")
+            )
         elif errors:
             self.show_error(
-                "检测完成", f"发现 {len(errors)} 个错误，{len(warnings)} 个警告"
+                tr("home.validation_complete"),
+                tr(
+                    "home.validation_errors_warnings",
+                    error_count=len(errors),
+                    warning_count=len(warnings),
+                ),
             )
         else:
-            self.show_warning("检测完成", f"发现 {len(warnings)} 个警告")
+            self.show_warning(
+                tr("home.validation_complete"),
+                tr("home.validation_warnings_only", warning_count=len(warnings)),
+            )
 
         self.validation_details.setPlainText(self._format_validation_details(issues))
 
@@ -5433,16 +5451,16 @@ class HomePage(BasePage):
         """复制文本到剪贴板"""
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
-        self.show_success("成功", "路径已复制到剪贴板")
+        self.show_success(tr("common.success"), tr("home.copy_success"))
 
     def _browse_config(self, config_type: str):
         """浏览并选择配置文件"""
         title = (
-            "选择 OpenCode 配置文件"
+            tr("home.select_opencode_config")
             if config_type == "opencode"
-            else "选择 Oh My OpenCode 配置文件"
+            else tr("home.select_ohmyopencode_config")
         )
-        file_filter = "JSON/JSONC 文件 (*.json *.jsonc);;所有文件 (*)"
+        file_filter = tr("home.json_filter")
 
         # 获取当前路径作为起始目录
         if config_type == "opencode":
@@ -5457,9 +5475,7 @@ class HomePage(BasePage):
             # 验证文件是否为有效的 JSON/JSONC
             config_data = ConfigManager.load_json(path)
             if config_data is None:
-                self.show_error(
-                    "错误", "无法解析配置文件，请确保是有效的 JSON/JSONC 格式"
-                )
+                self.show_error(tr("common.error"), tr("home.invalid_config"))
                 return
 
             # 设置自定义路径
@@ -5479,7 +5495,9 @@ class HomePage(BasePage):
                 self.main_window.ohmyopencode_config = config_data
 
             self._load_stats()
-            self.show_success("成功", f"已切换到自定义配置文件: {path.name}")
+            self.show_success(
+                tr("common.success"), tr("home.switched_to_custom", filename=path.name)
+            )
 
     def _reset_config_path(self, config_type: str):
         """重置为默认配置路径"""
@@ -5505,12 +5523,14 @@ class HomePage(BasePage):
             )
 
         self._load_stats()
-        self.show_success("成功", "已重置为默认配置路径")
+        self.show_success(tr("common.success"), tr("home.reset_to_default"))
 
     def _browse_backup_dir(self):
         """浏览并选择备份目录"""
         start_path = str(ConfigPaths.get_backup_dir())
-        dir_path = QFileDialog.getExistingDirectory(self, "选择备份目录", start_path)
+        dir_path = QFileDialog.getExistingDirectory(
+            self, tr("home.select_backup_dir_title"), start_path
+        )
 
         if dir_path:
             path = Path(dir_path)
@@ -5521,7 +5541,10 @@ class HomePage(BasePage):
             # 更新备份管理器的目录
             self.main_window.backup_manager.backup_dir = path
             path.mkdir(parents=True, exist_ok=True)
-            self.show_success("成功", f"已切换到自定义备份目录: {path.name}")
+            self.show_success(
+                tr("common.success"),
+                tr("home.switched_to_custom_backup", dirname=path.name),
+            )
 
     def _reset_backup_dir(self):
         """重置为默认备份目录"""
@@ -5532,7 +5555,7 @@ class HomePage(BasePage):
         self.backup_reset_btn.setVisible(False)
         # 更新备份管理器的目录
         self.main_window.backup_manager.backup_dir = default_path
-        self.show_success("成功", "已重置为默认备份目录")
+        self.show_success(tr("common.success"), tr("home.reset_to_default_backup"))
 
     def _update_path_labels(self):
         """更新路径标签显示"""
@@ -5595,7 +5618,7 @@ class HomePage(BasePage):
 
         self.main_window._refresh_file_hashes()
         self._load_stats()
-        self.show_success("成功", "配置已重新加载")
+        self.show_success(tr("common.success"), tr("home.config_reloaded"))
 
     def _on_backup(self):
         """备份配置"""
@@ -5613,9 +5636,9 @@ class HomePage(BasePage):
         backup_manager.backup(ohmy_file_path, tag="manual-file")
 
         if oc_path and ohmy_path:
-            self.show_success("成功", "配置已备份")
+            self.show_success(tr("common.success"), tr("home.backup_success"))
         else:
-            self.show_error("错误", "备份失败")
+            self.show_error(tr("common.error"), tr("home.backup_failed"))
 
 
 # ==================== Provider 页面 ====================
@@ -13069,7 +13092,7 @@ class SkillPage(BasePage):
     }
 
     def __init__(self, main_window, parent=None):
-        super().__init__("Skill 管理", parent)
+        super().__init__(tr("skill.title"), parent)
         self.main_window = main_window
         self._current_skill: Optional[DiscoveredSkill] = None
         self._setup_ui()
@@ -13092,17 +13115,17 @@ class SkillPage(BasePage):
         # 添加标签页到 Pivot
         self.pivot.addItem(
             routeKey="browse",
-            text="浏览 Skill",
+            text=tr("skill.browse"),
             onClick=lambda: self.stacked_widget.setCurrentIndex(0),
         )
         self.pivot.addItem(
             routeKey="create",
-            text="创建 Skill",
+            text=tr("skill.create"),
             onClick=lambda: self.stacked_widget.setCurrentIndex(1),
         )
         self.pivot.addItem(
             routeKey="permission",
-            text="权限配置",
+            text=tr("skill.permission"),
             onClick=lambda: self.stacked_widget.setCurrentIndex(2),
         )
 
