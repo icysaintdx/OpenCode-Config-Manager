@@ -8203,7 +8203,7 @@ class PresetModelDialog(BaseDialog):
         layout.addLayout(series_layout)
 
         # 模型列表
-        layout.addWidget(BodyLabel("选择模型:", self))
+        layout.addWidget(BodyLabel(tr("cli_export.select_model") + ":", self))
         self.model_list = ListWidget(self)
         self.model_list.setSelectionMode(QAbstractItemView.MultiSelection)
         layout.addWidget(self.model_list)
@@ -8987,7 +8987,7 @@ class MCPDialog(BaseDialog):
         self.preview_wrap_check.stateChanged.connect(lambda: self._update_preview())
         preview_header.addWidget(self.preview_wrap_check)
         preview_header.addStretch()
-        self.format_btn = PushButton("格式化", self.preview_group)
+        self.format_btn = PushButton(tr("cli_export.format_json"), self.preview_group)
         self.format_btn.clicked.connect(self._on_format_preview)
         preview_header.addWidget(self.format_btn)
         preview_layout.addLayout(preview_header)
@@ -14421,7 +14421,7 @@ class MonitorPage(BasePage):
     result_ready = pyqtSignal(object)
 
     def __init__(self, main_window, parent=None):
-        super().__init__("监控", parent)
+        super().__init__(tr("monitor.title"), parent)
         self.title_label.hide()
         self.main_window = main_window
         # 监控数据存储: target_id -> deque[MonitorResult]
@@ -14460,14 +14460,14 @@ class MonitorPage(BasePage):
         self._chat_test_enabled = not self._chat_test_enabled
         if self._chat_test_enabled:
             # 启动对话延迟测试
-            self.monitor_toggle_btn.setText("停止")
+            self.monitor_toggle_btn.setText(tr("monitor.stop_monitoring"))
             self.monitor_toggle_btn.setIcon(FIF.PAUSE)
             self.monitor_toggle_btn.setToolTip(
                 "停止对话延迟自动检测（Ping 检测不受影响）"
             )
         else:
             # 停止对话延迟测试
-            self.monitor_toggle_btn.setText("启动")
+            self.monitor_toggle_btn.setText(tr("monitor.start_monitoring"))
             self.monitor_toggle_btn.setIcon(FIF.PLAY)
             self.monitor_toggle_btn.setToolTip("启动对话延迟自动检测")
         # 立即执行一次检测以反映状态变化
@@ -14692,7 +14692,7 @@ class MonitorPage(BasePage):
             self.poll_status_label.setText("无目标")
             return
         self._is_polling = True
-        self.poll_status_label.setText("检测中...")
+        self.poll_status_label.setText(tr("monitor.checking"))
         self._mark_all_pending()
 
         self._pending_targets = {t.target_id: time.time() for t in self._targets}
@@ -15533,9 +15533,9 @@ class CLIExportPage(BasePage):
 
         # 主标签页切换
         self.main_pivot = Pivot(main_card)
-        self.main_pivot.addItem(routeKey="claude", text="Claude Code")
-        self.main_pivot.addItem(routeKey="codex", text="Codex CLI")
-        self.main_pivot.addItem(routeKey="gemini", text="Gemini CLI")
+        self.main_pivot.addItem(routeKey="claude", text=tr("cli_export.tab_claude_code"))
+        self.main_pivot.addItem(routeKey="codex", text=tr("cli_export.tab_codex"))
+        self.main_pivot.addItem(routeKey="gemini", text=tr("cli_export.tab_gemini"))
         self.main_pivot.setCurrentItem("claude")
         self.main_pivot.currentItemChanged.connect(self._on_main_tab_changed)
         main_layout.addWidget(self.main_pivot)
@@ -15607,7 +15607,7 @@ class CLIExportPage(BasePage):
         # Base URL 行
         url_row = QHBoxLayout()
         url_row.setSpacing(8)
-        url_row.addWidget(CaptionLabel("Base URL:", model_frame))
+        url_row.addWidget(CaptionLabel(tr("cli_export.base_url") + ":", model_frame))
         self.claude_base_url_edit = LineEdit(model_frame)
         self.claude_base_url_edit.setPlaceholderText("从 Provider 配置获取")
         self.claude_base_url_edit.setFixedHeight(28)
@@ -15654,7 +15654,7 @@ class CLIExportPage(BasePage):
         grid = QGridLayout()
         grid.setSpacing(8)
 
-        grid.addWidget(CaptionLabel("主模型:", model_frame), 0, 0)
+        grid.addWidget(CaptionLabel(tr("cli_export.main_model") + ":", model_frame), 0, 0)
         self.claude_main_model_combo = QNativeComboBox(model_frame)
         self.claude_main_model_combo.setFixedSize(200, 30)
         self.claude_main_model_combo.setEditable(True)
@@ -15719,7 +15719,7 @@ class CLIExportPage(BasePage):
         header.addStretch()
 
         format_btn = ToolButton(FIF.ALIGNMENT, preview_frame)
-        format_btn.setToolTip("格式化")
+        format_btn.setToolTip(tr("cli_export.format_json"))
         format_btn.clicked.connect(lambda: self._format_preview_for("claude"))
         header.addWidget(format_btn)
 
@@ -15768,7 +15768,7 @@ class CLIExportPage(BasePage):
         # Base URL 行
         url_row = QHBoxLayout()
         url_row.setSpacing(8)
-        url_row.addWidget(CaptionLabel("Base URL:", model_frame))
+        url_row.addWidget(CaptionLabel(tr("cli_export.base_url") + ":", model_frame))
         self.codex_base_url_edit = LineEdit(model_frame)
         self.codex_base_url_edit.setPlaceholderText("从 Provider 配置获取")
         self.codex_base_url_edit.setFixedHeight(28)
@@ -15831,7 +15831,7 @@ class CLIExportPage(BasePage):
 
         model_row.addStretch()
 
-        self.codex_common_check = CheckBox("写入通用配置", model_frame)
+        self.codex_common_check = CheckBox(tr("cli_export.write_common_config"), model_frame)
         self.codex_common_check.stateChanged.connect(
             lambda s: self._on_common_config_toggle("codex", s == Qt.Checked)
         )
@@ -15858,7 +15858,7 @@ class CLIExportPage(BasePage):
         header.addStretch()
 
         format_btn = ToolButton(FIF.ALIGNMENT, preview_frame)
-        format_btn.setToolTip("格式化")
+        format_btn.setToolTip(tr("cli_export.format_json"))
         format_btn.clicked.connect(lambda: self._format_preview_for("codex"))
         header.addWidget(format_btn)
 
@@ -15931,7 +15931,7 @@ class CLIExportPage(BasePage):
         # Base URL 行
         url_row = QHBoxLayout()
         url_row.setSpacing(8)
-        url_row.addWidget(CaptionLabel("Base URL:", model_frame))
+        url_row.addWidget(CaptionLabel(tr("cli_export.base_url") + ":", model_frame))
         self.gemini_base_url_edit = LineEdit(model_frame)
         self.gemini_base_url_edit.setPlaceholderText("从 Provider 配置获取")
         self.gemini_base_url_edit.setFixedHeight(28)
@@ -15994,7 +15994,7 @@ class CLIExportPage(BasePage):
 
         model_row.addStretch()
 
-        self.gemini_common_check = CheckBox("写入通用配置", model_frame)
+        self.gemini_common_check = CheckBox(tr("cli_export.write_common_config"), model_frame)
         self.gemini_common_check.stateChanged.connect(
             lambda s: self._on_common_config_toggle("gemini", s == Qt.Checked)
         )
@@ -16021,7 +16021,7 @@ class CLIExportPage(BasePage):
         header.addStretch()
 
         format_btn = ToolButton(FIF.ALIGNMENT, preview_frame)
-        format_btn.setToolTip("格式化")
+        format_btn.setToolTip(tr("cli_export.format_json"))
         format_btn.clicked.connect(lambda: self._format_preview_for("gemini"))
         header.addWidget(format_btn)
 
@@ -16136,7 +16136,7 @@ class CLIExportPage(BasePage):
             return
 
         # 显示检测中状态
-        self.config_status_label.setText("⏳ 配置检测中...")
+        self.config_status_label.setText(tr("cli_export.detecting_config"))
         self.config_status_label.setStyleSheet("color: #FFA726; font-weight: bold;")
         self.fix_config_btn.setVisible(False)
         # 移除 processEvents 调用，避免阻塞
@@ -16199,7 +16199,7 @@ class CLIExportPage(BasePage):
             self.claude_opus_combo,
         ]:
             combo.clear()
-            combo.addItem("(留空使用默认)", "")
+            combo.addItem(tr("cli_export.leave_empty"), "")
             for model_id, model_name in model_list:
                 display_text = model_name if model_name != model_id else model_id
                 combo.addItem(display_text, model_id)
@@ -16316,8 +16316,8 @@ class CLIExportPage(BasePage):
                 gemini_provider["baseURL"] = gemini_base_url
 
             # 获取用户输入的模型（支持自定义输入）
-            # 如果是"(留空使用默认)"则视为空字符串
-            DEFAULT_PLACEHOLDER = "(留空使用默认)"
+            # 如果是tr("cli_export.leave_empty")则视为空字符串
+            DEFAULT_PLACEHOLDER = tr("cli_export.leave_empty")
             claude_main_model = self.claude_main_model_combo.currentText().strip()
             if claude_main_model == DEFAULT_PLACEHOLDER:
                 claude_main_model = ""
@@ -16386,7 +16386,7 @@ class CLIExportPage(BasePage):
         self._use_common_config[cli_type] = checked
 
     def _edit_common_config(self, cli_type: str):
-        """编辑通用配置"""
+        ""tr("cli_export.edit_common_config")""
         dialog = CommonConfigEditDialog(
             cli_type, self._common_config_snippets.get(cli_type, ""), self
         )
@@ -17095,7 +17095,7 @@ class ImportMappingDialog(BaseDialog):
                 card_layout.addLayout(name_layout)
 
                 key_layout = QHBoxLayout()
-                key_layout.addWidget(BodyLabel("API Key:", card))
+                key_layout.addWidget(BodyLabel(tr("cli_export.api_key") + ":", card))
                 key_edit = LineEdit(card)
                 key_edit.setText(provider_data.get("options", {}).get("apiKey", ""))
                 key_layout.addWidget(key_edit)
