@@ -6010,7 +6010,7 @@ class ModelPresetCustomDialog(BaseDialog):
         self.preset_name = preset_name
         self._preset: Dict[str, Any] = {}
 
-        self.setWindowTitle("自定义配置包")
+        self.setWindowTitle(tr("provider.custom_preset"))
         self.setMinimumSize(560, 420)
         self._setup_ui()
 
@@ -6018,13 +6018,13 @@ class ModelPresetCustomDialog(BaseDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        layout.addWidget(TitleLabel("自定义配置包", self))
-        layout.addWidget(BodyLabel(f"分类: {self.category}", self))
+        layout.addWidget(TitleLabel(tr("provider.custom_preset"), self))
+        layout.addWidget(BodyLabel(tr("provider.category") + " " + self.category, self))
 
         name_layout = QHBoxLayout()
-        name_layout.addWidget(BodyLabel("名称:", self))
+        name_layout.addWidget(BodyLabel(tr("provider.custom_preset_name"), self))
         self.name_edit = LineEdit(self)
-        self.name_edit.setPlaceholderText("如: 我的高思考")
+        self.name_edit.setPlaceholderText(tr("provider.custom_preset_placeholder"))
         if self.preset_name:
             self.name_edit.setText(self.preset_name)
         name_layout.addWidget(self.name_edit)
@@ -6032,12 +6032,14 @@ class ModelPresetCustomDialog(BaseDialog):
 
         layout.addWidget(
             BodyLabel(
-                "配置 JSON（仅支持 options/limit/modalities/attachment/variants）:",
+                tr("provider.custom_preset_config"),
                 self,
             )
         )
         self.config_edit = PlainTextEdit(self)
-        self.config_edit.setPlaceholderText("请输入 JSON")
+        self.config_edit.setPlaceholderText(
+            tr("provider.custom_preset_json_placeholder")
+        )
         self.config_edit.setPlainText(
             json.dumps(
                 {
@@ -6056,11 +6058,11 @@ class ModelPresetCustomDialog(BaseDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
         self.cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self.cancel_btn)
 
-        self.save_btn = PrimaryPushButton("保存", self)
+        self.save_btn = PrimaryPushButton(tr("common.save"), self)
         self.save_btn.clicked.connect(self._on_save)
         btn_layout.addWidget(self.save_btn)
 
@@ -6069,19 +6071,27 @@ class ModelPresetCustomDialog(BaseDialog):
     def _on_save(self):
         name = self.name_edit.text().strip()
         if not name:
-            InfoBar.error("错误", "请输入配置包名称", parent=self)
+            InfoBar.error(
+                tr("common.error"),
+                tr("provider.custom_preset_name_required"),
+                parent=self,
+            )
             return
 
         try:
             data = json.loads(self.config_edit.toPlainText().strip() or "{}")
         except json.JSONDecodeError as e:
-            InfoBar.error("错误", f"JSON 格式错误: {e}", parent=self)
+            InfoBar.error(
+                tr("common.error"),
+                tr("provider.json_format_error", error=str(e)),
+                parent=self,
+            )
             return
 
         allowed_keys = {"options", "limit", "modalities", "attachment", "variants"}
         filtered = {k: data.get(k) for k in allowed_keys if k in data}
         if not filtered:
-            InfoBar.error("错误", "配置包内容为空或无可用字段", parent=self)
+            InfoBar.error(tr("common.error"), tr("provider.preset_empty"), parent=self)
             return
 
         self._preset = filtered
@@ -6109,7 +6119,7 @@ class ModelSelectDialog(BaseDialog):
         self._bulk_controls: Dict[str, Dict[str, Any]] = {}
         self._batch_config: Dict[str, Any] = {}
 
-        self.setWindowTitle("模型选择")
+        self.setWindowTitle(tr("provider.model_select_title"))
         self.setMinimumSize(900, 560)
         self._setup_ui()
         self._load_categories()
@@ -6119,30 +6129,42 @@ class ModelSelectDialog(BaseDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        layout.addWidget(TitleLabel("模型选择", self))
-        layout.addWidget(BodyLabel("已拉取模型列表，请选择要添加的模型", self))
+        layout.addWidget(TitleLabel(tr("provider.model_select_title"), self))
+        layout.addWidget(BodyLabel(tr("provider.model_list_hint"), self))
 
         filter_layout = QHBoxLayout()
         filter_layout.setSpacing(8)
 
-        filter_layout.addWidget(BodyLabel("分类方式:", self))
+        filter_layout.addWidget(BodyLabel(tr("provider.group_mode"), self))
         self.group_mode_combo = ComboBox(self)
-        self.group_mode_combo.addItems(["厂商识别", "前缀分组", "首字母"])
+        self.group_mode_combo.addItems(
+            [
+                tr("provider.group_vendor"),
+                tr("provider.group_prefix"),
+                tr("provider.group_letter"),
+            ]
+        )
         self.group_mode_combo.currentTextChanged.connect(self._on_group_mode_changed)
         filter_layout.addWidget(self.group_mode_combo)
 
-        filter_layout.addWidget(BodyLabel("筛选方式:", self))
+        filter_layout.addWidget(BodyLabel(tr("provider.filter_mode"), self))
         self.match_mode_combo = ComboBox(self)
-        self.match_mode_combo.addItems(["包含", "前缀", "正则"])
+        self.match_mode_combo.addItems(
+            [
+                tr("provider.filter_contains"),
+                tr("provider.filter_prefix"),
+                tr("provider.filter_regex"),
+            ]
+        )
         self.match_mode_combo.currentTextChanged.connect(self._on_filter_changed)
         filter_layout.addWidget(self.match_mode_combo)
 
         self.keyword_edit = LineEdit(self)
-        self.keyword_edit.setPlaceholderText("输入关键词筛选")
+        self.keyword_edit.setPlaceholderText(tr("provider.keyword_filter"))
         self.keyword_edit.textChanged.connect(self._on_filter_changed)
         filter_layout.addWidget(self.keyword_edit, 1)
 
-        self.clear_btn = PushButton("清空筛选", self)
+        self.clear_btn = PushButton(tr("provider.clear_filter"), self)
         self.clear_btn.clicked.connect(self._clear_filters)
         filter_layout.addWidget(self.clear_btn)
 
@@ -6150,7 +6172,7 @@ class ModelSelectDialog(BaseDialog):
 
         self.batch_layout = QHBoxLayout()
         self.batch_layout.setSpacing(8)
-        self.batch_layout.addWidget(BodyLabel("批量配置:", self))
+        self.batch_layout.addWidget(BodyLabel(tr("provider.batch_config") + ":", self))
         layout.addLayout(self.batch_layout)
 
         content_layout = QHBoxLayout()
@@ -6172,25 +6194,27 @@ class ModelSelectDialog(BaseDialog):
         footer_layout = QHBoxLayout()
         footer_layout.setSpacing(8)
 
-        self.select_all_check = CheckBox("全选", self)
+        self.select_all_check = CheckBox(tr("common.select_all"), self)
         self.select_all_check.stateChanged.connect(self._on_select_all_changed)
         self.select_all_check.setTristate(False)
         footer_layout.addWidget(self.select_all_check)
 
-        self.count_label = CaptionLabel("已选 0 / 共 0", self)
+        self.count_label = CaptionLabel(
+            tr("provider.selected_count", selected=0, total=0), self
+        )
         footer_layout.addWidget(self.count_label)
 
-        self.empty_label = CaptionLabel("暂无可添加模型", self)
+        self.empty_label = CaptionLabel(tr("provider.no_models_to_add"), self)
         self.empty_label.setVisible(False)
         footer_layout.addWidget(self.empty_label)
 
         footer_layout.addStretch()
 
-        self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
         self.cancel_btn.clicked.connect(self.reject)
         footer_layout.addWidget(self.cancel_btn)
 
-        self.confirm_btn = PrimaryPushButton("添加所选", self)
+        self.confirm_btn = PrimaryPushButton(tr("provider.add_selected"), self)
         self.confirm_btn.clicked.connect(self._on_confirm)
         footer_layout.addWidget(self.confirm_btn)
 
@@ -6558,7 +6582,11 @@ class ProviderDialog(BaseDialog):
         self.provider_name = provider_name
         self.is_edit = provider_name is not None
 
-        self.setWindowTitle("编辑 Provider" if self.is_edit else "添加 Provider")
+        self.setWindowTitle(
+            tr("provider.edit_provider")
+            if self.is_edit
+            else tr("provider.add_provider")
+        )
         self.setMinimumWidth(520)
         self._setup_ui()
 
@@ -6571,11 +6599,11 @@ class ProviderDialog(BaseDialog):
 
         # Provider 名称
         name_layout = QHBoxLayout()
-        name_label = BodyLabel("Provider 名称:", self)
+        name_label = BodyLabel(tr("provider.provider_key") + ":", self)
         name_label.setMinimumWidth(90)
         name_layout.addWidget(name_label)
         self.name_edit = LineEdit(self)
-        self.name_edit.setPlaceholderText("如: anthropic, openai, my-proxy")
+        self.name_edit.setPlaceholderText(tr("provider.placeholder_key"))
         self.name_edit.setToolTip(get_tooltip("provider_name"))
         self.name_edit.setMinimumHeight(36)
         if self.is_edit:
@@ -6585,11 +6613,11 @@ class ProviderDialog(BaseDialog):
 
         # 显示名称
         display_layout = QHBoxLayout()
-        display_label = BodyLabel("显示名称:", self)
+        display_label = BodyLabel(tr("provider.display_name") + ":", self)
         display_label.setMinimumWidth(90)
         display_layout.addWidget(display_label)
         self.display_edit = LineEdit(self)
-        self.display_edit.setPlaceholderText("如: Anthropic (Claude)、OpenAI 官方")
+        self.display_edit.setPlaceholderText(tr("provider.placeholder_display"))
         self.display_edit.setToolTip(get_tooltip("provider_display"))
         self.display_edit.setMinimumHeight(36)
         display_layout.addWidget(self.display_edit)
@@ -6609,13 +6637,11 @@ class ProviderDialog(BaseDialog):
 
         # API 地址
         url_layout = QHBoxLayout()
-        url_label = BodyLabel("API 地址:", self)
+        url_label = BodyLabel(tr("provider.base_url") + ":", self)
         url_label.setMinimumWidth(90)
         url_layout.addWidget(url_label)
         self.url_edit = LineEdit(self)
-        self.url_edit.setPlaceholderText(
-            "如: https://api.openai.com/v1（留空使用默认）"
-        )
+        self.url_edit.setPlaceholderText(tr("provider.placeholder_base_url"))
         self.url_edit.setToolTip(get_tooltip("provider_url"))
         self.url_edit.setMinimumHeight(36)
         url_layout.addWidget(self.url_edit)
@@ -6623,11 +6649,11 @@ class ProviderDialog(BaseDialog):
 
         # API 密钥
         key_layout = QHBoxLayout()
-        key_label = BodyLabel("API 密钥:", self)
+        key_label = BodyLabel(tr("provider.api_key") + ":", self)
         key_label.setMinimumWidth(90)
         key_layout.addWidget(key_label)
         self.key_edit = LineEdit(self)
-        self.key_edit.setPlaceholderText("支持环境变量: {env:OPENAI_API_KEY}")
+        self.key_edit.setPlaceholderText(tr("provider.placeholder_api_key"))
         self.key_edit.setToolTip(get_tooltip("provider_apikey"))
         self.key_edit.setMinimumHeight(36)
         key_layout.addWidget(self.key_edit)
@@ -6635,12 +6661,12 @@ class ProviderDialog(BaseDialog):
 
         # 模型列表地址
         model_list_layout = QHBoxLayout()
-        model_list_label = BodyLabel("模型列表地址:", self)
+        model_list_label = BodyLabel(tr("provider.model_list_url") + ":", self)
         model_list_label.setMinimumWidth(90)
         model_list_layout.addWidget(model_list_label)
         self.model_list_url_edit = LineEdit(self)
         self.model_list_url_edit.setPlaceholderText(
-            "如: https://api.example.com/v1/models（可选）"
+            tr("provider.placeholder_model_list")
         )
         self.model_list_url_edit.setToolTip(get_tooltip("provider_model_list_url"))
         self.model_list_url_edit.setMinimumHeight(36)

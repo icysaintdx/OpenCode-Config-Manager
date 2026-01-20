@@ -147,7 +147,22 @@
     "claude_series": "Claude 系列",
     "gemini_series": "Gemini 系列",
     "openai_series": "OpenAI/Codex 系列",
-    "other_models": "其他模型"
+    "other_models": "其他模型",
+    "custom_preset_name_required": "请输入配置包名称",
+    "json_format_error": "JSON 格式错误: {error}",
+    "preset_empty": "配置包内容为空或无可用字段",
+    "group_mode": "分类方式:",
+    "group_vendor": "厂商识别",
+    "group_prefix": "前缀分组",
+    "group_letter": "首字母",
+    "filter_mode": "筛选方式:",
+    "filter_contains": "包含",
+    "filter_prefix": "前缀",
+    "filter_regex": "正则",
+    "clear_filter": "清空筛选",
+    "no_models_to_add": "暂无可添加模型",
+    "model_list_hint": "已拉取模型列表，请选择要添加的模型",
+    "add_selected": "添加所选"
   },
   "model": {
     "title": "Model 管理",

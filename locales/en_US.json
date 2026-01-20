@@ -147,7 +147,22 @@
     "claude_series": "Claude Series",
     "gemini_series": "Gemini Series",
     "openai_series": "OpenAI/Codex Series",
-    "other_models": "Other Models"
+    "other_models": "Other Models",
+    "custom_preset_name_required": "Please enter preset name",
+    "json_format_error": "JSON format error: {error}",
+    "preset_empty": "Preset is empty or has no valid fields",
+    "group_mode": "Group By:",
+    "group_vendor": "Vendor",
+    "group_prefix": "Prefix",
+    "group_letter": "Letter",
+    "filter_mode": "Filter By:",
+    "filter_contains": "Contains",
+    "filter_prefix": "Prefix",
+    "filter_regex": "Regex",
+    "clear_filter": "Clear Filter",
+    "no_models_to_add": "No models to add",
+    "model_list_hint": "Model list fetched, please select models to add",
+    "add_selected": "Add Selected"
   },
   "model": {
     "title": "Model Management",
