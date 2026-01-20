@@ -12,6 +12,7 @@
   <a href="https://github.com/icysaintdx/OpenCode-Config-Manager/releases"><img src="https://img.shields.io/github/v/release/icysaintdx/OpenCode-Config-Manager?style=flat-square&color=blue" alt="Release"></a>
   <a href="https://github.com/icysaintdx/OpenCode-Config-Manager/blob/main/LICENSE"><img src="https://img.shields.io/github/license/icysaintdx/OpenCode-Config-Manager?style=flat-square" alt="License"></a>
   <a href="https://github.com/icysaintdx/OpenCode-Config-Manager/stargazers"><img src="https://img.shields.io/github/stars/icysaintdx/OpenCode-Config-Manager?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/icysaintdx/OpenCode-Config-Manager/releases/latest"><img src="https://img.shields.io/github/downloads/icysaintdx/OpenCode-Config-Manager/total?style=flat-square&color=green" alt="Downloads"></a>
 </p>
 
 <p align="center">
@@ -19,7 +20,11 @@
   <a href="#-功能特性">功能特性</a> •
   <a href="#-安装使用">安装使用</a> •
   <a href="#-配置说明">配置说明</a> •
-  <a href="#-更新日志">更新日志</a>
+  <a href="#-版本历史">版本历史</a>
+</p>
+
+<p align="center">
+  <a href="README.md">简体中文</a> | <a href="README_EN.md">English</a>
 </p>
 
 ---
@@ -37,7 +42,12 @@
 
 ---
 
-## 🎯 v1.4.0 最新版本
+## 🎯 v1.4.1 最新版本
+
+### 🐛 Bug 修复
+- **修复 Skill 市场依赖缺失** - 修复用户点击 Skill 市场时报错 `No module named 'requests'` 的问题，已在 `requirements.txt` 中添加 `requests>=2.25.0` 依赖
+
+### 📝 v1.4.0 功能回顾
 
 ### 🆕 新增功能
 #### **Skill 市场功能** ⭐
@@ -240,27 +250,45 @@ python opencode_config_manager_fluent.py
 
 ---
 
-## 📋 更新日志
+## 📋 版本历史
 
-详见 [CHANGELOG.md](CHANGELOG.md)
+### 最新版本
 
-### v1.1.7 (最新)
-- 🆕 CLI 工具导出功能 (Claude Code 4 模型配置、Codex/Gemini 双文件预览)
-- 🎨 导航菜单字体加粗显示
-- 🆕 Base URL 临时修改、模型自定义输入、语法高亮与格式化
-- 🔧 监控页面启动/停止按钮切换
-- 🐛 模型留空处理优化、外部导入功能修复
+**[v1.4.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.4.0)** - 2026-01-20
+**[v1.4.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.4.0)** - 2026-01-20
+- ⭐ Skill 市场功能 - 内置 20 个精选 Skills，分类浏览 + 搜索
+- 🛡️ 安全扫描功能 - 检测 9 种危险代码模式，安全评分系统
+- 🎨 UI 改进 - 新增市场按钮和安全扫描按钮
 
-### v1.1.6
-- 🆕 Skill 发现与浏览 (支持 Claude 兼容路径）
-- 🆕 完整 SKILL.md 创建/编辑
-- 🆕 Agent 级别 Skill 权限配置
+**[v1.3.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.3.0)** - 2026-01-20
+- 📦 Skills 安装功能 - 支持从 GitHub 和本地安装 Skills
+- 🔄 Skills 更新功能 - 一键检查更新，批量更新支持
+- 📝 元数据管理 - 自动生成 `.skill-meta.json` 记录安装信息
 
-### v1.0.9
-- 🆕 配置文件冲突检测 (.json vs .jsonc）
-- 🐛 修复 Category 和 Agent 描述丢失问题
+**[v1.2.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.2.0)** - 2026-01-20
+- 🔧 Oh My MCP 管理 - 可视化管理 Oh My OpenCode 自带的 3 个 MCP 服务器
 
-[查看完整更新日志 →](CHANGELOG.md)
+**[v1.1.9](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.1.9)** - 2026-01-20
+- 🐛 修复 MCP 配置不符合 OpenCode 官方规范导致的启动失败
+
+**[v1.1.8](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.1.8)** - 2026-01-20
+- 🐛 修复配置文件格式异常导致的启动崩溃问题
+
+**[v1.1.7](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.1.7)** - 2026-01-20
+- 🆕 CLI 工具导出功能 - Claude Code、Codex、Gemini 配置导出
+- 🎨 UI 优化 - 导航菜单字体加粗，CLI 导出页面标签页布局
+
+**[v1.1.6](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.1.6)** - 2026-01-19
+- 🆕 原生 Provider 支持 - 管理 12 个 OpenCode 官方 AI 服务提供商
+- 🔐 AuthManager 认证管理器 - 独立的 auth.json 文件管理
+
+**[v1.0.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.0.0)** - 2026-01-14
+- 🎨 Fluent Design 全面重构 - 从 ttkbootstrap 迁移至 PyQt5 + QFluentWidgets
+- 🌓 深浅色主题 - 跟随系统自动切换
+
+[查看完整更新日志 →](CHANGELOG.md) | [View English Changelog →](CHANGELOG_EN.md)
+
+---
 
 ---
 
