@@ -72,7 +72,10 @@
     "paste": "Paste",
     "cut": "Cut",
     "undo": "Undo",
-    "redo": "Redo"
+    "redo": "Redo",
+    "select_item_first": "Please select an item first",
+    "added": "Added",
+    "updated": "Updated"
   },
   "home": {
     "title": "Home",
@@ -329,5 +332,42 @@
     "restart_required": "Language change requires app restart to take full effect",
     "restart_now": "Restart Now",
     "restart_later": "Restart Later"
+  },
+  "help": {
+    "title": "Help",
+    "about_description": "A visual GUI tool for managing OpenCode and Oh My OpenCode configuration files",
+    "github_homepage": "GitHub Homepage",
+    "author": "Author",
+    "tab_priority": "Config Priority",
+    "tab_usage": "Usage Guide",
+    "tab_options": "Options/Variants",
+    "priority_title": "Configuration Priority Order (High to Low)",
+    "usage_title": "OpenCode Config Manager Usage Guide",
+    "options_title": "Options vs Variants Explanation"
+  },
+  "permission": {
+    "title": "Permission Management",
+    "add_permission": "Add Permission",
+    "edit_permission": "Edit Permission",
+    "delete_permission": "Delete Permission",
+    "tool_name": "Tool Name",
+    "permission_level": "Permission Level",
+    "allow": "Allow",
+    "ask": "Ask",
+    "deny": "Deny",
+    "delete_confirm": "Confirm Delete",
+    "delete_confirm_msg": "Are you sure you want to delete permission \"{tool}\"?",
+    "permission_saved": "Permission saved",
+    "permission_deleted": "Permission deleted",
+    "permission_added": "Added {tool} = {level}",
+    "permission_deleted_msg": "Permission \"{tool}\" deleted"
+  },
+  "compaction": {
+    "title": "Context Compaction",
+    "enable_compaction": "Enable Context Compaction",
+    "compaction_settings": "Compaction Settings",
+    "preview": "Configuration Preview",
+    "save_settings": "Save Settings",
+    "settings_saved": "Settings saved"
   }
 }

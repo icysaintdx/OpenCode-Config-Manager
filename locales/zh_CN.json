@@ -72,7 +72,10 @@
     "paste": "粘贴",
     "cut": "剪切",
     "undo": "撤销",
-    "redo": "重做"
+    "redo": "重做",
+    "select_item_first": "请先选择一项",
+    "added": "已添加",
+    "updated": "已更新"
   },
   "home": {
     "title": "首页",
@@ -533,14 +536,17 @@
     "add_permission": "添加权限",
     "edit_permission": "编辑权限",
     "delete_permission": "删除权限",
-    "permission_key": "权限键名",
-    "permission_name": "权限名称",
-    "permission_type": "类型",
-    "permission_value": "值",
-    "delete_confirm": "确定要删除权限 \"{name}\" 吗？",
-    "added_success": "权限已添加",
-    "updated_success": "权限已更新",
-    "deleted_success": "权限已删除"
+    "tool_name": "工具名称",
+    "permission_level": "权限级别",
+    "allow": "允许",
+    "ask": "询问",
+    "deny": "拒绝",
+    "delete_confirm": "确认删除",
+    "delete_confirm_msg": "确定要删除权限 \"{tool}\" 吗？",
+    "permission_saved": "权限已保存",
+    "permission_deleted": "权限已删除",
+    "permission_added": "已添加 {tool} = {level}",
+    "permission_deleted_msg": "权限 \"{tool}\" 已删除"
   },
   "category": {
     "title": "Category 管理",
@@ -586,14 +592,16 @@
     }
   },
   "help": {
-    "title": "帮助说明",
-    "documentation": "文档",
-    "github": "GitHub 仓库",
-    "issues": "问题反馈",
-    "about": "关于",
-    "version": "版本",
+    "title": "帮助",
+    "about_description": "一个可视化的GUI工具，用于管理OpenCode和Oh My OpenCode的配置文件",
+    "github_homepage": "GitHub 项目主页",
     "author": "作者",
-    "license": "许可证"
+    "tab_priority": "配置优先级",
+    "tab_usage": "使用说明",
+    "tab_options": "Options/Variants",
+    "priority_title": "配置优先顺序（从高到低）",
+    "usage_title": "OpenCode 配置管理器 使用说明",
+    "options_title": "Options vs Variants 说明"
   },
   "backup": {
     "title": "备份管理",
@@ -624,13 +632,11 @@
   },
   "compaction": {
     "title": "上下文压缩",
-    "enable_compaction": "启用压缩",
-    "compression_ratio": "压缩比",
-    "max_tokens": "最大 Token 数",
-    "strategy": "压缩策略",
-    "strategy_auto": "自动",
-    "strategy_aggressive": "激进",
-    "strategy_conservative": "保守"
+    "enable_compaction": "启用上下文压缩",
+    "compaction_settings": "压缩设置",
+    "preview": "配置预览",
+    "save_settings": "保存设置",
+    "settings_saved": "设置已保存"
   },
   "settings": {
     "title": "设置",

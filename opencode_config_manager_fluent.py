@@ -9845,7 +9845,7 @@ class PermissionPage(BasePage):
     """权限管理页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("权限管理", parent)
+        super().__init__(tr("permission.title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
@@ -9854,15 +9854,15 @@ class PermissionPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        self.add_btn = PrimaryPushButton(FIF.ADD, "添加权限", self)
+        self.add_btn = PrimaryPushButton(FIF.ADD, tr("permission.add_permission"), self)
         self.add_btn.clicked.connect(self._on_add)
         toolbar.addWidget(self.add_btn)
 
-        self.edit_btn = PushButton(FIF.EDIT, "编辑", self)
+        self.edit_btn = PushButton(FIF.EDIT, tr("common.edit"), self)
         self.edit_btn.clicked.connect(self._on_edit)
         toolbar.addWidget(self.edit_btn)
 
-        self.delete_btn = PushButton(FIF.DELETE, "删除", self)
+        self.delete_btn = PushButton(FIF.DELETE, tr("common.delete"), self)
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
@@ -9879,7 +9879,9 @@ class PermissionPage(BasePage):
         # 权限列表
         self.table = TableWidget(self)
         self.table.setColumnCount(2)
-        self.table.setHorizontalHeaderLabels(["工具名称", "权限级别"])
+        self.table.setHorizontalHeaderLabels(
+            [tr("permission.tool_name"), tr("permission.permission_level")]
+        )
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -9909,12 +9911,12 @@ class PermissionPage(BasePage):
         dialog = PermissionDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "权限已添加")
+            self.show_success(tr("common.success"), tr("permission.permission_saved"))
 
     def _on_edit(self):
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个权限")
+            self.show_warning(tr("common.warning"), tr("common.select_item_first"))
             return
 
         tool = self.table.item(row, 0).text()
@@ -9922,7 +9924,7 @@ class PermissionPage(BasePage):
         dialog = PermissionDialog(self.main_window, tool=tool, level=level, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "权限已更新")
+            self.show_success(tr("common.success"), tr("permission.permission_saved"))
 
     def _quick_add(self, tool: str):
         config = self.main_window.opencode_config
@@ -9936,12 +9938,15 @@ class PermissionPage(BasePage):
         config["permission"][tool] = "allow"
         self.main_window.save_opencode_config()
         self._load_data()
-        self.show_success("成功", f"已添加 {tool} = allow")
+        self.show_success(
+            tr("common.success"),
+            tr("permission.permission_added", tool=tool, level="allow"),
+        )
 
     def _on_delete(self):
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个权限")
+            self.show_warning(tr("common.warning"), tr("common.select_item_first"))
             return
 
         tool = self.table.item(row, 0).text()
@@ -9950,7 +9955,9 @@ class PermissionPage(BasePage):
             del config["permission"][tool]
             self.main_window.save_opencode_config()
             self._load_data()
-            self.show_success("成功", f'权限 "{tool}" 已删除')
+            self.show_success(
+                tr("common.success"), tr("permission.permission_deleted_msg", tool=tool)
+            )
 
 
 class PermissionDialog(BaseDialog):
@@ -9962,7 +9969,11 @@ class PermissionDialog(BaseDialog):
         self.original_tool = tool
         self.is_edit = tool is not None
 
-        self.setWindowTitle("编辑权限" if self.is_edit else "添加权限")
+        self.setWindowTitle(
+            tr("permission.edit_permission")
+            if self.is_edit
+            else tr("permission.add_permission")
+        )
         self.setMinimumWidth(400)
         self._setup_ui()
 
@@ -9978,7 +9989,7 @@ class PermissionDialog(BaseDialog):
 
         # 工具名称
         tool_layout = QHBoxLayout()
-        tool_layout.addWidget(BodyLabel("工具名称:", self))
+        tool_layout.addWidget(BodyLabel(tr("permission.tool_name") + ":", self))
         self.tool_edit = LineEdit(self)
         self.tool_edit.setPlaceholderText("如: Bash, Read, mcp_*")
         self.tool_edit.setToolTip(get_tooltip("permission_tool"))
@@ -9987,9 +9998,11 @@ class PermissionDialog(BaseDialog):
 
         # 权限级别
         level_layout = QHBoxLayout()
-        level_layout.addWidget(BodyLabel("权限级别:", self))
+        level_layout.addWidget(BodyLabel(tr("permission.permission_level") + ":", self))
         self.level_combo = ComboBox(self)
-        self.level_combo.addItems(["allow", "ask", "deny"])
+        self.level_combo.addItems(
+            [tr("permission.allow"), tr("permission.ask"), tr("permission.deny")]
+        )
         self.level_combo.setToolTip(get_tooltip("permission_level"))
         level_layout.addWidget(self.level_combo)
         layout.addLayout(level_layout)
@@ -9998,11 +10011,11 @@ class PermissionDialog(BaseDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
         self.cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self.cancel_btn)
 
-        self.save_btn = PrimaryPushButton("保存", self)
+        self.save_btn = PrimaryPushButton(tr("common.save"), self)
         self.save_btn.clicked.connect(self._on_save)
         btn_layout.addWidget(self.save_btn)
 
@@ -10032,7 +10045,7 @@ class HelpPage(BasePage):
     """帮助页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("帮助", parent)
+        super().__init__(tr("help.title"), parent)
         self.main_window = main_window
         # 隐藏页面标题
         self.title_label.hide()
@@ -10078,18 +10091,22 @@ class HelpPage(BasePage):
 
         right_layout.addWidget(
             BodyLabel(
-                "一个可视化的GUI工具，用于管理OpenCode和Oh My OpenCode的配置文件",
+                tr("help.about_description"),
                 about_card,
             )
         )
 
         # 按钮行
         link_layout = QHBoxLayout()
-        github_btn = PrimaryPushButton(FIF.GITHUB, "GitHub 项目主页", about_card)
+        github_btn = PrimaryPushButton(
+            FIF.GITHUB, tr("help.github_homepage"), about_card
+        )
         github_btn.clicked.connect(lambda: webbrowser.open(GITHUB_URL))
         link_layout.addWidget(github_btn)
 
-        author_btn = PushButton(FIF.PEOPLE, f"作者: {AUTHOR_NAME}", about_card)
+        author_btn = PushButton(
+            FIF.PEOPLE, f"{tr('help.author')}: {AUTHOR_NAME}", about_card
+        )
         author_btn.clicked.connect(lambda: webbrowser.open(AUTHOR_GITHUB))
         link_layout.addWidget(author_btn)
         link_layout.addStretch()
@@ -10112,7 +10129,7 @@ class HelpPage(BasePage):
         priority_widget = QWidget()
         priority_layout = QVBoxLayout(priority_widget)
         priority_layout.addWidget(
-            SubtitleLabel("配置优先顺序（从高到低）", priority_widget)
+            SubtitleLabel(tr("help.priority_title"), priority_widget)
         )
         priority_content = """
 1. 远程配置 (Remote)
@@ -10149,14 +10166,12 @@ class HelpPage(BasePage):
         priority_text.setReadOnly(True)
         priority_layout.addWidget(priority_text, 1)
         self.stacked_widget.addWidget(priority_widget)
-        self.pivot.addItem(routeKey="priority", text="配置优先级")
+        self.pivot.addItem(routeKey="priority", text=tr("help.tab_priority"))
 
         # 使用说明 Tab
         usage_widget = QWidget()
         usage_layout = QVBoxLayout(usage_widget)
-        usage_layout.addWidget(
-            SubtitleLabel("OpenCode 配置管理器 使用说明", usage_widget)
-        )
+        usage_layout.addWidget(SubtitleLabel(tr("help.usage_title"), usage_widget))
         usage_content = """
 一、Provider 管理
    添加自定义 API 提供商
@@ -10198,13 +10213,13 @@ class HelpPage(BasePage):
         usage_text.setReadOnly(True)
         usage_layout.addWidget(usage_text, 1)
         self.stacked_widget.addWidget(usage_widget)
-        self.pivot.addItem(routeKey="usage", text="使用说明")
+        self.pivot.addItem(routeKey="usage", text=tr("help.tab_usage"))
 
         # Options vs Variants Tab
         options_widget = QWidget()
         options_layout = QVBoxLayout(options_widget)
         options_layout.addWidget(
-            SubtitleLabel("Options vs Variants 说明", options_widget)
+            SubtitleLabel(tr("help.options_title"), options_widget)
         )
         options_content = """
 根据 OpenCode 官方文档:
@@ -10259,7 +10274,7 @@ Thinking 模式配置示例
         options_text.setReadOnly(True)
         options_layout.addWidget(options_text, 1)
         self.stacked_widget.addWidget(options_widget)
-        self.pivot.addItem(routeKey="options", text="Options/Variants")
+        self.pivot.addItem(routeKey="options", text=tr("help.tab_options"))
 
         # Tab 切换连接
         def on_tab_changed(key):
@@ -14310,7 +14325,7 @@ class CompactionPage(BasePage):
     """上下文压缩配置页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("Compaction 配置", parent)
+        super().__init__(tr("compaction.title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
@@ -14342,12 +14357,12 @@ class CompactionPage(BasePage):
         desc_layout.addWidget(self.prune_check)
 
         # 保存按钮
-        save_btn = PrimaryPushButton("保存设置", desc_card)
+        save_btn = PrimaryPushButton(tr("compaction.save_settings"), desc_card)
         save_btn.clicked.connect(self._on_save)
         desc_layout.addWidget(save_btn)
 
         # 配置预览卡片
-        preview_card = self.add_card("配置预览")
+        preview_card = self.add_card(tr("compaction.preview"))
         preview_layout = preview_card.layout()
 
         self.preview_edit = TextEdit(preview_card)
@@ -14396,7 +14411,7 @@ class CompactionPage(BasePage):
 
         self.main_window.save_opencode_config()
         self._update_preview()
-        self.show_success("成功", "上下文压缩配置已保存")
+        self.show_success(tr("common.success"), tr("compaction.settings_saved"))
 
 
 # ==================== 监控页面 ====================
