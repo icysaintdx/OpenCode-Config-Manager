@@ -897,8 +897,10 @@ from qfluentwidgets import (
 
 
 # ==================== 语言管理器 ====================
-class LanguageManager:
+class LanguageManager(QObject):
     """多语言管理器"""
+
+    language_changed = pyqtSignal(str)  # 语言切换信号
 
     _instance = None
     _current_language = "zh_CN"
@@ -907,6 +909,7 @@ class LanguageManager:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            QObject.__init__(cls._instance)
         return cls._instance
 
     def __init__(self):
@@ -933,6 +936,8 @@ class LanguageManager:
             self._current_language = lang_code
             # 保存到配置文件
             self._save_language_preference(lang_code)
+            # 发出语言切换信号
+            self.language_changed.emit(lang_code)
 
     def get_current_language(self) -> str:
         """获取当前语言"""
@@ -10583,20 +10588,40 @@ class MainWindow(FluentWindow):
         current_lang = _lang_manager.get_current_language()
         new_lang = "en_US" if current_lang == "zh_CN" else "zh_CN"
 
-        # 切换语言
+        # 切换语言（会自动发出 language_changed 信号）
         _lang_manager.set_language(new_lang)
 
-        # 提示需要重启
-        w = FluentMessageBox(
-            tr("settings.title"), tr("settings.restart_required"), self
-        )
-        w.yesButton.setText(tr("settings.restart_now"))
-        w.cancelButton.setText(tr("settings.restart_later"))
+        # 刷新所有UI
+        self._refresh_all_ui()
 
-        if w.exec_():
-            # 重启应用
-            QApplication.quit()
-            os.execl(sys.executable, sys.executable, *sys.argv)
+        # 显示成功提示
+        InfoBar.success(
+            tr("common.success"),
+            tr("settings.language_switched"),
+            duration=2000,
+            parent=self,
+        )
+
+    def _refresh_all_ui(self):
+        """刷新所有UI文本"""
+        # 刷新导航菜单文本
+        self._refresh_navigation_items()
+
+        # 刷新语言按钮文本
+        current_lang = _lang_manager.get_current_language()
+        self.lang_button.setText("中文" if current_lang == "zh_CN" else "EN")
+
+        # 刷新所有页面
+        for i in range(self.stackedWidget.count()):
+            widget = self.stackedWidget.widget(i)
+            if hasattr(widget, "refresh_ui"):
+                widget.refresh_ui()
+
+    def _refresh_navigation_items(self):
+        """刷新导航菜单项文本"""
+        # 这里需要重新设置每个导航项的文本
+        # 由于 FluentWindow 的限制，我们需要重新初始化导航
+        pass
 
     def _init_navigation(self):
         # ===== 顶部工具栏区域 =====

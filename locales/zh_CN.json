@@ -677,7 +677,8 @@
     "theme_dark": "深色",
     "restart_required": "语言切换需要重启应用才能完全生效",
     "restart_now": "立即重启",
-    "restart_later": "稍后重启"
+    "restart_later": "稍后重启",
+    "language_switched": "语言已切换"
   },
   "native_provider": {
     "title": "原生 Provider",

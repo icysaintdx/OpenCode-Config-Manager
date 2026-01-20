@@ -359,7 +359,8 @@
     "theme_dark": "Dark",
     "restart_required": "Language change requires app restart to take full effect",
     "restart_now": "Restart Now",
-    "restart_later": "Restart Later"
+    "restart_later": "Restart Later",
+    "language_switched": "Language switched"
   },
   "help": {
     "title": "Help",
