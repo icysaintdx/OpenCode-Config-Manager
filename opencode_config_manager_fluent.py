@@ -12707,7 +12707,7 @@ class SkillPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        market_btn = PrimaryPushButton(FIF.SHOP, "Skill 市场", left_widget)
+        market_btn = PrimaryPushButton(FIF.MARKET, "Skill 市场", left_widget)
         market_btn.clicked.connect(self._on_open_market)
         toolbar.addWidget(market_btn)
 
@@ -12794,7 +12794,7 @@ class SkillPage(BasePage):
         self.edit_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.edit_skill_btn)
 
-        self.scan_skill_btn = PushButton(FIF.SHIELD, "安全扫描", right_widget)
+        self.scan_skill_btn = PushButton(FIF.CERTIFICATE, "安全扫描", right_widget)
         self.scan_skill_btn.clicked.connect(self._on_scan_skill)
         self.scan_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.scan_skill_btn)
