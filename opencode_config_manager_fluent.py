@@ -896,6 +896,126 @@ from qfluentwidgets import (
 )
 
 
+# ==================== 语言管理器 ====================
+class LanguageManager:
+    """多语言管理器"""
+
+    _instance = None
+    _current_language = "zh_CN"
+    _translations = {}
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not self._translations:
+            self._load_translations()
+
+    def _load_translations(self):
+        """加载所有语言文件"""
+        locales_dir = Path(__file__).parent / "locales"
+        if not locales_dir.exists():
+            return
+
+        for lang_file in locales_dir.glob("*.json"):
+            lang_code = lang_file.stem
+            try:
+                with open(lang_file, "r", encoding="utf-8") as f:
+                    self._translations[lang_code] = json.load(f)
+            except Exception as e:
+                print(f"Failed to load language file {lang_file}: {e}")
+
+    def set_language(self, lang_code: str):
+        """设置当前语言"""
+        if lang_code in self._translations:
+            self._current_language = lang_code
+            # 保存到配置文件
+            self._save_language_preference(lang_code)
+
+    def get_current_language(self) -> str:
+        """获取当前语言"""
+        return self._current_language
+
+    def get_available_languages(self) -> List[str]:
+        """获取可用语言列表"""
+        return list(self._translations.keys())
+
+    def tr(self, key: str, **kwargs) -> str:
+        """翻译文本
+
+        Args:
+            key: 翻译键，支持点号分隔的路径，如 "skill.title"
+            **kwargs: 格式化参数
+
+        Returns:
+            翻译后的文本
+        """
+        keys = key.split(".")
+        value = self._translations.get(self._current_language, {})
+
+        for k in keys:
+            if isinstance(value, dict):
+                value = value.get(k)
+            else:
+                return key
+
+        if value is None:
+            return key
+
+        # 格式化参数
+        if kwargs and isinstance(value, str):
+            try:
+                return value.format(**kwargs)
+            except KeyError:
+                return value
+
+        return str(value)
+
+    def _save_language_preference(self, lang_code: str):
+        """保存语言偏好到配置文件"""
+        config_file = Path.home() / ".config" / "opencode" / "ui_config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        config = {}
+        if config_file.exists():
+            try:
+                with open(config_file, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            except Exception:
+                pass
+
+        config["language"] = lang_code
+
+        try:
+            with open(config_file, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Failed to save language preference: {e}")
+
+    def _load_language_preference(self) -> str:
+        """从配置文件加载语言偏好"""
+        config_file = Path.home() / ".config" / "opencode" / "ui_config.json"
+        if config_file.exists():
+            try:
+                with open(config_file, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    return config.get("language", "zh_CN")
+            except Exception:
+                pass
+        return "zh_CN"
+
+
+# 全局语言管理器实例
+_lang_manager = LanguageManager()
+
+
+def tr(key: str, **kwargs) -> str:
+    """全局翻译函数"""
+    return _lang_manager.tr(key, **kwargs)
+
+
 # ==================== UI 样式配置 ====================
 class UIConfig:
     """全局 UI 配置"""
@@ -9964,6 +10084,10 @@ class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
 
+        # 加载语言偏好
+        lang_code = _lang_manager._load_language_preference()
+        _lang_manager.set_language(lang_code)
+
         # 备份管理器（需要在冲突检测之前初始化）
         self.backup_manager = BackupManager()
 
@@ -10082,6 +10206,9 @@ class MainWindow(FluentWindow):
         # 导航栏样式 - 紧凑布局
         self._update_nav_style()
 
+        # 添加语言切换按钮到标题栏
+        self._add_language_switcher()
+
     def _update_nav_style(self):
         """根据窗口高度更新导航栏样式"""
         height = self.height()
@@ -10152,6 +10279,37 @@ class MainWindow(FluentWindow):
             self.monitor_page, "_apply_stat_card_theme"
         ):
             self.monitor_page._apply_stat_card_theme()
+
+    def _add_language_switcher(self):
+        """添加语言切换按钮"""
+        # 创建语言切换按钮
+        self.lang_button = TransparentPushButton(FIF.GLOBE, "", self)
+        self.lang_button.setFixedSize(40, 32)
+        self.lang_button.setToolTip(tr("settings.language"))
+        self.lang_button.clicked.connect(self._on_language_switch)
+
+        # 添加到标题栏
+        self.titleBar.hBoxLayout.insertWidget(0, self.lang_button)
+
+    def _on_language_switch(self):
+        """切换语言"""
+        current_lang = _lang_manager.get_current_language()
+        new_lang = "en_US" if current_lang == "zh_CN" else "zh_CN"
+
+        # 切换语言
+        _lang_manager.set_language(new_lang)
+
+        # 提示需要重启
+        w = FluentMessageBox(
+            tr("settings.title"), tr("settings.restart_required"), self
+        )
+        w.yesButton.setText(tr("settings.restart_now"))
+        w.cancelButton.setText(tr("settings.restart_later"))
+
+        if w.exec_():
+            # 重启应用
+            QApplication.quit()
+            os.execl(sys.executable, sys.executable, *sys.argv)
 
     def _init_navigation(self):
         # ===== 顶部工具栏区域 =====
