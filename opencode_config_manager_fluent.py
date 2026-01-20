@@ -12111,11 +12111,21 @@ class SkillUpdateDialog(MessageBoxBase):
             self.table.setItem(row, 1, QTableWidgetItem(update["skill"].name))
 
             # 当前版本
-            current = update["current_commit"] or "-"
+            if update["current_commit"]:
+                current = update["current_commit"]
+            elif update["status"] == "本地":
+                current = "本地"
+            else:
+                current = "未知"
             self.table.setItem(row, 2, QTableWidgetItem(current))
 
             # 最新版本
-            latest = update["latest_commit"] or "-"
+            if update["latest_commit"]:
+                latest = update["latest_commit"]
+            elif update["status"] == "本地":
+                latest = "本地"
+            else:
+                latest = "-"
             self.table.setItem(row, 3, QTableWidgetItem(latest))
 
             # 状态
@@ -13091,21 +13101,27 @@ class SkillPage(BasePage):
 
 
 # ==================== 进度对话框 ====================
-class ProgressDialog(QDialog):
-    """简单的进度对话框"""
+class ProgressDialog(MessageBoxBase):
+    """简单的进度对话框 - 使用 Fluent 风格"""
 
     def __init__(self, message: str, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("请稍候")
-        self.setModal(True)
-        self.setFixedSize(300, 100)
+        self.titleLabel = SubtitleLabel("请稍候", self)
 
-        layout = QVBoxLayout(self)
-        self.label = BodyLabel(message, self)
-        layout.addWidget(self.label)
+        self.label = BodyLabel(message, self.widget)
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addWidget(self.label)
+
+        # 隐藏按钮
+        self.yesButton.hide()
+        self.cancelButton.hide()
+
+        self.widget.setMinimumWidth(350)
+        self.widget.setMinimumHeight(100)
 
     def setLabelText(self, text: str):
         self.label.setText(text)
+        QApplication.processEvents()
 
 
 # ==================== Rules 页面 ====================
