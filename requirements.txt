@@ -4,6 +4,7 @@
 # Core dependencies
 PyQt5>=5.15.0
 PyQt-Fluent-Widgets>=1.0.0
+requests>=2.25.0
 
 # Testing dependencies
 pytest>=7.0.0

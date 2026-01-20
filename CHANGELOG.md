@@ -4,6 +4,40 @@
 
 ---
 
+## [v1.4.5] - 2026-01-20 21:10
+**版本代号**: 依赖修复版
+
+### 🐛 Bug 修复
+- **修复 Skill 市场功能依赖缺失问题** ⭐
+  - **问题**: 用户点击 Skill 市场时报错 `No module named 'requests'`
+  - **原因**: `requirements.txt` 中缺少 `requests` 依赖
+  - **修复**: 在 `requirements.txt` 中添加 `requests>=2.25.0`
+  - **影响功能**:
+    - Skill 市场安装功能
+    - 从 GitHub 安装 Skills
+    - Skill 更新检测功能
+  - **修复文件**:
+    - `requirements.txt` - 添加 `requests>=2.25.0`
+    - `.github/workflows/build.yml` - 在 Windows/macOS/Linux 三个平台的构建步骤中添加 `requests` 依赖
+
+### 📝 技术说明
+- `SkillInstaller.install_from_github()` 方法需要 `requests` 库下载 GitHub 仓库
+- `SkillUpdater.check_updates()` 方法需要 `requests` 库调用 GitHub API
+- 建议用户重新安装依赖：`pip install -r requirements.txt`
+
+### 🔧 用户操作
+如果您从 v1.4.0 或更早版本升级，请务必重新安装依赖：
+```bash
+pip install -r requirements.txt
+```
+
+或单独安装 requests：
+```bash
+pip install requests>=2.25.0
+```
+
+---
+
 ## [v1.4.0] - 2026-01-20 18:00
 **版本代号**: Skills 市场与安全扫描版
 

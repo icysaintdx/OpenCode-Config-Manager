@@ -37,7 +37,21 @@
 
 ---
 
-## 🎯 v1.4.0 最新版本
+## 🎯 v1.4.5 最新版本
+
+### 🐛 Bug 修复
+- **修复 Skill 市场依赖缺失** - 修复用户点击 Skill 市场时报错 `No module named 'requests'` 的问题
+  - 在 `requirements.txt` 中添加 `requests>=2.25.0` 依赖
+  - 更新 GitHub Actions 工作流，在三个平台的构建步骤中添加 `requests` 依赖
+  - 影响功能：Skill 市场安装、从 GitHub 安装 Skills、Skill 更新检测
+
+### 🔧 升级说明
+如果您从 v1.4.0 或更早版本升级，请务必重新安装依赖：
+```bash
+pip install -r requirements.txt
+```
+
+### 📝 v1.4.0 功能回顾
 
 ### 🆕 新增功能
 #### **Skill 市场功能** ⭐
