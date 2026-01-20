@@ -11064,7 +11064,7 @@ class OhMyAgentPage(BasePage):
     """Oh My OpenCode Agent 管理页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("Oh My Agent", parent)
+        super().__init__(tr("ohmyagent.title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
@@ -11079,11 +11079,11 @@ class OhMyAgentPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        self.add_btn = PrimaryPushButton(FIF.ADD, "添加 Agent", self)
+        self.add_btn = PrimaryPushButton(FIF.ADD, tr("ohmyagent.add_agent"), self)
         self.add_btn.clicked.connect(self._on_add)
         toolbar.addWidget(self.add_btn)
 
-        self.preset_btn = PushButton(FIF.LIBRARY, "从预设添加", self)
+        self.preset_btn = PushButton(FIF.LIBRARY, tr("common.add_from_preset"), self)
         self.preset_btn.clicked.connect(self._on_add_preset)
         toolbar.addWidget(self.preset_btn)
 
@@ -11108,7 +11108,7 @@ class OhMyAgentPage(BasePage):
         # Agent 列表
         self.table = TableWidget(self)
         self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["名称", "绑定模型", "描述"])
+        self.table.setHorizontalHeaderLabels([tr("common.name"), tr("ohmyagent.model"), tr("common.description")])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -11194,7 +11194,7 @@ class OhMyAgentPage(BasePage):
         self._load_data()
 
     def _on_add(self):
-        """添加 Agent"""
+        ""tr("ohmyagent.add_agent")""
         dialog = OhMyAgentDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
@@ -11443,7 +11443,7 @@ class CategoryPage(BasePage):
     """Category 管理页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("Category 管理", parent)
+        super().__init__(tr("category.title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
@@ -11458,11 +11458,11 @@ class CategoryPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        self.add_btn = PrimaryPushButton(FIF.ADD, "添加 Category", self)
+        self.add_btn = PrimaryPushButton(FIF.ADD, tr("category.add_category"), self)
         self.add_btn.clicked.connect(self._on_add)
         toolbar.addWidget(self.add_btn)
 
-        self.preset_btn = PushButton(FIF.LIBRARY, "从预设添加", self)
+        self.preset_btn = PushButton(FIF.LIBRARY, tr("common.add_from_preset"), self)
         self.preset_btn.clicked.connect(self._on_add_preset)
         toolbar.addWidget(self.preset_btn)
 
@@ -11634,7 +11634,7 @@ class CategoryDialog(BaseDialog):
         self.category_name = category_name
         self.is_edit = category_name is not None
 
-        self.setWindowTitle("编辑 Category" if self.is_edit else "添加 Category")
+        self.setWindowTitle("编辑 Category" if self.is_edit else tr("category.add_category"))
         self.setMinimumWidth(450)
         self._setup_ui()
 
@@ -14105,7 +14105,7 @@ class RulesPage(BasePage):
     """Rules/Instructions 管理和 AGENTS.md 编辑页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("Rules 管理", parent)
+        super().__init__(tr("rules.title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
@@ -14162,7 +14162,7 @@ class RulesPage(BasePage):
         inst_layout.addLayout(quick_layout)
 
         # 保存按钮
-        save_inst_btn = PrimaryPushButton("保存 Instructions", inst_card)
+        save_inst_btn = PrimaryPushButton(tr("rules.save_instructions"), inst_card)
         save_inst_btn.setFixedHeight(36)
         save_inst_btn.clicked.connect(self._on_save_instructions)
         inst_layout.addWidget(save_inst_btn)
@@ -14198,7 +14198,7 @@ class RulesPage(BasePage):
         # 按钮
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
-        save_btn = PrimaryPushButton("保存 AGENTS.md", agents_card)
+        save_btn = PrimaryPushButton(tr("rules.save_agents_md"), agents_card)
         save_btn.setFixedHeight(36)
         save_btn.clicked.connect(self._on_save_agents_md)
         btn_layout.addWidget(save_btn)
@@ -14265,9 +14265,9 @@ class RulesPage(BasePage):
 
     def _get_agents_path(self) -> Path:
         if self.global_radio.isChecked():
-            return Path.home() / ".config" / "opencode" / "AGENTS.md"
+            return Path.home() / ".config" / "opencode" / tr("rules.agents_md")
         else:
-            return Path.cwd() / "AGENTS.md"
+            return Path.cwd() / tr("rules.agents_md")
 
     def _load_agents_md(self):
         path = self._get_agents_path()
@@ -16732,7 +16732,7 @@ class ImportPage(BasePage):
     """外部配置导入页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("外部导入", parent)
+        super().__init__(tr("import.title"), parent)
         self.main_window = main_window
         self.import_service = ImportService()
         self._last_converted: Optional[Dict[str, Any]] = None
@@ -16775,7 +16775,7 @@ class ImportPage(BasePage):
         # 配置列表
         self.config_table = TableWidget(detect_card)
         self.config_table.setColumnCount(3)
-        self.config_table.setHorizontalHeaderLabels(["来源", "配置路径", "状态"])
+        self.config_table.setHorizontalHeaderLabels([tr("import.source"), tr("import.config_path"), tr("import.status")])
         # 设置列宽：第一列25字符，第三列15字符，第二列自动填充
         header = self.config_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
@@ -16836,7 +16836,7 @@ class ImportPage(BasePage):
             path_item = QTableWidgetItem(info["path"])
             path_item.setToolTip(info["path"])
             self.config_table.setItem(row, 1, path_item)
-            status = "已检测" if info["exists"] else "未找到"
+            status = tr("import.detected") if info["exists"] else "未找到"
             self.config_table.setItem(row, 2, QTableWidgetItem(status))
 
     def _select_manual_file(self):

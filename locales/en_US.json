@@ -75,7 +75,10 @@
     "redo": "Redo",
     "select_item_first": "Please select an item first",
     "added": "Added",
-    "updated": "Updated"
+    "updated": "Updated",
+    "add_from_preset": "Add from Preset",
+    "bulk_model": "Bulk Model",
+    "keep_all": "- Keep All -"
   },
   "home": {
     "title": "Home",
@@ -415,5 +418,55 @@
     "config_not_detected": "❌ Configuration not detected",
     "config_copied": "Configuration copied to clipboard",
     "invalid_json": "Invalid JSON format"
+  },
+  "category": {
+    "title": "Category Management",
+    "add_category": "Add Category",
+    "edit_category": "Edit Category",
+    "delete_category": "Delete Category",
+    "category_name": "Category Name",
+    "temperature": "Temperature",
+    "models": "Model List",
+    "select_models": "Select Models",
+    "category_saved": "Category saved",
+    "category_deleted": "Category deleted",
+    "delete_confirm_msg": "Are you sure you want to delete Category \"{name}\"?"
+  },
+  "ohmyagent": {
+    "title": "Oh My Agent",
+    "add_agent": "Add Agent",
+    "edit_agent": "Edit Agent",
+    "delete_agent": "Delete Agent",
+    "agent_name": "Agent Name",
+    "provider": "Provider",
+    "model": "Model",
+    "select_provider": "Select Provider",
+    "select_model": "Select Model",
+    "agent_saved": "Agent saved",
+    "agent_deleted": "Agent deleted",
+    "delete_confirm_msg": "Are you sure you want to delete Agent \"{name}\"?"
+  },
+  "rules": {
+    "title": "Rules Management",
+    "instructions": "Instructions",
+    "agents_md": "AGENTS.md",
+    "save_instructions": "Save Instructions",
+    "save_agents_md": "Save AGENTS.md",
+    "instructions_saved": "Instructions saved",
+    "agents_md_saved": "AGENTS.md saved",
+    "load_template": "Load Template"
+  },
+  "import": {
+    "title": "External Import",
+    "detect_configs": "Detect Configurations",
+    "import_selected": "Import Selected",
+    "source": "Source",
+    "config_path": "Configuration Path",
+    "status": "Status",
+    "detected": "Detected",
+    "not_detected": "Not Detected",
+    "import_success": "Import successful",
+    "import_failed": "Import failed",
+    "no_configs_detected": "No importable configurations detected"
   }
 }

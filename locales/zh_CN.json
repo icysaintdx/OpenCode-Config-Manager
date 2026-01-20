@@ -75,7 +75,10 @@
     "redo": "重做",
     "select_item_first": "请先选择一项",
     "added": "已添加",
-    "updated": "已更新"
+    "updated": "已更新",
+    "add_from_preset": "从预设添加",
+    "bulk_model": "批量模型",
+    "keep_all": "- 全部保持 -"
   },
   "home": {
     "title": "首页",
@@ -498,18 +501,16 @@
   },
   "import": {
     "title": "外部导入",
-    "subtitle": "从其他工具导入配置",
-    "import_from": "导入来源:",
-    "import_claude_code": "Claude Code",
-    "import_codex": "Codex",
-    "import_gemini": "Gemini",
-    "import_cc_switch": "cc-switch",
-    "select_file": "选择文件",
-    "import_button": "导入",
+    "detect_configs": "检测配置",
+    "import_selected": "导入选中",
+    "source": "来源",
+    "config_path": "配置路径",
+    "status": "状态",
+    "detected": "已检测",
+    "not_detected": "未检测",
     "import_success": "导入成功",
-    "import_failed": "导入失败: {error}",
-    "file_not_selected": "请先选择文件",
-    "invalid_format": "文件格式无效"
+    "import_failed": "导入失败",
+    "no_configs_detected": "未检测到可导入的配置"
   },
   "permission": {
     "title": "权限管理",
@@ -533,43 +534,27 @@
     "add_category": "添加 Category",
     "edit_category": "编辑 Category",
     "delete_category": "删除 Category",
-    "category_key": "Category 键名",
     "category_name": "Category 名称",
     "temperature": "Temperature",
-    "delete_confirm": "确定要删除 Category \"{name}\" 吗？",
-    "added_success": "Category 已添加",
-    "updated_success": "Category 已更新",
-    "deleted_success": "Category 已删除"
+    "models": "模型列表",
+    "select_models": "选择模型",
+    "category_saved": "Category 已保存",
+    "category_deleted": "Category 已删除",
+    "delete_confirm_msg": "确定要删除 Category \"{name}\" 吗？"
   },
   "ohmyagent": {
     "title": "Oh My Agent",
     "add_agent": "添加 Agent",
     "edit_agent": "编辑 Agent",
     "delete_agent": "删除 Agent",
-    "agent_key": "Agent 键名",
     "agent_name": "Agent 名称",
     "provider": "Provider",
     "model": "模型",
-    "category": "Category",
-    "delete_confirm": "确定要删除 Agent \"{name}\" 吗？",
-    "added_success": "Agent 已添加",
-    "updated_success": "Agent 已更新",
-    "deleted_success": "Agent 已删除",
-    "dialog": {
-      "edit_title": "编辑 Oh My Agent",
-      "add_title": "添加 Oh My Agent",
-      "preset_label": "预设 Agent:",
-      "agent_key_label": "Agent 键名:",
-      "agent_key_placeholder": "如: oracle, librarian, explore",
-      "provider_label": "Provider:",
-      "model_label": "模型:",
-      "category_label": "Category:",
-      "preview_label": "配置预览:",
-      "key_required": "请输入 Agent 键名",
-      "key_exists": "Agent 键名已存在",
-      "provider_required": "请选择 Provider",
-      "model_required": "请选择模型"
-    }
+    "select_provider": "选择 Provider",
+    "select_model": "选择模型",
+    "agent_saved": "Agent 已保存",
+    "agent_deleted": "Agent 已删除",
+    "delete_confirm_msg": "确定要删除 Agent \"{name}\" 吗？"
   },
   "help": {
     "title": "帮助",
@@ -602,13 +587,13 @@
   },
   "rules": {
     "title": "Rules 管理",
-    "add_rule": "添加规则",
-    "edit_rule": "编辑规则",
-    "delete_rule": "删除规则",
-    "rule_name": "规则名称",
-    "rule_pattern": "匹配模式",
-    "rule_action": "动作",
-    "delete_confirm": "确定要删除规则 \"{name}\" 吗？"
+    "instructions": "Instructions",
+    "agents_md": "AGENTS.md",
+    "save_instructions": "保存 Instructions",
+    "save_agents_md": "保存 AGENTS.md",
+    "instructions_saved": "Instructions 已保存",
+    "agents_md_saved": "AGENTS.md 已保存",
+    "load_template": "加载模板"
   },
   "compaction": {
     "title": "上下文压缩",
