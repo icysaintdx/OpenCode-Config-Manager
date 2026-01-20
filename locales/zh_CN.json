@@ -237,13 +237,19 @@
     "primary": "主要 (Primary)",
     "subagent": "子代理 (Subagent)",
     "all": "全部 (All)",
-    "temperature": "温度 (Temperature)",
-    "max_steps": "最大步数 (Max Steps)",
+    "temperature": "温度",
+    "max_steps": "最大步数",
     "hidden": "隐藏",
     "disable": "禁用",
     "tools": "工具权限",
     "preset_agents": "预设 Agent",
-    "delete_confirm": "确定要删除 Agent \"{name}\" 吗？"
+    "delete_confirm": "确定要删除 Agent \"{name}\" 吗？\n此操作不可恢复。",
+    "delete_confirm_title": "确认删除",
+    "added_success": "Agent 已添加",
+    "preset_added_success": "预设 Agent 已添加",
+    "updated_success": "Agent 已更新",
+    "deleted_success": "Agent \"{name}\" 已删除",
+    "select_first": "请先选择一个 Agent"
   },
   "skill": {
     "title": "Skill 管理",

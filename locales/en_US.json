@@ -243,7 +243,13 @@
     "disable": "Disable",
     "tools": "Tools Permission",
     "preset_agents": "Preset Agents",
-    "delete_confirm": "Are you sure to delete Agent \"{name}\"?"
+    "delete_confirm": "Are you sure to delete Agent \"{name}\"?\nThis action cannot be undone.",
+    "delete_confirm_title": "Confirm Delete",
+    "added_success": "Agent added",
+    "preset_added_success": "Preset Agent added",
+    "updated_success": "Agent updated",
+    "deleted_success": "Agent \"{name}\" deleted",
+    "select_first": "Please select an Agent first"
   },
   "skill": {
     "title": "Skill Management",

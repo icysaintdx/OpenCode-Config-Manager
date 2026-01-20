@@ -9224,7 +9224,7 @@ class OpenCodeAgentPage(BasePage):
     """OpenCode 原生 Agent 配置页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("OpenCode Agent", parent)
+        super().__init__(tr("agent.title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
@@ -9239,19 +9239,19 @@ class OpenCodeAgentPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        self.add_btn = PrimaryPushButton(FIF.ADD, "添加 Agent", self)
+        self.add_btn = PrimaryPushButton(FIF.ADD, tr("agent.add_agent"), self)
         self.add_btn.clicked.connect(self._on_add)
         toolbar.addWidget(self.add_btn)
 
-        self.preset_btn = PushButton(FIF.LIBRARY, "从预设添加", self)
+        self.preset_btn = PushButton(FIF.LIBRARY, tr("model.add_from_preset"), self)
         self.preset_btn.clicked.connect(self._on_add_preset)
         toolbar.addWidget(self.preset_btn)
 
-        self.edit_btn = PushButton(FIF.EDIT, "编辑", self)
+        self.edit_btn = PushButton(FIF.EDIT, tr("common.edit"), self)
         self.edit_btn.clicked.connect(self._on_edit)
         toolbar.addWidget(self.edit_btn)
 
-        self.delete_btn = PushButton(FIF.DELETE, "删除", self)
+        self.delete_btn = PushButton(FIF.DELETE, tr("common.delete"), self)
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
@@ -9261,7 +9261,14 @@ class OpenCodeAgentPage(BasePage):
         # Agent 列表
         self.table = TableWidget(self)
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["名称", "模式", "Temperature", "描述"])
+        self.table.setHorizontalHeaderLabels(
+            [
+                tr("common.name"),
+                tr("agent.mode"),
+                tr("agent.temperature"),
+                tr("common.description"),
+            ]
+        )
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -9297,30 +9304,30 @@ class OpenCodeAgentPage(BasePage):
         dialog = OpenCodeAgentDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Agent 已添加")
+            self.show_success(tr("common.success"), tr("agent.added_success"))
 
     def _on_add_preset(self):
         dialog = PresetOpenCodeAgentDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "预设 Agent 已添加")
+            self.show_success(tr("common.success"), tr("agent.preset_added_success"))
 
     def _on_edit(self):
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个 Agent")
+            self.show_warning(tr("common.info"), tr("agent.select_first"))
             return
 
         name = self.table.item(row, 0).text()
         dialog = OpenCodeAgentDialog(self.main_window, agent_name=name, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Agent 已更新")
+            self.show_success(tr("common.success"), tr("agent.updated_success"))
 
     def _on_delete(self):
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个 Agent")
+            self.show_warning(tr("common.info"), tr("agent.select_first"))
             return
 
         name = self.table.item(row, 0).text()
