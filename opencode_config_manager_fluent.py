@@ -741,7 +741,7 @@ STATUS_LABELS = {
     "degraded": "延迟",
     "failed": "异常",
     "error": "错误",
-    "no_config": "未配置",
+    "no_config": tr("native_provider.not_configured"),
 }
 
 # 状态颜色 - 与 UIConfig 配色方案一致
@@ -6783,7 +6783,7 @@ class NativeProviderPage(BasePage):
     """原生 Provider 配置页面 - 管理 OpenCode 官方支持的原生 AI 服务提供商"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("原生 Provider", parent)
+        super().__init__(tr("native_provider.title"), parent)
         self.main_window = main_window
         self.auth_manager = AuthManager()
         self.env_detector = EnvVarDetector()
@@ -6801,15 +6801,15 @@ class NativeProviderPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        self.config_btn = PrimaryPushButton(FIF.SETTING, "配置 Provider", self)
+        self.config_btn = PrimaryPushButton(FIF.SETTING, tr("native_provider.config_provider"), self)
         self.config_btn.clicked.connect(self._on_config)
         toolbar.addWidget(self.config_btn)
 
-        self.test_btn = PushButton(FIF.WIFI, "测试连接", self)
+        self.test_btn = PushButton(FIF.WIFI, tr("native_provider.test_connection"), self)
         self.test_btn.clicked.connect(self._on_test)
         toolbar.addWidget(self.test_btn)
 
-        self.delete_btn = PushButton(FIF.DELETE, "删除配置", self)
+        self.delete_btn = PushButton(FIF.DELETE, tr("native_provider.delete_config"), self)
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
@@ -6819,7 +6819,7 @@ class NativeProviderPage(BasePage):
         # Provider 列表表格
         self.table = TableWidget(self)
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
+        self.table.setHorizontalHeaderLabels([tr("native_provider.provider"), tr("native_provider.sdk"), tr("native_provider.status"), tr("native_provider.env_vars")])
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
@@ -6860,7 +6860,7 @@ class NativeProviderPage(BasePage):
 
             # 状态
             is_configured = provider.id in auth_data and auth_data[provider.id]
-            status_text = "已配置" if is_configured else "未配置"
+            status_text = tr("native_provider.configured") if is_configured else tr("native_provider.not_configured")
             status_item = QTableWidgetItem(status_text)
             if is_configured:
                 status_item.setForeground(QColor("#4CAF50"))
@@ -6883,10 +6883,10 @@ class NativeProviderPage(BasePage):
         return get_native_provider(provider_id)
 
     def _on_config(self):
-        """配置 Provider"""
+        ""tr("native_provider.config_provider")""
         provider = self._get_selected_provider()
         if not provider:
-            self.show_warning("提示", "请先选择一个 Provider")
+            self.show_warning(tr("common.warning"), tr("native_provider.select_provider_first"))
             return
 
         dialog = NativeProviderDialog(
@@ -6901,10 +6901,10 @@ class NativeProviderPage(BasePage):
             self.show_success("成功", f"{provider.name} 配置已保存")
 
     def _on_test(self):
-        """测试连接"""
+        ""tr("native_provider.test_connection")""
         provider = self._get_selected_provider()
         if not provider:
-            self.show_warning("提示", "请先选择一个 Provider")
+            self.show_warning(tr("common.warning"), tr("native_provider.select_provider_first"))
             return
 
         if not provider.test_endpoint:
@@ -6968,10 +6968,10 @@ class NativeProviderPage(BasePage):
             self.show_error("连接失败", str(e))
 
     def _on_delete(self):
-        """删除配置"""
+        ""tr("native_provider.delete_config")""
         provider = self._get_selected_provider()
         if not provider:
-            self.show_warning("提示", "请先选择一个 Provider")
+            self.show_warning(tr("common.warning"), tr("native_provider.select_provider_first"))
             return
 
         # 检查是否已配置
@@ -8943,7 +8943,7 @@ class MCPDialog(BaseDialog):
         extra_layout = QVBoxLayout(self.extra_content)
         extra_layout.setSpacing(8)
 
-        desc_label = BodyLabel("描述:", self.extra_group)
+        desc_label = BodyLabel(tr("skill.description") + ":", self.extra_group)
         self.desc_edit = TextEdit(self.extra_group)
         self.desc_edit.setPlaceholderText("如: 提供网页抓取能力的 MCP 服务器")
         self.desc_edit.setMaximumHeight(80)
@@ -11680,7 +11680,7 @@ class CategoryDialog(BaseDialog):
         layout.addLayout(temp_layout)
 
         # 描述
-        desc_label = BodyLabel("描述:", self)
+        desc_label = BodyLabel(tr("skill.description") + ":", self)
         desc_label.setToolTip(get_tooltip("category_description"))
         layout.addWidget(desc_label)
         self.desc_edit = TextEdit(self)
@@ -13191,10 +13191,10 @@ class SkillPage(BasePage):
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 8, 0)
 
-        left_layout.addWidget(SubtitleLabel("已发现的 Skill", left_widget))
+        left_layout.addWidget(SubtitleLabel(tr("skill.discovered_skills"), left_widget))
         left_layout.addWidget(
             CaptionLabel(
-                "扫描 OpenCode 和 Claude 兼容路径发现的所有 Skill",
+                tr("skill.scan_description"),
                 left_widget,
             )
         )
@@ -13202,15 +13202,15 @@ class SkillPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        market_btn = PrimaryPushButton(FIF.MARKET, "Skill 市场", left_widget)
+        market_btn = PrimaryPushButton(FIF.MARKET, tr("skill.skill_market"), left_widget)
         market_btn.clicked.connect(self._on_open_market)
         toolbar.addWidget(market_btn)
 
-        install_btn = PushButton(FIF.DOWNLOAD, "安装 Skill", left_widget)
+        install_btn = PushButton(FIF.DOWNLOAD, tr("skill.install_skill"), left_widget)
         install_btn.clicked.connect(self._on_install_skill)
         toolbar.addWidget(install_btn)
 
-        update_btn = PushButton(FIF.UPDATE, "检查更新", left_widget)
+        update_btn = PushButton(FIF.UPDATE, tr("skill.check_updates"), left_widget)
         update_btn.clicked.connect(self._on_check_updates)
         toolbar.addWidget(update_btn)
 
@@ -13243,7 +13243,7 @@ class SkillPage(BasePage):
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(8, 0, 0, 0)
 
-        right_layout.addWidget(SubtitleLabel("Skill 详情", right_widget))
+        right_layout.addWidget(SubtitleLabel(tr("skill.skill_details"), right_widget))
 
         # 详情卡片
         detail_card = SimpleCardWidget(right_widget)
@@ -13276,7 +13276,7 @@ class SkillPage(BasePage):
         right_layout.addWidget(detail_card)
 
         # 内容预览
-        right_layout.addWidget(BodyLabel("内容预览:", right_widget))
+        right_layout.addWidget(BodyLabel(tr("skill.content_preview") + ":", right_widget))
         self.detail_content = TextEdit(right_widget)
         self.detail_content.setReadOnly(True)
         self.detail_content.setPlaceholderText("选择 Skill 后显示内容")
@@ -13289,7 +13289,7 @@ class SkillPage(BasePage):
         self.edit_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.edit_skill_btn)
 
-        self.scan_skill_btn = PushButton(FIF.CERTIFICATE, "安全扫描", right_widget)
+        self.scan_skill_btn = PushButton(FIF.CERTIFICATE, tr("skill.scan_security"), right_widget)
         self.scan_skill_btn.clicked.connect(self._on_scan_skill)
         self.scan_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.scan_skill_btn)
@@ -13299,7 +13299,7 @@ class SkillPage(BasePage):
         self.delete_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.delete_skill_btn)
 
-        self.open_folder_btn = PushButton(FIF.FOLDER, "打开目录", right_widget)
+        self.open_folder_btn = PushButton(FIF.FOLDER, tr("skill.open_directory"), right_widget)
         self.open_folder_btn.clicked.connect(self._on_open_skill_folder)
         self.open_folder_btn.setEnabled(False)
         btn_layout.addWidget(self.open_folder_btn)
@@ -13459,7 +13459,7 @@ class SkillPage(BasePage):
 
         # License
         license_layout = QHBoxLayout()
-        license_layout.addWidget(BodyLabel("许可证:", basic_card))
+        license_layout.addWidget(BodyLabel(tr("skill.license") + ":", basic_card))
         self.create_license_edit = LineEdit(basic_card)
         self.create_license_edit.setPlaceholderText("如: MIT, Apache-2.0 (可选)")
         license_layout.addWidget(self.create_license_edit)
@@ -13467,7 +13467,7 @@ class SkillPage(BasePage):
 
         # Compatibility
         compat_layout = QHBoxLayout()
-        compat_layout.addWidget(BodyLabel("兼容性:", basic_card))
+        compat_layout.addWidget(BodyLabel(tr("skill.compatibility") + ":", basic_card))
         self.create_compat_edit = LineEdit(basic_card)
         self.create_compat_edit.setPlaceholderText("如: opencode, claude (可选)")
         compat_layout.addWidget(self.create_compat_edit)
@@ -13475,7 +13475,7 @@ class SkillPage(BasePage):
 
         # 保存位置
         loc_layout = QHBoxLayout()
-        loc_layout.addWidget(BodyLabel("保存位置:", basic_card))
+        loc_layout.addWidget(BodyLabel(tr("skill.save_location") + ":", basic_card))
         self.create_loc_combo = ComboBox(basic_card)
         self.create_loc_combo.addItems(
             [
@@ -13503,7 +13503,7 @@ class SkillPage(BasePage):
 
         # 按钮
         btn_layout = QHBoxLayout()
-        save_btn = PrimaryPushButton(FIF.SAVE, "保存 Skill", create_widget)
+        save_btn = PrimaryPushButton(FIF.SAVE, tr("skill.save_skill"), create_widget)
         save_btn.clicked.connect(self._on_save_skill)
         btn_layout.addWidget(save_btn)
 
@@ -13517,7 +13517,7 @@ class SkillPage(BasePage):
         self.stacked_widget.addWidget(create_widget)
 
     def _on_save_skill(self):
-        """保存 Skill"""
+        ""tr("skill.save_skill")""
         name = self.create_name_edit.text().strip()
         desc = self.create_desc_edit.text().strip()
         license_info = self.create_license_edit.text().strip()
@@ -13624,7 +13624,7 @@ class SkillPage(BasePage):
         # 权限表格
         self.perm_table = TableWidget(left_widget)
         self.perm_table.setColumnCount(2)
-        self.perm_table.setHorizontalHeaderLabels(["模式", "权限"])
+        self.perm_table.setHorizontalHeaderLabels([tr("skill.pattern"), tr("skill.permission")])
         self.perm_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.perm_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.perm_table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -13691,7 +13691,7 @@ class SkillPage(BasePage):
         right_layout.addWidget(BodyLabel("Agent 权限覆盖:", right_widget))
         self.agent_perm_table = TableWidget(right_widget)
         self.agent_perm_table.setColumnCount(2)
-        self.agent_perm_table.setHorizontalHeaderLabels(["模式", "权限"])
+        self.agent_perm_table.setHorizontalHeaderLabels([tr("skill.pattern"), tr("skill.permission")])
         self.agent_perm_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.Stretch
         )
@@ -13952,7 +13952,7 @@ class SkillPage(BasePage):
             self.show_error("错误", f"扫描失败: {str(e)}")
 
     def _on_install_skill(self):
-        """安装 Skill"""
+        ""tr("skill.install_skill")""
         dialog = SkillInstallDialog(self)
         if dialog.exec_():
             source = dialog.get_source()
@@ -13997,7 +13997,7 @@ class SkillPage(BasePage):
                 self.show_error("错误", f"安装失败: {str(e)}")
 
     def _on_check_updates(self):
-        """检查更新"""
+        ""tr("skill.check_updates")""
         # 获取所有 Skills
         skills = SkillDiscovery.discover_all()
 
