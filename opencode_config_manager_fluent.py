@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-OpenCode & Oh My OpenCode 配置管理器 v1.2.0 (QFluentWidgets 版本)
+OpenCode & Oh My OpenCode 配置管理器 v1.4.5 (QFluentWidgets 版本)
 一个可视化的GUI工具，用于管理OpenCode和Oh My OpenCode的配置文件
 
 基于 PyQt5 + QFluentWidgets 重写，提供现代化 Fluent Design 界面
@@ -1005,7 +1005,7 @@ class UIConfig:
         """
 
 
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.4.5"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
