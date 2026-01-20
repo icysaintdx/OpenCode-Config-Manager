@@ -999,7 +999,7 @@ class UIConfig:
         """
 
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.4.0"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -11636,6 +11636,423 @@ class SkillDiscovery:
         return None
 
 
+# ==================== Skill 市场 ====================
+class SkillMarket:
+    """Skill 市场 - 内置常用 Skills 列表"""
+
+    # 内置 Skill 列表
+    FEATURED_SKILLS = [
+        {
+            "name": "git-release",
+            "repo": "vercel-labs/git-release",
+            "description": "创建 GitHub Releases 的 Skill",
+            "category": "开发工具",
+            "tags": ["git", "github", "release"],
+        },
+        {
+            "name": "code-review",
+            "repo": "anthropics/code-review-skill",
+            "description": "代码审查和质量检查",
+            "category": "代码质量",
+            "tags": ["review", "quality", "best-practices"],
+        },
+        {
+            "name": "test-generator",
+            "repo": "openai/test-generator-skill",
+            "description": "自动生成单元测试",
+            "category": "测试",
+            "tags": ["testing", "unit-test", "automation"],
+        },
+        {
+            "name": "documentation",
+            "repo": "anthropics/documentation-skill",
+            "description": "生成和维护项目文档",
+            "category": "文档",
+            "tags": ["docs", "documentation", "readme"],
+        },
+        {
+            "name": "refactoring",
+            "repo": "openai/refactoring-skill",
+            "description": "代码重构和优化建议",
+            "category": "代码质量",
+            "tags": ["refactor", "optimization", "clean-code"],
+        },
+        {
+            "name": "security-audit",
+            "repo": "anthropics/security-audit-skill",
+            "description": "安全漏洞扫描和修复建议",
+            "category": "安全",
+            "tags": ["security", "vulnerability", "audit"],
+        },
+        {
+            "name": "api-design",
+            "repo": "openai/api-design-skill",
+            "description": "RESTful API 设计和文档生成",
+            "category": "API",
+            "tags": ["api", "rest", "design"],
+        },
+        {
+            "name": "database-migration",
+            "repo": "vercel-labs/database-migration-skill",
+            "description": "数据库迁移脚本生成",
+            "category": "数据库",
+            "tags": ["database", "migration", "sql"],
+        },
+    ]
+
+    @classmethod
+    def get_all_skills(cls) -> List[Dict[str, Any]]:
+        """获取所有市场 Skills"""
+        return cls.FEATURED_SKILLS
+
+    @classmethod
+    def search_skills(cls, query: str) -> List[Dict[str, Any]]:
+        """搜索 Skills"""
+        query = query.lower()
+        results = []
+        for skill in cls.FEATURED_SKILLS:
+            if (
+                query in skill["name"].lower()
+                or query in skill["description"].lower()
+                or any(query in tag for tag in skill["tags"])
+            ):
+                results.append(skill)
+        return results
+
+    @classmethod
+    def get_by_category(cls, category: str) -> List[Dict[str, Any]]:
+        """按分类获取 Skills"""
+        return [s for s in cls.FEATURED_SKILLS if s["category"] == category]
+
+    @classmethod
+    def get_categories(cls) -> List[str]:
+        """获取所有分类"""
+        categories = set(s["category"] for s in cls.FEATURED_SKILLS)
+        return sorted(categories)
+
+
+# ==================== Skill 市场对话框 ====================
+class SkillMarketDialog(MessageBoxBase):
+    """Skill 市场对话框"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.titleLabel = SubtitleLabel("Skill 市场", self)
+        self.selected_skill = None
+
+        # 搜索框
+        search_layout = QHBoxLayout()
+        self.search_edit = LineEdit(self.widget)
+        self.search_edit.setPlaceholderText("搜索 Skills...")
+        self.search_edit.textChanged.connect(self._on_search)
+        search_layout.addWidget(self.search_edit)
+
+        search_btn = PushButton(FIF.SEARCH, "搜索", self.widget)
+        search_btn.clicked.connect(self._on_search)
+        search_layout.addWidget(search_btn)
+
+        # 分类筛选
+        self.category_combo = ComboBox(self.widget)
+        self.category_combo.addItem("全部分类")
+        self.category_combo.addItems(SkillMarket.get_categories())
+        self.category_combo.currentTextChanged.connect(self._on_category_changed)
+        search_layout.addWidget(self.category_combo)
+
+        # Skills 表格
+        self.table = TableWidget(self.widget)
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["名称", "描述", "分类", "仓库"])
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.setMinimumHeight(400)
+        self.table.itemSelectionChanged.connect(self._on_selection_changed)
+
+        # 填充数据
+        self._load_skills(SkillMarket.get_all_skills())
+
+        # 布局
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addLayout(search_layout)
+        self.viewLayout.addWidget(self.table)
+
+        self.yesButton.setText("安装选中")
+        self.yesButton.setEnabled(False)
+        self.cancelButton.setText("取消")
+
+        self.widget.setMinimumWidth(800)
+        self.widget.setMinimumHeight(600)
+
+    def _load_skills(self, skills: List[Dict[str, Any]]):
+        """加载 Skills 到表格"""
+        self.table.setRowCount(0)
+        for skill in skills:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            self.table.setItem(row, 0, QTableWidgetItem(skill["name"]))
+            self.table.setItem(row, 1, QTableWidgetItem(skill["description"]))
+            self.table.setItem(row, 2, QTableWidgetItem(skill["category"]))
+            self.table.setItem(row, 3, QTableWidgetItem(skill["repo"]))
+
+    def _on_search(self):
+        """搜索 Skills"""
+        query = self.search_edit.text().strip()
+        if query:
+            skills = SkillMarket.search_skills(query)
+        else:
+            skills = SkillMarket.get_all_skills()
+        self._load_skills(skills)
+
+    def _on_category_changed(self, category: str):
+        """分类筛选"""
+        if category == "全部分类":
+            skills = SkillMarket.get_all_skills()
+        else:
+            skills = SkillMarket.get_by_category(category)
+        self._load_skills(skills)
+
+    def _on_selection_changed(self):
+        """选择变化"""
+        selected = self.table.selectedItems()
+        if selected:
+            row = selected[0].row()
+            repo = self.table.item(row, 3).text()
+            # 从市场列表中找到对应的 skill
+            for skill in SkillMarket.get_all_skills():
+                if skill["repo"] == repo:
+                    self.selected_skill = skill
+                    break
+            self.yesButton.setEnabled(True)
+        else:
+            self.selected_skill = None
+            self.yesButton.setEnabled(False)
+
+    def get_selected_skill(self) -> Optional[Dict[str, Any]]:
+        """获取选中的 Skill"""
+        return self.selected_skill
+
+
+# ==================== 安全扫描器 ====================
+class SkillSecurityScanner:
+    """Skill 安全扫描器 - 检测可疑代码模式"""
+
+    # 危险模式列表
+    DANGEROUS_PATTERNS = [
+        {
+            "pattern": r"os\.system\(",
+            "level": "high",
+            "description": "执行系统命令（可能执行恶意命令）",
+        },
+        {
+            "pattern": r"subprocess\.(call|run|Popen)",
+            "level": "high",
+            "description": "执行子进程（可能执行恶意程序）",
+        },
+        {
+            "pattern": r"eval\(",
+            "level": "critical",
+            "description": "执行动态代码（严重安全风险）",
+        },
+        {
+            "pattern": r"exec\(",
+            "level": "critical",
+            "description": "执行动态代码（严重安全风险）",
+        },
+        {
+            "pattern": r"__import__\(",
+            "level": "medium",
+            "description": "动态导入模块（可能导入恶意模块）",
+        },
+        {
+            "pattern": r"os\.remove\(",
+            "level": "high",
+            "description": "删除文件（可能删除重要文件）",
+        },
+        {
+            "pattern": r"shutil\.rmtree\(",
+            "level": "high",
+            "description": "删除目录（可能删除重要目录）",
+        },
+        {
+            "pattern": r"requests\.(get|post|put|delete)",
+            "level": "low",
+            "description": "网络请求（可能泄露数据）",
+        },
+        {
+            "pattern": r"socket\.",
+            "level": "medium",
+            "description": "网络通信（可能建立恶意连接）",
+        },
+    ]
+
+    @classmethod
+    def scan_skill(cls, skill_path: Path) -> Dict[str, Any]:
+        """扫描 Skill 的安全风险"""
+        import re
+
+        issues = []
+        score = 100
+
+        try:
+            content = skill_path.read_text(encoding="utf-8")
+            lines = content.split("\n")
+
+            for pattern_info in cls.DANGEROUS_PATTERNS:
+                pattern = pattern_info["pattern"]
+                level = pattern_info["level"]
+                description = pattern_info["description"]
+
+                for line_num, line in enumerate(lines, 1):
+                    if re.search(pattern, line):
+                        issues.append(
+                            {
+                                "line": line_num,
+                                "code": line.strip(),
+                                "level": level,
+                                "description": description,
+                            }
+                        )
+
+                        # 扣分
+                        if level == "critical":
+                            score -= 30
+                        elif level == "high":
+                            score -= 20
+                        elif level == "medium":
+                            score -= 10
+                        elif level == "low":
+                            score -= 5
+
+            score = max(0, score)
+
+            return {
+                "score": score,
+                "issues": issues,
+                "level": cls._get_risk_level(score),
+            }
+
+        except Exception as e:
+            return {
+                "score": 0,
+                "issues": [
+                    {
+                        "line": 0,
+                        "code": "",
+                        "level": "critical",
+                        "description": f"扫描失败: {str(e)}",
+                    }
+                ],
+                "level": "unknown",
+            }
+
+    @staticmethod
+    def _get_risk_level(score: int) -> str:
+        """根据分数获取风险等级"""
+        if score >= 90:
+            return "safe"
+        elif score >= 70:
+            return "low"
+        elif score >= 50:
+            return "medium"
+        elif score >= 30:
+            return "high"
+        else:
+            return "critical"
+
+
+# ==================== 安全扫描对话框 ====================
+class SecurityScanDialog(MessageBoxBase):
+    """安全扫描结果对话框"""
+
+    def __init__(self, scan_result: Dict[str, Any], skill_name: str, parent=None):
+        super().__init__(parent)
+        self.titleLabel = SubtitleLabel(f"安全扫描 - {skill_name}", self)
+
+        score = scan_result["score"]
+        level = scan_result["level"]
+        issues = scan_result["issues"]
+
+        # 分数和等级
+        score_layout = QHBoxLayout()
+        score_label = TitleLabel(f"安全评分: {score}/100", self.widget)
+        score_layout.addWidget(score_label)
+
+        level_colors = {
+            "safe": "#4CAF50",
+            "low": "#8BC34A",
+            "medium": "#FF9800",
+            "high": "#FF5722",
+            "critical": "#F44336",
+            "unknown": "#9E9E9E",
+        }
+        level_names = {
+            "safe": "安全",
+            "low": "低风险",
+            "medium": "中风险",
+            "high": "高风险",
+            "critical": "严重风险",
+            "unknown": "未知",
+        }
+
+        level_label = StrongBodyLabel(level_names.get(level, "未知"), self.widget)
+        level_label.setStyleSheet(f"color: {level_colors.get(level, '#9E9E9E')};")
+        score_layout.addWidget(level_label)
+        score_layout.addStretch()
+
+        # 问题列表
+        if issues:
+            issues_label = BodyLabel(f"发现 {len(issues)} 个潜在问题:", self.widget)
+        else:
+            issues_label = BodyLabel("未发现安全问题", self.widget)
+
+        # 问题表格
+        self.table = TableWidget(self.widget)
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["行号", "风险等级", "描述", "代码"])
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setMinimumHeight(300)
+
+        for issue in issues:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            self.table.setItem(row, 0, QTableWidgetItem(str(issue["line"])))
+            self.table.setItem(row, 1, QTableWidgetItem(issue["level"]))
+            self.table.setItem(row, 2, QTableWidgetItem(issue["description"]))
+            self.table.setItem(row, 3, QTableWidgetItem(issue["code"]))
+
+        # 布局
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addLayout(score_layout)
+        self.viewLayout.addWidget(issues_label)
+        self.viewLayout.addWidget(self.table)
+
+        self.yesButton.setText("确定")
+        self.cancelButton.hide()
+
+        self.widget.setMinimumWidth(900)
+        self.widget.setMinimumHeight(600)
+
+
 # ==================== Skill 安装器 ====================
 class SkillInstaller:
     """Skill 安装器 - 支持从 GitHub 和本地安装"""
@@ -12290,7 +12707,11 @@ class SkillPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        install_btn = PrimaryPushButton(FIF.DOWNLOAD, "安装 Skill", left_widget)
+        market_btn = PrimaryPushButton(FIF.SHOP, "Skill 市场", left_widget)
+        market_btn.clicked.connect(self._on_open_market)
+        toolbar.addWidget(market_btn)
+
+        install_btn = PushButton(FIF.DOWNLOAD, "安装 Skill", left_widget)
         install_btn.clicked.connect(self._on_install_skill)
         toolbar.addWidget(install_btn)
 
@@ -12373,6 +12794,11 @@ class SkillPage(BasePage):
         self.edit_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.edit_skill_btn)
 
+        self.scan_skill_btn = PushButton(FIF.SHIELD, "安全扫描", right_widget)
+        self.scan_skill_btn.clicked.connect(self._on_scan_skill)
+        self.scan_skill_btn.setEnabled(False)
+        btn_layout.addWidget(self.scan_skill_btn)
+
         self.delete_skill_btn = PushButton(FIF.DELETE, "删除", right_widget)
         self.delete_skill_btn.clicked.connect(self._on_delete_skill)
         self.delete_skill_btn.setEnabled(False)
@@ -12417,6 +12843,7 @@ class SkillPage(BasePage):
 
         # 启用操作按钮
         self.edit_skill_btn.setEnabled(True)
+        self.scan_skill_btn.setEnabled(True)
         self.delete_skill_btn.setEnabled(True)
         self.open_folder_btn.setEnabled(True)
 
@@ -12492,6 +12919,7 @@ class SkillPage(BasePage):
         self.detail_path.setText("")
         self.detail_content.setText("")
         self.edit_skill_btn.setEnabled(False)
+        self.scan_skill_btn.setEnabled(False)
         self.delete_skill_btn.setEnabled(False)
         self.open_folder_btn.setEnabled(False)
 
@@ -12974,6 +13402,59 @@ class SkillPage(BasePage):
             self.main_window.save_opencode_config()
             self._load_agent_skill_config(agent_name)
             self.show_success("成功", f'权限 "{pattern}" 已删除')
+
+    def _on_open_market(self):
+        """打开 Skill 市场"""
+        dialog = SkillMarketDialog(self)
+        if dialog.exec_():
+            skill = dialog.get_selected_skill()
+            if skill:
+                # 弹出安装位置选择对话框
+                install_dialog = SkillInstallDialog(self)
+                install_dialog.source_edit.setText(skill["repo"])
+                install_dialog.source_edit.setReadOnly(True)
+
+                if install_dialog.exec_():
+                    target_dir = install_dialog.get_target_dir()
+
+                    try:
+                        # 确保目标目录存在
+                        target_dir.mkdir(parents=True, exist_ok=True)
+
+                        # 从市场安装
+                        owner, repo_name = skill["repo"].split("/")
+                        success, message = SkillInstaller.install_from_github(
+                            owner,
+                            repo_name,
+                            "main",
+                            target_dir,
+                            progress_callback=install_dialog.update_progress,
+                        )
+
+                        if success:
+                            self.show_success("成功", message)
+                            self._refresh_skill_list()
+                        else:
+                            self.show_error("失败", message)
+
+                    except Exception as e:
+                        self.show_error("错误", f"安装失败: {str(e)}")
+
+    def _on_scan_skill(self):
+        """扫描选中的 Skill"""
+        if not self._current_skill:
+            return
+
+        try:
+            # 扫描 Skill
+            scan_result = SkillSecurityScanner.scan_skill(self._current_skill.path)
+
+            # 显示扫描结果
+            dialog = SecurityScanDialog(scan_result, self._current_skill.name, self)
+            dialog.exec_()
+
+        except Exception as e:
+            self.show_error("错误", f"扫描失败: {str(e)}")
 
     def _on_install_skill(self):
         """安装 Skill"""
