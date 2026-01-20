@@ -851,6 +851,7 @@ from qfluentwidgets import (
     FluentWindow,
     NavigationItemPosition,
     MessageBox as FluentMessageBox,
+    MessageBoxBase,
     InfoBar,
     InfoBarPosition,
     InfoBarIcon,
@@ -998,7 +999,7 @@ class UIConfig:
         """
 
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.3.0"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -11635,6 +11636,532 @@ class SkillDiscovery:
         return None
 
 
+# ==================== Skill 安装器 ====================
+class SkillInstaller:
+    """Skill 安装器 - 支持从 GitHub 和本地安装"""
+
+    @staticmethod
+    def parse_source(source: str) -> Tuple[str, Dict[str, str]]:
+        """解析安装源
+
+        Args:
+            source: GitHub URL / shorthand / 本地路径
+
+        Returns:
+            (类型, 详情字典)
+            类型: 'github', 'local'
+        """
+        import re
+
+        # GitHub shorthand: user/repo
+        if re.match(r"^[\w-]+/[\w-]+$", source):
+            owner, repo = source.split("/")
+            return "github", {
+                "owner": owner,
+                "repo": repo,
+                "branch": "main",
+                "url": f"https://github.com/{owner}/{repo}",
+            }
+
+        # 完整 GitHub URL
+        if source.startswith("https://github.com/"):
+            match = re.match(r"https://github\.com/([\w-]+)/([\w-]+)", source)
+            if match:
+                owner, repo = match.groups()
+                return "github", {
+                    "owner": owner,
+                    "repo": repo,
+                    "branch": "main",
+                    "url": source,
+                }
+
+        # 本地路径
+        if os.path.exists(source):
+            return "local", {"path": source}
+
+        raise ValueError(f"无法识别的来源格式: {source}")
+
+    @staticmethod
+    def install_from_github(
+        owner: str,
+        repo: str,
+        branch: str,
+        target_dir: Path,
+        progress_callback=None,
+    ) -> Tuple[bool, str]:
+        """从 GitHub 安装 Skill
+
+        Args:
+            owner: GitHub 用户名
+            repo: 仓库名
+            branch: 分支名
+            target_dir: 目标目录（skills 根目录）
+            progress_callback: 进度回调函数
+
+        Returns:
+            (是否成功, 消息)
+        """
+        import requests
+        import zipfile
+        import tempfile
+        from datetime import datetime
+
+        try:
+            # 1. 下载 ZIP
+            if progress_callback:
+                progress_callback("正在下载...")
+
+            zip_url = (
+                f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
+            )
+            response = requests.get(zip_url, stream=True, timeout=30)
+            response.raise_for_status()
+
+            # 2. 解压到临时目录
+            if progress_callback:
+                progress_callback("正在解压...")
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+                zip_path = Path(temp_dir) / "skill.zip"
+                with open(zip_path, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
+                with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                    zip_ref.extractall(temp_dir)
+
+                # 3. 查找 SKILL.md
+                extracted_dir = Path(temp_dir) / f"{repo}-{branch}"
+                skill_md = extracted_dir / "SKILL.md"
+
+                if not skill_md.exists():
+                    return False, "未找到 SKILL.md 文件"
+
+                # 4. 解析 Skill 名称
+                skill = SkillDiscovery.parse_skill_file(skill_md)
+                if not skill:
+                    return False, "SKILL.md 格式错误"
+
+                # 5. 复制到目标目录
+                if progress_callback:
+                    progress_callback("正在安装...")
+
+                skill_target = target_dir / skill.name
+                if skill_target.exists():
+                    shutil.rmtree(skill_target)
+
+                shutil.copytree(extracted_dir, skill_target)
+
+                # 6. 获取最新 commit hash
+                commit_hash = None
+                try:
+                    api_url = (
+                        f"https://api.github.com/repos/{owner}/{repo}/commits/{branch}"
+                    )
+                    commit_response = requests.get(api_url, timeout=10)
+                    if commit_response.status_code == 200:
+                        commit_hash = commit_response.json()["sha"]
+                except Exception:
+                    pass
+
+                # 7. 保存元数据
+                meta = {
+                    "source": "github",
+                    "owner": owner,
+                    "repo": repo,
+                    "branch": branch,
+                    "url": f"https://github.com/{owner}/{repo}",
+                    "installed_at": datetime.now().isoformat(),
+                    "commit_hash": commit_hash,
+                }
+
+                meta_file = skill_target / ".skill-meta.json"
+                with open(meta_file, "w", encoding="utf-8") as f:
+                    json.dump(meta, f, indent=2, ensure_ascii=False)
+
+                if progress_callback:
+                    progress_callback("安装完成！")
+
+                return True, f"Skill '{skill.name}' 安装成功"
+
+        except requests.exceptions.RequestException as e:
+            return False, f"网络错误: {str(e)}"
+        except Exception as e:
+            return False, f"安装失败: {str(e)}"
+
+    @staticmethod
+    def install_from_local(
+        source_path: str, target_dir: Path, progress_callback=None
+    ) -> Tuple[bool, str]:
+        """从本地路径安装 Skill
+
+        Args:
+            source_path: 本地 Skill 目录路径
+            target_dir: 目标目录（skills 根目录）
+            progress_callback: 进度回调函数
+
+        Returns:
+            (是否成功, 消息)
+        """
+        from datetime import datetime
+
+        try:
+            source = Path(source_path)
+            if not source.exists():
+                return False, f"路径不存在: {source_path}"
+
+            # 查找 SKILL.md
+            skill_md = source / "SKILL.md"
+            if not skill_md.exists():
+                return False, "未找到 SKILL.md 文件"
+
+            # 解析 Skill
+            skill = SkillDiscovery.parse_skill_file(skill_md)
+            if not skill:
+                return False, "SKILL.md 格式错误"
+
+            # 复制到目标目录
+            if progress_callback:
+                progress_callback("正在复制...")
+
+            skill_target = target_dir / skill.name
+            if skill_target.exists():
+                shutil.rmtree(skill_target)
+
+            shutil.copytree(source, skill_target)
+
+            # 保存元数据
+            meta = {
+                "source": "local",
+                "original_path": str(source.absolute()),
+                "installed_at": datetime.now().isoformat(),
+            }
+
+            meta_file = skill_target / ".skill-meta.json"
+            with open(meta_file, "w", encoding="utf-8") as f:
+                json.dump(meta, f, indent=2, ensure_ascii=False)
+
+            if progress_callback:
+                progress_callback("安装完成！")
+
+            return True, f"Skill '{skill.name}' 安装成功"
+
+        except Exception as e:
+            return False, f"安装失败: {str(e)}"
+
+
+# ==================== Skill 更新器 ====================
+class SkillUpdater:
+    """Skill 更新器 - 检查和更新 Skills"""
+
+    @staticmethod
+    def check_updates(skills: List[DiscoveredSkill]) -> List[Dict[str, Any]]:
+        """检查 Skills 更新
+
+        Args:
+            skills: Skill 列表
+
+        Returns:
+            更新信息列表
+        """
+        import requests
+
+        updates = []
+
+        for skill in skills:
+            meta_file = skill.path.parent / ".skill-meta.json"
+
+            if not meta_file.exists():
+                # 本地 Skill，无元数据
+                updates.append(
+                    {
+                        "skill": skill,
+                        "has_update": False,
+                        "current_commit": None,
+                        "latest_commit": None,
+                        "meta": None,
+                        "status": "本地",
+                    }
+                )
+                continue
+
+            try:
+                with open(meta_file, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+
+                if meta.get("source") != "github":
+                    # 非 GitHub 来源
+                    updates.append(
+                        {
+                            "skill": skill,
+                            "has_update": False,
+                            "current_commit": None,
+                            "latest_commit": None,
+                            "meta": meta,
+                            "status": "本地",
+                        }
+                    )
+                    continue
+
+                # 获取最新 commit
+                owner = meta["owner"]
+                repo = meta["repo"]
+                branch = meta.get("branch", "main")
+
+                api_url = (
+                    f"https://api.github.com/repos/{owner}/{repo}/commits/{branch}"
+                )
+                response = requests.get(api_url, timeout=10)
+                response.raise_for_status()
+
+                latest_commit = response.json()["sha"]
+                current_commit = meta.get("commit_hash")
+
+                has_update = current_commit is None or current_commit != latest_commit
+
+                updates.append(
+                    {
+                        "skill": skill,
+                        "has_update": has_update,
+                        "current_commit": current_commit[:7]
+                        if current_commit
+                        else "未知",
+                        "latest_commit": latest_commit[:7],
+                        "meta": meta,
+                        "status": "有更新" if has_update else "最新",
+                    }
+                )
+
+            except Exception as e:
+                print(f"检查更新失败 {skill.name}: {e}")
+                updates.append(
+                    {
+                        "skill": skill,
+                        "has_update": False,
+                        "current_commit": None,
+                        "latest_commit": None,
+                        "meta": meta if "meta" in locals() else None,
+                        "status": "检查失败",
+                    }
+                )
+
+        return updates
+
+    @staticmethod
+    def update_skill(
+        skill: DiscoveredSkill, meta: dict, progress_callback=None
+    ) -> Tuple[bool, str]:
+        """更新单个 Skill
+
+        Args:
+            skill: Skill 对象
+            meta: 元数据
+            progress_callback: 进度回调
+
+        Returns:
+            (是否成功, 消息)
+        """
+        if meta.get("source") != "github":
+            return False, "仅支持更新从 GitHub 安装的 Skills"
+
+        try:
+            # 重新安装
+            target_dir = skill.path.parent.parent  # skills 根目录
+
+            success, message = SkillInstaller.install_from_github(
+                meta["owner"],
+                meta["repo"],
+                meta.get("branch", "main"),
+                target_dir,
+                progress_callback=progress_callback,
+            )
+
+            return success, message
+
+        except Exception as e:
+            return False, f"更新失败: {str(e)}"
+
+
+# ==================== Skill 安装对话框 ====================
+class SkillInstallDialog(MessageBoxBase):
+    """Skill 安装对话框"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.titleLabel = SubtitleLabel("安装 Skill", self)
+
+        # 来源输入
+        self.source_label = BodyLabel("来源:", self.widget)
+        self.source_edit = LineEdit(self.widget)
+        self.source_edit.setPlaceholderText("vercel-labs/git-release")
+
+        # 提示信息
+        self.hint_label = CaptionLabel(
+            "支持格式:\n"
+            "• GitHub shorthand: user/repo\n"
+            "• 完整 URL: https://github.com/...\n"
+            "• 本地路径: ./skill 或 /path/to/skill",
+            self.widget,
+        )
+
+        # 安装位置
+        self.location_label = BodyLabel("安装位置:", self.widget)
+        self.location_combo = ComboBox(self.widget)
+        self.location_combo.addItems(
+            [
+                "OpenCode 全局 (~/.config/opencode/skills/)",
+                "OpenCode 项目 (.opencode/skills/)",
+                "Claude 全局 (~/.claude/skills/)",
+                "Claude 项目 (.claude/skills/)",
+            ]
+        )
+
+        # 进度标签
+        self.progress_label = CaptionLabel("", self.widget)
+
+        # 布局
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addWidget(self.source_label)
+        self.viewLayout.addWidget(self.source_edit)
+        self.viewLayout.addWidget(self.hint_label)
+        self.viewLayout.addWidget(self.location_label)
+        self.viewLayout.addWidget(self.location_combo)
+        self.viewLayout.addWidget(self.progress_label)
+
+        self.yesButton.setText("安装")
+        self.cancelButton.setText("取消")
+
+        self.widget.setMinimumWidth(500)
+
+    def get_source(self) -> str:
+        return self.source_edit.text().strip()
+
+    def get_target_dir(self) -> Path:
+        loc_text = self.location_combo.currentText()
+        if "OpenCode 全局" in loc_text:
+            return Path.home() / ".config" / "opencode" / "skills"
+        elif "OpenCode 项目" in loc_text:
+            return Path.cwd() / ".opencode" / "skills"
+        elif "Claude 全局" in loc_text:
+            return Path.home() / ".claude" / "skills"
+        else:
+            return Path.cwd() / ".claude" / "skills"
+
+    def update_progress(self, message: str):
+        self.progress_label.setText(message)
+        QApplication.processEvents()
+
+
+# ==================== Skill 更新对话框 ====================
+class SkillUpdateDialog(MessageBoxBase):
+    """Skill 更新对话框"""
+
+    def __init__(self, updates: List[Dict[str, Any]], parent=None):
+        super().__init__(parent)
+        self.updates = updates
+        self.titleLabel = SubtitleLabel("检查更新", self)
+
+        # 统计信息
+        total = len(updates)
+        has_update_count = sum(1 for u in updates if u["has_update"])
+        self.info_label = BodyLabel(
+            f"共 {total} 个 Skills，{has_update_count} 个有更新", self.widget
+        )
+
+        # 表格
+        self.table = TableWidget(self.widget)
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(
+            ["选择", "Skill 名称", "当前版本", "最新版本", "状态"]
+        )
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
+        self.table.horizontalHeader().resizeSection(0, 60)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeToContents
+        )
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setMinimumHeight(300)
+
+        # 填充数据
+        self.checkboxes = []
+        for update in updates:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            # 复选框
+            checkbox_widget = QWidget()
+            checkbox_layout = QHBoxLayout(checkbox_widget)
+            checkbox_layout.setContentsMargins(0, 0, 0, 0)
+            checkbox_layout.setAlignment(Qt.AlignCenter)
+            checkbox = CheckBox()
+            checkbox.setChecked(update["has_update"])
+            checkbox.setEnabled(update["has_update"])
+            checkbox_layout.addWidget(checkbox)
+            self.checkboxes.append(checkbox)
+            self.table.setCellWidget(row, 0, checkbox_widget)
+
+            # Skill 名称
+            self.table.setItem(row, 1, QTableWidgetItem(update["skill"].name))
+
+            # 当前版本
+            current = update["current_commit"] or "-"
+            self.table.setItem(row, 2, QTableWidgetItem(current))
+
+            # 最新版本
+            latest = update["latest_commit"] or "-"
+            self.table.setItem(row, 3, QTableWidgetItem(latest))
+
+            # 状态
+            self.table.setItem(row, 4, QTableWidgetItem(update["status"]))
+
+        # 按钮布局
+        btn_layout = QHBoxLayout()
+        self.select_all_btn = PushButton("全选", self.widget)
+        self.select_all_btn.clicked.connect(self._on_select_all)
+        btn_layout.addWidget(self.select_all_btn)
+
+        self.deselect_all_btn = PushButton("取消全选", self.widget)
+        self.deselect_all_btn.clicked.connect(self._on_deselect_all)
+        btn_layout.addWidget(self.deselect_all_btn)
+        btn_layout.addStretch()
+
+        # 布局
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addWidget(self.info_label)
+        self.viewLayout.addWidget(self.table)
+        self.viewLayout.addLayout(btn_layout)
+
+        self.yesButton.setText("更新选中")
+        self.cancelButton.setText("取消")
+
+        self.widget.setMinimumWidth(700)
+        self.widget.setMinimumHeight(500)
+
+    def _on_select_all(self):
+        for checkbox in self.checkboxes:
+            if checkbox.isEnabled():
+                checkbox.setChecked(True)
+
+    def _on_deselect_all(self):
+        for checkbox in self.checkboxes:
+            checkbox.setChecked(False)
+
+    def get_selected_updates(self) -> List[Dict[str, Any]]:
+        """获取选中的更新项"""
+        selected = []
+        for i, checkbox in enumerate(self.checkboxes):
+            if checkbox.isChecked():
+                selected.append(self.updates[i])
+        return selected
+
+
 # ==================== Skill 页面 ====================
 class SkillPage(BasePage):
     """Skill 管理页面 - 增强版
@@ -11752,9 +12279,19 @@ class SkillPage(BasePage):
 
         # 工具栏
         toolbar = QHBoxLayout()
+
+        install_btn = PrimaryPushButton(FIF.DOWNLOAD, "安装 Skill", left_widget)
+        install_btn.clicked.connect(self._on_install_skill)
+        toolbar.addWidget(install_btn)
+
+        update_btn = PushButton(FIF.UPDATE, "检查更新", left_widget)
+        update_btn.clicked.connect(self._on_check_updates)
+        toolbar.addWidget(update_btn)
+
         refresh_btn = PushButton(FIF.SYNC, "刷新", left_widget)
         refresh_btn.clicked.connect(self._refresh_skill_list)
         toolbar.addWidget(refresh_btn)
+
         toolbar.addStretch()
         left_layout.addLayout(toolbar)
 
@@ -12427,6 +12964,148 @@ class SkillPage(BasePage):
             self.main_window.save_opencode_config()
             self._load_agent_skill_config(agent_name)
             self.show_success("成功", f'权限 "{pattern}" 已删除')
+
+    def _on_install_skill(self):
+        """安装 Skill"""
+        dialog = SkillInstallDialog(self)
+        if dialog.exec_():
+            source = dialog.get_source()
+            target_dir = dialog.get_target_dir()
+
+            if not source:
+                self.show_warning("提示", "请输入来源")
+                return
+
+            try:
+                # 确保目标目录存在
+                target_dir.mkdir(parents=True, exist_ok=True)
+
+                # 解析来源
+                source_type, details = SkillInstaller.parse_source(source)
+
+                # 安装
+                if source_type == "github":
+                    success, message = SkillInstaller.install_from_github(
+                        details["owner"],
+                        details["repo"],
+                        details["branch"],
+                        target_dir,
+                        progress_callback=dialog.update_progress,
+                    )
+                else:
+                    success, message = SkillInstaller.install_from_local(
+                        details["path"],
+                        target_dir,
+                        progress_callback=dialog.update_progress,
+                    )
+
+                if success:
+                    self.show_success("成功", message)
+                    self._refresh_skill_list()
+                else:
+                    self.show_error("失败", message)
+
+            except ValueError as e:
+                self.show_error("错误", str(e))
+            except Exception as e:
+                self.show_error("错误", f"安装失败: {str(e)}")
+
+    def _on_check_updates(self):
+        """检查更新"""
+        # 获取所有 Skills
+        skills = SkillDiscovery.discover_all()
+
+        if not skills:
+            self.show_info("提示", "未发现任何 Skills")
+            return
+
+        # 显示进度对话框
+        progress = ProgressDialog("正在检查更新...", self)
+        progress.show()
+        QApplication.processEvents()
+
+        try:
+            # 检查更新
+            updates = SkillUpdater.check_updates(skills)
+
+            progress.close()
+
+            # 显示更新对话框
+            update_dialog = SkillUpdateDialog(updates, self)
+            if update_dialog.exec_():
+                selected = update_dialog.get_selected_updates()
+
+                if not selected:
+                    self.show_info("提示", "未选择任何 Skills")
+                    return
+
+                # 更新选中的 Skills
+                self._update_selected_skills(selected)
+
+        except Exception as e:
+            progress.close()
+            self.show_error("错误", f"检查更新失败: {str(e)}")
+
+    def _update_selected_skills(self, selected_updates: List[Dict[str, Any]]):
+        """更新选中的 Skills"""
+        total = len(selected_updates)
+        success_count = 0
+        failed_skills = []
+
+        # 创建进度对话框
+        progress = ProgressDialog(f"正在更新 Skills (0/{total})...", self)
+        progress.show()
+        QApplication.processEvents()
+
+        for i, update in enumerate(selected_updates):
+            skill = update["skill"]
+            meta = update["meta"]
+
+            progress.setLabelText(f"正在更新 {skill.name} ({i + 1}/{total})...")
+            QApplication.processEvents()
+
+            success, message = SkillUpdater.update_skill(skill, meta)
+
+            if success:
+                success_count += 1
+            else:
+                failed_skills.append(f"{skill.name}: {message}")
+
+        progress.close()
+
+        # 显示结果
+        if success_count == total:
+            self.show_success("成功", f"成功更新 {success_count} 个 Skills")
+        elif success_count > 0:
+            failed_msg = "\n".join(failed_skills)
+            self.show_warning(
+                "部分成功",
+                f"成功更新 {success_count} 个，失败 {len(failed_skills)} 个\n\n失败详情:\n{failed_msg}",
+            )
+        else:
+            failed_msg = "\n".join(failed_skills)
+            self.show_error("失败", f"所有更新均失败\n\n详情:\n{failed_msg}")
+
+        # 刷新列表
+        self._refresh_skill_list()
+
+
+# ==================== 进度对话框 ====================
+class ProgressDialog(QDialog):
+    """简单的进度对话框"""
+
+    def __init__(self, message: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("请稍候")
+        self.setModal(True)
+        self.setFixedSize(300, 100)
+
+        layout = QVBoxLayout(self)
+        self.label = BodyLabel(message, self)
+        layout.addWidget(self.label)
+
+    def setLabelText(self, text: str):
+        self.label.setText(text)
 
 
 # ==================== Rules 页面 ====================

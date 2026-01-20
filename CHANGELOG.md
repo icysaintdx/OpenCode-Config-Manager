@@ -4,6 +4,108 @@
 
 ---
 
+## [v1.3.0] - 2026-01-20 17:00
+**版本代号**: Skills 安装与更新功能版
+
+### 🆕 新增功能
+#### **Skills 安装功能** ⭐
+- **从 GitHub 安装 Skills**：
+  - 支持 GitHub shorthand 格式：`user/repo`（如 `vercel-labs/git-release`）
+  - 支持完整 GitHub URL：`https://github.com/user/repo`
+  - 自动下载、解压、解析 SKILL.md
+  - 自动获取最新 commit hash 用于更新检测
+  - 支持安装到 4 个位置：OpenCode 全局/项目、Claude 全局/项目
+
+- **从本地导入 Skills**：
+  - 支持从本地路径导入：`./my-skill` 或 `/path/to/skill`
+  - 自动复制到目标目录
+  - 验证 SKILL.md 格式
+
+- **元数据管理**：
+  - 自动生成 `.skill-meta.json` 文件记录安装信息
+  - GitHub 来源记录：owner、repo、branch、url、commit_hash、installed_at
+  - 本地来源记录：original_path、installed_at
+
+#### **Skills 更新功能** ⭐
+- **更新检测**：
+  - 一键检查所有已安装 Skills 的更新
+  - 通过 GitHub API 获取最新 commit hash
+  - 对比本地 commit hash 判断是否有更新
+  - 显示更新状态：有更新 / 最新 / 本地 / 检查失败
+
+- **批量更新**：
+  - 表格显示所有 Skills 的更新状态
+  - 支持选择性更新（复选框）
+  - 全选 / 取消全选快捷操作
+  - 显示当前版本和最新版本（commit hash 前 7 位）
+  - 进度提示和结果统计
+
+### 🎨 UI 改进
+- **Skill 浏览页面工具栏**：
+  - 新增 "安装 Skill" 按钮（主按钮，蓝色高亮）
+  - 新增 "检查更新" 按钮
+  - 优化按钮布局和间距
+
+- **安装对话框**：
+  - 清晰的输入提示和格式说明
+  - 安装位置下拉选择
+  - 实时进度提示
+
+- **更新对话框**：
+  - 表格展示所有 Skills 的更新信息
+  - 统计信息显示（总数、有更新数）
+  - 自动勾选有更新的 Skills
+  - 禁用无更新的 Skills 复选框
+
+### 📝 技术实现
+- **新增类**：
+  - `SkillInstaller`：Skills 安装器，支持 GitHub 和本地安装
+  - `SkillUpdater`：Skills 更新器，检查和更新 Skills
+  - `SkillInstallDialog`：安装对话框
+  - `SkillUpdateDialog`：更新对话框
+  - `ProgressDialog`：简单进度对话框
+
+- **核心方法**：
+  - `SkillInstaller.parse_source()`：解析安装源（GitHub/本地）
+  - `SkillInstaller.install_from_github()`：从 GitHub 下载并安装
+  - `SkillInstaller.install_from_local()`：从本地路径导入
+  - `SkillUpdater.check_updates()`：检查所有 Skills 的更新
+  - `SkillUpdater.update_skill()`：更新单个 Skill
+
+- **依赖库**：
+  - `requests`：HTTP 请求（下载 ZIP、调用 GitHub API）
+  - `zipfile`：解压 GitHub 仓库 ZIP
+  - `tempfile`：临时目录管理
+
+### 🔧 功能特性
+- ✅ 支持多种安装源格式
+- ✅ 自动元数据管理
+- ✅ 智能更新检测
+- ✅ 批量操作支持
+- ✅ 详细的错误提示
+- ✅ 进度实时反馈
+- ✅ 兼容现有 Skill 管理功能
+
+### 📚 使用说明
+1. **安装 Skill**：
+   - 点击 "安装 Skill" 按钮
+   - 输入 GitHub shorthand（如 `vercel-labs/git-release`）或本地路径
+   - 选择安装位置
+   - 点击 "安装" 等待完成
+
+2. **更新 Skills**：
+   - 点击 "检查更新" 按钮
+   - 查看更新列表，自动勾选有更新的 Skills
+   - 点击 "更新选中" 批量更新
+   - 查看更新结果统计
+
+3. **元数据文件**：
+   - 每个 Skill 目录下会生成 `.skill-meta.json`
+   - 记录安装来源和版本信息
+   - 用于更新检测和管理
+
+---
+
 ## [v1.2.0] - 2026-01-20 16:00
 **版本代号**: Oh My MCP 管理功能版
 

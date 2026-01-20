@@ -37,9 +37,33 @@
 
 ---
 
-## 🎯 v1.2.0 最新版本
+## 🎯 v1.3.0 最新版本
 
 ### 🆕 新增功能
+#### **Skills 安装与更新功能** ⭐
+- **从 GitHub 安装 Skills**：
+  - 支持 GitHub shorthand：`user/repo`（如 `vercel-labs/git-release`）
+  - 支持完整 URL：`https://github.com/user/repo`
+  - 自动下载、解压、解析 SKILL.md
+  - 支持安装到 4 个位置：OpenCode 全局/项目、Claude 全局/项目
+
+- **从本地导入 Skills**：
+  - 支持从本地路径导入：`./my-skill` 或 `/path/to/skill`
+  - 自动验证 SKILL.md 格式
+
+- **更新检测与批量更新**：
+  - 一键检查所有已安装 Skills 的更新
+  - 通过 GitHub API 对比 commit hash
+  - 表格显示更新状态（有更新/最新/本地）
+  - 支持选择性批量更新
+
+- **元数据管理**：
+  - 自动生成 `.skill-meta.json` 记录安装信息
+  - 记录来源、版本、安装时间等
+
+### 📝 v1.2.0 功能回顾
+
+#### 🆕 新增功能
 - **Oh My MCP 管理功能** - 在 MCP 服务器页面新增 "Oh My MCP" 按钮，可视化管理 Oh My OpenCode 自带的 3 个 MCP 服务器（websearch、context7、grep_app），支持启用/禁用操作，配置自动保存到 `oh-my-opencode.json`
 
 ### 📝 v1.1.9 功能回顾
