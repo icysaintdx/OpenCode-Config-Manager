@@ -5623,7 +5623,7 @@ class ProviderPage(BasePage):
     """Provider 管理页面"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("Provider 管理", parent)
+        super().__init__(tr("provider.title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_data()
@@ -5632,11 +5632,13 @@ class ProviderPage(BasePage):
 
     def _on_models_fetched(self, provider_name: str, model_ids: List[str], error: str):
         if error:
-            self.show_warning("提示", f"获取失败: {error}")
+            self.show_warning(
+                tr("common.info"), tr("provider.fetch_failed", error=error)
+            )
             return
 
         if not model_ids:
-            self.show_warning("提示", "未获取到任何模型")
+            self.show_warning(tr("common.info"), tr("provider.no_models_found"))
             return
 
         dialog = ModelSelectDialog(
@@ -5647,7 +5649,7 @@ class ProviderPage(BasePage):
 
         selected = dialog.get_selected_model_ids()
         if not selected:
-            self.show_warning("提示", "未选择任何模型")
+            self.show_warning(tr("common.info"), tr("provider.no_models_selected"))
             return
 
         batch_config = dialog.get_batch_config()
@@ -5662,7 +5664,7 @@ class ProviderPage(BasePage):
         config = self.main_window.opencode_config or {}
         provider = config.get("provider", {}).get(provider_name)
         if not isinstance(provider, dict):
-            self.show_warning("提示", "Provider 配置不存在")
+            self.show_warning(tr("common.info"), tr("provider.provider_not_exist"))
             return
 
         models = provider.setdefault("models", {})
@@ -5680,19 +5682,21 @@ class ProviderPage(BasePage):
         self.main_window.save_opencode_config()
         self._load_data()
         if added:
-            self.show_success("成功", f"已添加 {added} 个模型")
+            self.show_success(
+                tr("common.success"), tr("provider.models_added", count=added)
+            )
         else:
-            self.show_warning("提示", "所选模型已存在")
+            self.show_warning(tr("common.info"), tr("provider.models_exist"))
 
     def _resolve_model_category(self, model_id: str) -> str:
         lower = model_id.lower()
         if "claude" in lower:
-            return "Claude 系列"
+            return tr("provider.claude_series")
         if "gemini" in lower:
-            return "Gemini 系列"
+            return tr("provider.gemini_series")
         if any(token in lower for token in ("gpt", "openai", "codex", "o1")):
-            return "OpenAI/Codex 系列"
-        return "其他模型"
+            return tr("provider.openai_series")
+        return tr("provider.other_models")
 
     def _get_preset_for_category(
         self, category: str, preset_name: str
@@ -5830,23 +5834,23 @@ class ProviderPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        self.add_btn = PrimaryPushButton(FIF.ADD, "添加 Provider", self)
+        self.add_btn = PrimaryPushButton(FIF.ADD, tr("provider.add_provider"), self)
         self.add_btn.clicked.connect(self._on_add)
         toolbar.addWidget(self.add_btn)
 
-        self.edit_btn = PushButton(FIF.EDIT, "编辑", self)
+        self.edit_btn = PushButton(FIF.EDIT, tr("common.edit"), self)
         self.edit_btn.clicked.connect(self._on_edit)
         toolbar.addWidget(self.edit_btn)
 
-        self.delete_btn = PushButton(FIF.DELETE, "删除", self)
+        self.delete_btn = PushButton(FIF.DELETE, tr("common.delete"), self)
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
-        self.fetch_models_btn = PushButton(FIF.SYNC, "拉取模型", self)
+        self.fetch_models_btn = PushButton(FIF.SYNC, tr("provider.fetch_models"), self)
         self.fetch_models_btn.clicked.connect(self._on_fetch_models)
         toolbar.addWidget(self.fetch_models_btn)
 
-        self.export_cli_btn = PushButton(FIF.SEND, "导出到 CLI", self)
+        self.export_cli_btn = PushButton(FIF.SEND, tr("provider.export_to_cli"), self)
         self.export_cli_btn.clicked.connect(self._on_export_to_cli)
         toolbar.addWidget(self.export_cli_btn)
 
@@ -5857,7 +5861,13 @@ class ProviderPage(BasePage):
         self.table = TableWidget(self)
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels(
-            ["名称", "显示名称", "SDK", "API地址", "模型数"]
+            [
+                tr("common.name"),
+                tr("provider.display_name"),
+                "SDK",
+                tr("provider.api_address"),
+                tr("provider.model_count"),
+            ]
         )
         # 调整列宽：名称15字符，模型数5字符，SDK22字符，剩余均分
         header = self.table.horizontalHeader()
@@ -5892,7 +5902,9 @@ class ProviderPage(BasePage):
             # API地址添加tooltip显示全部
             api_url = data.get("options", {}).get("baseURL", "")
             api_item = QTableWidgetItem(api_url)
-            api_item.setToolTip(api_url if api_url else "使用默认地址")
+            api_item.setToolTip(
+                api_url if api_url else tr("provider.use_default_address")
+            )
             self.table.setItem(row, 3, api_item)
             self.table.setItem(
                 row, 4, QTableWidgetItem(str(len(data.get("models", {}))))
@@ -5903,31 +5915,33 @@ class ProviderPage(BasePage):
         dialog = ProviderDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Provider 已添加")
+            self.show_success(tr("common.success"), tr("provider.added_success"))
 
     def _on_edit(self):
         """编辑 Provider"""
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个 Provider")
+            self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
         name = self.table.item(row, 0).text()
         dialog = ProviderDialog(self.main_window, provider_name=name, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Provider 已更新")
+            self.show_success(tr("common.success"), tr("provider.updated_success"))
 
     def _on_delete(self):
         """删除 Provider"""
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个 Provider")
+            self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
         name = self.table.item(row, 0).text()
         w = FluentMessageBox(
-            "确认删除", f'确定要删除 Provider "{name}" 吗？\n此操作不可恢复。', self
+            tr("provider.delete_confirm_title"),
+            tr("provider.delete_confirm", name=name),
+            self,
         )
         if w.exec_():
             config = self.main_window.opencode_config or {}
@@ -5935,13 +5949,15 @@ class ProviderPage(BasePage):
                 del config["provider"][name]
                 self.main_window.save_opencode_config()
                 self._load_data()
-                self.show_success("成功", f'Provider "{name}" 已删除')
+                self.show_success(
+                    tr("common.success"), tr("provider.deleted_success", name=name)
+                )
 
     def _on_fetch_models(self):
         """拉取模型列表"""
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个 Provider")
+            self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
         provider_name = self.table.item(row, 0).text()
@@ -5949,7 +5965,7 @@ class ProviderPage(BasePage):
         provider = config.get("provider", {}).get(provider_name, {})
         options = provider.get("options", {}) if isinstance(provider, dict) else {}
         if not options.get("baseURL") and not options.get("modelListUrl"):
-            self.show_warning("提示", "未配置 baseURL 或模型列表地址")
+            self.show_warning(tr("common.info"), tr("provider.no_base_url"))
             return
 
         self._fetch_models_for_provider(provider_name, options)
@@ -5959,14 +5975,16 @@ class ProviderPage(BasePage):
             self._model_fetch_service = ModelFetchService(self)
             self._model_fetch_service.fetch_finished.connect(self._on_models_fetched)
 
-        self.show_warning("提示", f"正在获取 {provider_name} 模型列表...")
+        self.show_warning(
+            tr("common.info"), tr("provider.fetch_models_hint", name=provider_name)
+        )
         self._model_fetch_service.fetch_async(provider_name, options)
 
     def _on_export_to_cli(self):
         """导出到 CLI 工具"""
         row = self.table.currentRow()
         if row < 0:
-            self.show_warning("提示", "请先选择一个 Provider")
+            self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
         provider_name = self.table.item(row, 0).text()
@@ -5980,7 +5998,7 @@ class ProviderPage(BasePage):
             if index >= 0:
                 cli_page.provider_combo.setCurrentIndex(index)
         else:
-            self.show_warning("提示", "CLI 导出页面不可用")
+            self.show_warning(tr("common.info"), tr("provider.cli_page_unavailable"))
 
 
 class ModelPresetCustomDialog(BaseDialog):
