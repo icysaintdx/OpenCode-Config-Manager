@@ -6392,6 +6392,895 @@ class NativeProviderPage(BasePage):
         self._load_data()
 
 
+class ModelSelectDialog(BaseDialog):
+    """模型选择对话框"""
+
+    def __init__(
+        self, main_window, provider_name: str, model_ids: List[str], parent=None
+    ):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.provider_name = provider_name
+        self.model_ids = list(dict.fromkeys(model_ids or []))
+        self._selected: List[str] = []
+        self._items = []
+        self._row_widgets: Dict[str, Dict[str, Any]] = {}
+        self._visible_model_ids: List[str] = []
+        self._bulk_controls: Dict[str, Dict[str, Any]] = {}
+        self._batch_config: Dict[str, Any] = {}
+
+        self.setWindowTitle(tr("provider.model_select_title"))
+        self.setMinimumSize(900, 560)
+        self._setup_ui()
+        self._load_categories()
+        self._refresh_models()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(12)
+
+        layout.addWidget(TitleLabel(tr("provider.model_select_title"), self))
+        layout.addWidget(BodyLabel(tr("provider.model_list_hint"), self))
+
+        filter_layout = QHBoxLayout()
+        filter_layout.setSpacing(8)
+
+        filter_layout.addWidget(BodyLabel(tr("provider.group_mode"), self))
+        self.group_mode_combo = ComboBox(self)
+        self.group_mode_combo.addItems(
+            [
+                tr("provider.group_vendor"),
+                tr("provider.group_prefix"),
+                tr("provider.group_letter"),
+            ]
+        )
+        self.group_mode_combo.currentTextChanged.connect(self._on_group_mode_changed)
+        filter_layout.addWidget(self.group_mode_combo)
+
+        filter_layout.addWidget(BodyLabel(tr("provider.filter_mode"), self))
+        self.match_mode_combo = ComboBox(self)
+        self.match_mode_combo.addItems(
+            [
+                tr("provider.filter_contains"),
+                tr("provider.filter_prefix"),
+                tr("provider.filter_regex"),
+            ]
+        )
+        self.match_mode_combo.currentTextChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.match_mode_combo)
+
+        self.keyword_edit = LineEdit(self)
+        self.keyword_edit.setPlaceholderText(tr("provider.keyword_filter"))
+        self.keyword_edit.textChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.keyword_edit, 1)
+
+        self.clear_btn = PushButton(tr("provider.clear_filter"), self)
+        self.clear_btn.clicked.connect(self._clear_filters)
+        filter_layout.addWidget(self.clear_btn)
+
+        layout.addLayout(filter_layout)
+
+        self.batch_layout = QHBoxLayout()
+        self.batch_layout.setSpacing(8)
+        self.batch_layout.addWidget(BodyLabel(tr("provider.batch_config") + ":", self))
+        layout.addLayout(self.batch_layout)
+
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(12)
+
+        self.category_list = ListWidget(self)
+        self.category_list.setFixedWidth(200)
+        self.category_list.currentTextChanged.connect(self._on_category_list_changed)
+        content_layout.addWidget(self.category_list)
+
+        self.model_list = ListWidget(self)
+        self.model_list.setSpacing(6)
+        self.model_list.setUniformItemSizes(True)
+        self.model_list.setSelectionMode(QAbstractItemView.NoSelection)
+        content_layout.addWidget(self.model_list, 1)
+
+        layout.addLayout(content_layout, 1)
+
+        footer_layout = QHBoxLayout()
+        footer_layout.setSpacing(8)
+
+        self.select_all_check = CheckBox(tr("common.select_all"), self)
+        self.select_all_check.stateChanged.connect(self._on_select_all_changed)
+        self.select_all_check.setTristate(False)
+        footer_layout.addWidget(self.select_all_check)
+
+        self.count_label = CaptionLabel(
+            tr("provider.selected_count", selected=0, total=0), self
+        )
+        footer_layout.addWidget(self.count_label)
+
+        self.empty_label = CaptionLabel(tr("provider.no_models_to_add"), self)
+        self.empty_label.setVisible(False)
+        footer_layout.addWidget(self.empty_label)
+
+        footer_layout.addStretch()
+
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
+        self.cancel_btn.clicked.connect(self.reject)
+        footer_layout.addWidget(self.cancel_btn)
+
+        self.confirm_btn = PrimaryPushButton(tr("provider.add_selected"), self)
+        self.confirm_btn.clicked.connect(self._on_confirm)
+        footer_layout.addWidget(self.confirm_btn)
+
+        layout.addLayout(footer_layout)
+
+    def _build_batch_controls(self):
+        self._batch_config = {}
+        self._bulk_controls = {}
+        while self.batch_layout.count() > 1:
+            item = self.batch_layout.takeAt(1)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+    def _load_categories(self):
+        self._rebuild_categories()
+        self._build_batch_controls()
+        self._add_batch_control("attachment", "附件", [])
+        self._add_batch_control("modalities", "图片", [])
+        self._add_batch_control("limit", "输出长度", ["4k", "8k", "16k", "32k", "64k"])
+        self._add_batch_control(
+            "options", "Options", ["fast", "medium", "high", "xhigh"]
+        )
+        self._add_batch_control("thinking", "Thinking", ["8k", "16k", "32k", "64k"])
+        self._add_batch_control("variants", "Variants", ["high/medium/low", "high/low"])
+
+    def _add_batch_control(
+        self,
+        key: str,
+        label: str,
+        choices: List[str],
+    ):
+        container = QWidget(self)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+
+        checkbox = CheckBox(label, container)
+        checkbox.stateChanged.connect(
+            lambda state, k=key: self._on_batch_check_changed(k, state)
+        )
+        layout.addWidget(checkbox)
+
+        combo = None
+        if choices:
+            combo = ComboBox(container)
+            combo.addItems(choices)
+            combo.currentTextChanged.connect(
+                lambda text, k=key: self._on_batch_combo_changed(k, text)
+            )
+            metrics = QFontMetrics(combo.font())
+            max_text_width = max(metrics.horizontalAdvance(text) for text in choices)
+            combo.setMinimumWidth(max_text_width + 18)
+            layout.addWidget(combo)
+
+        self.batch_layout.addWidget(container)
+        self._bulk_controls[key] = {
+            "container": container,
+            "checkbox": checkbox,
+            "combo": combo,
+        }
+        self._batch_config[key] = {"enabled": False, "value": None}
+
+    def _on_batch_check_changed(self, key: str, state: int):
+        config = self._batch_config.get(key)
+        if config is None:
+            return
+        config["enabled"] = state == Qt.Checked
+
+    def _on_batch_combo_changed(self, key: str, text: str):
+        config = self._batch_config.get(key)
+        if config is None:
+            return
+        config["value"] = text
+
+    def _on_group_mode_changed(self):
+        self._rebuild_categories()
+        self._refresh_models()
+
+    def _on_category_list_changed(self, text: str):
+        self._refresh_models()
+        self._update_batch_controls()
+
+    def _on_filter_changed(self):
+        self._refresh_models()
+
+    def _clear_filters(self):
+        self.group_mode_combo.setCurrentIndex(0)
+        self.match_mode_combo.setCurrentIndex(0)
+        self.keyword_edit.clear()
+
+    def _rebuild_categories(self):
+        self.category_list.blockSignals(True)
+        self.category_list.clear()
+        self.category_list.addItem("全部")
+
+        groups = self._group_models()
+        for group in sorted(groups.keys(), key=str.lower):
+            if group != "全部":
+                self.category_list.addItem(group)
+
+        self.category_list.setCurrentRow(0)
+        self.category_list.blockSignals(False)
+
+    def _group_models(self) -> Dict[str, List[str]]:
+        mode = self.group_mode_combo.currentText()
+        groups: Dict[str, List[str]] = {}
+        for model_id in self.model_ids:
+            key = self._get_group_key(model_id, mode)
+            groups.setdefault(key, []).append(model_id)
+        return groups
+
+    def _get_group_key(self, model_id: str, mode: str) -> str:
+        lower = model_id.lower()
+        if mode == "前缀分组":
+            if "-" in model_id:
+                return model_id.split("-", 1)[0]
+            if "/" in model_id:
+                return model_id.split("/", 1)[0]
+            return model_id[:1].upper() if model_id else "其他"
+        if mode == "首字母":
+            return model_id[:1].upper() if model_id else "其他"
+        # 厂商识别
+        if "claude" in lower:
+            return "Claude 系列"
+        if "gemini" in lower:
+            return "Gemini 系列"
+        if any(token in lower for token in ("gpt", "openai", "codex", "o1")):
+            return "OpenAI/Codex 系列"
+        return "其他模型"
+
+    def _resolve_category_for_preset(self, model_id: str) -> str:
+        return self._get_group_key(model_id, "厂商识别")
+
+    def _refresh_preset_combo(self):
+        return
+
+    def _get_preset_names(self, category: str) -> List[str]:
+        names = list(MODEL_PRESET_PACKS.get(category, {}).keys())
+        names += list(MODEL_PRESET_CUSTOM.get(category, {}).keys())
+        if not names:
+            names.append("基础")
+        return names
+
+    def _get_default_preset_for_category(self, category: str) -> Dict[str, Any]:
+        preset_name = MODEL_PRESET_DEFAULT.get(category, "基础")
+        return self._get_preset(category, preset_name)
+
+    def _get_bulk_category(self) -> str:
+        if not self._visible_model_ids:
+            return "其他模型"
+        return self._resolve_category_for_preset(self._visible_model_ids[0])
+
+    def _get_category_bulk_support(self, category: str) -> Dict[str, bool]:
+        support = {
+            "attachment": True,
+            "modalities": True,
+            "limit": True,
+            "options": False,
+            "thinking": False,
+            "variants": False,
+        }
+        if category == "Claude 系列":
+            support["thinking"] = True
+            support["variants"] = True
+        elif category == "OpenAI/Codex 系列":
+            support["options"] = True
+            support["variants"] = True
+        elif category == "Gemini 系列":
+            support["thinking"] = True
+            support["variants"] = True
+        return support
+
+    def _update_batch_controls(self):
+        if not self._bulk_controls:
+            return
+        category = self._get_bulk_category()
+        support = self._get_category_bulk_support(category)
+        for key, meta in self._bulk_controls.items():
+            checkbox = meta.get("checkbox")
+            combo = meta.get("combo")
+            enabled = support.get(key, False)
+            if checkbox is not None:
+                checkbox.setEnabled(enabled)
+                if not enabled:
+                    checkbox.setChecked(False)
+                    config = self._batch_config.get(key)
+                    if config is not None:
+                        config["enabled"] = False
+            if combo is not None:
+                combo.setEnabled(enabled)
+
+    def _get_preset(self, category: str, preset_name: str) -> Dict[str, Any]:
+        if preset_name in MODEL_PRESET_CUSTOM.get(category, {}):
+            return MODEL_PRESET_CUSTOM[category][preset_name]
+        presets = MODEL_PRESET_PACKS.get(category, {})
+        if preset_name in presets:
+            return presets[preset_name]
+        return {
+            "attachment": False,
+            "modalities": {"input": ["text"], "output": ["text"]},
+            "limit": {"context": 64000, "output": 8192},
+            "options": {},
+            "variants": {},
+        }
+
+    def _on_model_check_changed(self, model_id: str, state: int):
+        if state == Qt.Checked:
+            if model_id not in self._selected:
+                self._selected.append(model_id)
+        else:
+            if model_id in self._selected:
+                self._selected.remove(model_id)
+        self._update_count_label()
+        self._sync_select_all_state()
+
+    def _toggle_model_check(self, model_id: str):
+        row = self._row_widgets.get(model_id)
+        if not row:
+            return
+        checkbox = row.get("checkbox")
+        if checkbox is None:
+            return
+        checkbox.setChecked(not checkbox.isChecked())
+
+    def _build_model_row(self, model_id: str):
+        row_widget = QWidget(self.model_list)
+        row_layout = QHBoxLayout(row_widget)
+        row_layout.setContentsMargins(6, 4, 6, 4)
+        row_layout.setSpacing(8)
+
+        check = CheckBox("", row_widget)
+        check.setChecked(model_id in self._selected)
+        check.stateChanged.connect(
+            lambda state, mid=model_id: self._on_model_check_changed(mid, state)
+        )
+        row_layout.addWidget(check)
+
+        name_label = BodyLabel(model_id, row_widget)
+        name_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        name_label.mousePressEvent = (
+            lambda event, mid=model_id: self._toggle_model_check(mid)
+        )
+        row_layout.addWidget(name_label, 1)
+
+        row_widget.mousePressEvent = (
+            lambda event, mid=model_id: self._toggle_model_check(mid)
+        )
+
+        item = QListWidgetItem(self.model_list)
+        item.setSizeHint(row_widget.sizeHint())
+        self.model_list.setItemWidget(item, row_widget)
+
+        self._row_widgets[model_id] = {
+            "item": item,
+            "checkbox": check,
+        }
+        self._items.append(model_id)
+
+    def _refresh_models(self):
+        self.model_list.blockSignals(True)
+        self.model_list.clear()
+        self._items = []
+        self._visible_model_ids = []
+        self._row_widgets = {}
+        self.model_list.setFocusPolicy(Qt.NoFocus)
+
+        group = (
+            self.category_list.currentItem().text()
+            if self.category_list.currentItem()
+            else "全部"
+        )
+        keyword = self.keyword_edit.text().strip()
+        match_mode = self.match_mode_combo.currentText()
+        pattern = keyword.lower()
+        regex = None
+        if pattern and match_mode == "正则":
+            try:
+                regex = re.compile(pattern, re.IGNORECASE)
+            except re.error:
+                regex = None
+
+        for model_id in self.model_ids:
+            if group != "全部":
+                if (
+                    self._get_group_key(model_id, self.group_mode_combo.currentText())
+                    != group
+                ):
+                    continue
+            if pattern:
+                if match_mode == "包含":
+                    if pattern not in model_id.lower():
+                        continue
+                elif match_mode == "前缀":
+                    if not model_id.lower().startswith(pattern):
+                        continue
+                elif match_mode == "正则":
+                    if not regex or not regex.search(model_id):
+                        continue
+            self._build_model_row(model_id)
+            self._visible_model_ids.append(model_id)
+
+        self.model_list.blockSignals(False)
+        self._update_count_label()
+        self._sync_select_all_state()
+        self._update_batch_controls()
+
+        if not self._items:
+            self.empty_label.setVisible(True)
+        else:
+            self.empty_label.setVisible(False)
+
+    def _on_select_all_changed(self, state):
+        if not self._items:
+            return
+        target_state = state == Qt.Checked
+        for model_id, row in self._row_widgets.items():
+            checkbox = row.get("checkbox")
+            if checkbox is None:
+                continue
+            checkbox.blockSignals(True)
+            checkbox.setChecked(target_state)
+            checkbox.blockSignals(False)
+            if target_state:
+                if model_id not in self._selected:
+                    self._selected.append(model_id)
+            else:
+                if model_id in self._selected:
+                    self._selected.remove(model_id)
+        self._update_count_label()
+
+    def _sync_select_all_state(self):
+        if not self._items:
+            self.select_all_check.setChecked(False)
+            return
+        checked = sum(1 for model_id in self._items if model_id in self._selected)
+        if checked == len(self._items):
+            self.select_all_check.setChecked(True)
+        else:
+            self.select_all_check.setChecked(False)
+
+    def _update_count_label(self):
+        total = len(self._items)
+        selected = len(self._selected)
+        self.count_label.setText(f"已选 {selected} / 共 {total}")
+
+    def _on_confirm(self):
+        selected = [model_id for model_id in self._items if model_id in self._selected]
+        self._selected = selected
+        self.accept()
+
+    def get_selected_model_ids(self) -> List[str]:
+        return list(self._selected)
+
+    def get_batch_config(self) -> Dict[str, Any]:
+        return dict(self._batch_config)
+
+
+
+
+class ProviderDialog(BaseDialog):
+    """Provider 编辑对话框"""
+
+    def __init__(self, main_window, provider_name: str = None, parent=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.provider_name = provider_name
+        self.is_edit = provider_name is not None
+
+        self.setWindowTitle(
+            tr("provider.edit_provider")
+            if self.is_edit
+            else tr("provider.add_provider")
+        )
+        self.setMinimumWidth(520)
+        self._setup_ui()
+
+        if self.is_edit:
+            self._load_provider_data()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(16)
+
+        # Provider 名称
+        name_layout = QHBoxLayout()
+        name_label = BodyLabel(tr("provider.provider_key") + ":", self)
+        name_label.setMinimumWidth(90)
+        name_layout.addWidget(name_label)
+        self.name_edit = LineEdit(self)
+        self.name_edit.setPlaceholderText(tr("provider.placeholder_key"))
+        self.name_edit.setToolTip(get_tooltip("provider_name"))
+        self.name_edit.setMinimumHeight(36)
+        if self.is_edit:
+            self.name_edit.setEnabled(False)
+        name_layout.addWidget(self.name_edit)
+        layout.addLayout(name_layout)
+
+        # 显示名称
+        display_layout = QHBoxLayout()
+        display_label = BodyLabel(tr("provider.display_name") + ":", self)
+        display_label.setMinimumWidth(90)
+        display_layout.addWidget(display_label)
+        self.display_edit = LineEdit(self)
+        self.display_edit.setPlaceholderText(tr("provider.placeholder_display"))
+        self.display_edit.setToolTip(get_tooltip("provider_display"))
+        self.display_edit.setMinimumHeight(36)
+        display_layout.addWidget(self.display_edit)
+        layout.addLayout(display_layout)
+
+        # SDK
+        sdk_layout = QHBoxLayout()
+        sdk_label = BodyLabel("SDK:", self)
+        sdk_label.setMinimumWidth(90)
+        sdk_layout.addWidget(sdk_label)
+        self.sdk_combo = ComboBox(self)
+        self.sdk_combo.addItems(PRESET_SDKS)
+        self.sdk_combo.setToolTip(get_tooltip("provider_sdk"))
+        self.sdk_combo.setMinimumHeight(36)
+        sdk_layout.addWidget(self.sdk_combo)
+        layout.addLayout(sdk_layout)
+
+        # API 地址
+        url_layout = QHBoxLayout()
+        url_label = BodyLabel(tr("provider.base_url") + ":", self)
+        url_label.setMinimumWidth(90)
+        url_layout.addWidget(url_label)
+        self.url_edit = LineEdit(self)
+        self.url_edit.setPlaceholderText(tr("provider.placeholder_base_url"))
+        self.url_edit.setToolTip(get_tooltip("provider_url"))
+        self.url_edit.setMinimumHeight(36)
+        url_layout.addWidget(self.url_edit)
+        layout.addLayout(url_layout)
+
+        # API 密钥
+        key_layout = QHBoxLayout()
+        key_label = BodyLabel(tr("provider.api_key") + ":", self)
+        key_label.setMinimumWidth(90)
+        key_layout.addWidget(key_label)
+        self.key_edit = LineEdit(self)
+        self.key_edit.setPlaceholderText(tr("provider.placeholder_api_key"))
+        self.key_edit.setToolTip(get_tooltip("provider_apikey"))
+        self.key_edit.setMinimumHeight(36)
+        key_layout.addWidget(self.key_edit)
+        layout.addLayout(key_layout)
+
+        # 模型列表地址
+        model_list_layout = QHBoxLayout()
+        model_list_label = BodyLabel(tr("provider.model_list_url") + ":", self)
+        model_list_label.setMinimumWidth(90)
+        model_list_layout.addWidget(model_list_label)
+        self.model_list_url_edit = LineEdit(self)
+        self.model_list_url_edit.setPlaceholderText(
+            tr("provider.placeholder_model_list")
+        )
+        self.model_list_url_edit.setToolTip(get_tooltip("provider_model_list_url"))
+        self.model_list_url_edit.setMinimumHeight(36)
+        model_list_layout.addWidget(self.model_list_url_edit)
+        layout.addLayout(model_list_layout)
+
+        # 按钮
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(self.cancel_btn)
+
+        self.save_btn = PrimaryPushButton("保存", self)
+        self.save_btn.clicked.connect(self._on_save)
+        btn_layout.addWidget(self.save_btn)
+
+        layout.addLayout(btn_layout)
+
+    def _load_provider_data(self):
+        config = self.main_window.opencode_config or {}
+        provider = config.get("provider", {}).get(self.provider_name, {})
+
+        self.name_edit.setText(self.provider_name)
+        self.display_edit.setText(provider.get("name", ""))
+        self.sdk_combo.setCurrentText(provider.get("npm", ""))
+
+        options = provider.get("options", {}) if isinstance(provider, dict) else {}
+        self.url_edit.setText(options.get("baseURL", ""))
+        self.key_edit.setText(options.get("apiKey", ""))
+        self.model_list_url_edit.setText(options.get("modelListUrl", ""))
+
+    def _on_save(self):
+        name = self.name_edit.text().strip()
+        if not name:
+            InfoBar.error("错误", "请输入 Provider 名称", parent=self)
+            return
+
+        config = self.main_window.opencode_config
+        if config is None:
+            config = {}
+            self.main_window.opencode_config = config
+
+        if "provider" not in config:
+            config["provider"] = {}
+
+        if not self.is_edit and name in config["provider"]:
+            InfoBar.error("错误", f'Provider "{name}" 已存在', parent=self)
+            return
+
+        provider_data = config["provider"].get(name, {"models": {}})
+        provider_data["npm"] = self.sdk_combo.currentText()
+        provider_data["name"] = self.display_edit.text().strip()
+        provider_data["options"] = {
+            "baseURL": self.url_edit.text().strip(),
+            "apiKey": self.key_edit.text().strip(),
+            "modelListUrl": self.model_list_url_edit.text().strip(),
+        }
+
+        config["provider"][name] = provider_data
+        self.main_window.save_opencode_config()
+
+        options = provider_data.get("options", {})
+        if options.get("baseURL") or options.get("modelListUrl"):
+            if not hasattr(self.main_window, "_model_fetch_service"):
+                self.main_window._model_fetch_service = ModelFetchService(
+                    self.main_window
+                )
+
+            service = self.main_window._model_fetch_service
+            if hasattr(self.main_window, "provider_page") and not getattr(
+                service, "_provider_page_connected", False
+            ):
+                service.fetch_finished.connect(
+                    self.main_window.provider_page._on_models_fetched
+                )
+                service._provider_page_connected = True
+
+            service.fetch_async(name, options)
+        else:
+            InfoBar.warning(
+                "提示", "未配置 baseURL 或模型列表地址，跳过自动拉取", parent=self
+            )
+
+        self.accept()
+
+
+# ==================== 原生 Provider 页面 ====================
+class NativeProviderPage(BasePage):
+    """原生 Provider 配置页面 - 管理 OpenCode 官方支持的原生 AI 服务提供商"""
+
+    def __init__(self, main_window, parent=None):
+        super().__init__("原生 Provider", parent)
+        self.main_window = main_window
+        self.auth_manager = AuthManager()
+        self.env_detector = EnvVarDetector()
+        self._setup_ui()
+        self._load_data()
+        # 连接配置变更信号
+        self.main_window.config_changed.connect(self._on_config_changed)
+
+    def _on_config_changed(self):
+        """配置变更时刷新列表"""
+        self._load_data()
+
+    def _setup_ui(self):
+        """初始化 UI 布局"""
+        # 工具栏
+        toolbar = QHBoxLayout()
+
+        self.config_btn = PrimaryPushButton(FIF.SETTING, "配置 Provider", self)
+        self.config_btn.clicked.connect(self._on_config)
+        toolbar.addWidget(self.config_btn)
+
+        self.test_btn = PushButton(FIF.WIFI, "测试连接", self)
+        self.test_btn.clicked.connect(self._on_test)
+        toolbar.addWidget(self.test_btn)
+
+        self.delete_btn = PushButton(FIF.DELETE, "删除配置", self)
+        self.delete_btn.clicked.connect(self._on_delete)
+        toolbar.addWidget(self.delete_btn)
+
+        toolbar.addStretch()
+        self._layout.addLayout(toolbar)
+
+        # Provider 列表表格
+        self.table = TableWidget(self)
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.resizeSection(0, 160)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Fixed)
+        header.resizeSection(2, 80)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
+
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.doubleClicked.connect(self._on_config)
+        self._layout.addWidget(self.table)
+
+    def _load_data(self):
+        """加载 Provider 数据"""
+        self.table.setRowCount(0)
+
+        # 读取已配置的认证
+        auth_data = {}
+        try:
+            auth_data = self.auth_manager.read_auth()
+        except Exception:
+            pass
+
+        for provider in NATIVE_PROVIDERS:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            # Provider 名称
+            name_item = QTableWidgetItem(provider.name)
+            name_item.setData(Qt.UserRole, provider.id)
+            self.table.setItem(row, 0, name_item)
+
+            # SDK
+            self.table.setItem(row, 1, QTableWidgetItem(provider.sdk))
+
+            # 状态
+            is_configured = provider.id in auth_data and auth_data[provider.id]
+            status_text = "已配置" if is_configured else "未配置"
+            status_item = QTableWidgetItem(status_text)
+            if is_configured:
+                status_item.setForeground(QColor("#4CAF50"))
+            else:
+                status_item.setForeground(QColor("#9E9E9E"))
+            self.table.setItem(row, 2, status_item)
+
+            # 环境变量
+            env_vars = ", ".join(provider.env_vars) if provider.env_vars else "-"
+            env_item = QTableWidgetItem(env_vars)
+            env_item.setToolTip(env_vars)
+            self.table.setItem(row, 3, env_item)
+
+    def _get_selected_provider(self) -> Optional[NativeProviderConfig]:
+        """获取当前选中的 Provider"""
+        row = self.table.currentRow()
+        if row < 0:
+            return None
+        provider_id = self.table.item(row, 0).data(Qt.UserRole)
+        return get_native_provider(provider_id)
+
+    def _on_config(self):
+        """配置 Provider"""
+        provider = self._get_selected_provider()
+        if not provider:
+            self.show_warning("提示", "请先选择一个 Provider")
+            return
+
+        dialog = NativeProviderDialog(
+            self.main_window,
+            provider,
+            self.auth_manager,
+            self.env_detector,
+            parent=self,
+        )
+        if dialog.exec_():
+            self._load_data()
+            self.show_success("成功", f"{provider.name} 配置已保存")
+
+    def _on_test(self):
+        """测试连接"""
+        provider = self._get_selected_provider()
+        if not provider:
+            self.show_warning("提示", "请先选择一个 Provider")
+            return
+
+        if not provider.test_endpoint:
+            self.show_warning("提示", "此 Provider 不支持连接测试")
+            return
+
+        # 获取认证信息
+        auth_data = self.auth_manager.get_provider_auth(provider.id)
+        if not auth_data:
+            self.show_error("测试失败", "请先配置此 Provider")
+            return
+
+        api_key = auth_data.get("apiKey", "")
+        if api_key:
+            api_key = _resolve_env_value(api_key)
+
+        if not api_key:
+            self.show_error("测试失败", "未找到 API Key")
+            return
+
+        # 获取 baseURL
+        config = self.main_window.opencode_config or {}
+        provider_options = (
+            config.get("provider", {}).get(provider.id, {}).get("options", {})
+        )
+        base_url = provider_options.get("baseURL", "")
+
+        if not base_url:
+            default_urls = {
+                "anthropic": "https://api.anthropic.com",
+                "openai": "https://api.openai.com",
+                "gemini": "https://generativelanguage.googleapis.com",
+                "xai": "https://api.x.ai",
+                "groq": "https://api.groq.com",
+                "openrouter": "https://openrouter.ai/api",
+                "deepseek": "https://api.deepseek.com",
+                "opencode": "https://api.opencode.ai",
+            }
+            base_url = default_urls.get(provider.id, "")
+
+        if not base_url:
+            self.show_error("测试失败", "无法确定 API 地址")
+            return
+
+        test_url = base_url.rstrip("/") + provider.test_endpoint
+
+        # 执行测试
+        self.show_warning("测试中", "正在测试连接...")
+
+        start_time = time.time()
+        try:
+            req = urllib.request.Request(test_url)
+            req.add_header("Authorization", f"Bearer {api_key}")
+            req.add_header("x-api-key", api_key)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                elapsed = int((time.time() - start_time) * 1000)
+                self.show_success("连接成功", f"响应时间: {elapsed}ms")
+        except urllib.error.HTTPError as e:
+            self.show_error("连接失败", f"HTTP {e.code}: {e.reason}")
+        except Exception as e:
+            self.show_error("连接失败", str(e))
+
+    def _on_delete(self):
+        """删除配置"""
+        provider = self._get_selected_provider()
+        if not provider:
+            self.show_warning("提示", "请先选择一个 Provider")
+            return
+
+        # 检查是否已配置
+        auth_data = self.auth_manager.get_provider_auth(provider.id)
+        if not auth_data:
+            self.show_warning("提示", "此 Provider 尚未配置")
+            return
+
+        # 确认删除
+        msg_box = FluentMessageBox(
+            "确认删除",
+            f"确定要删除 {provider.name} 的配置吗？\n这将删除认证信息和选项配置。",
+            self,
+        )
+        if msg_box.exec_() != QMessageBox.Yes:
+            return
+
+        # 删除认证
+        try:
+            self.auth_manager.delete_provider_auth(provider.id)
+        except Exception as e:
+            self.show_error("删除失败", f"无法删除认证配置: {e}")
+            return
+
+        # 删除选项
+        config = self.main_window.opencode_config or {}
+        if "provider" in config and provider.id in config["provider"]:
+            if "options" in config["provider"][provider.id]:
+                del config["provider"][provider.id]["options"]
+                if not config["provider"][provider.id]:
+                    del config["provider"][provider.id]
+                self.main_window.opencode_config = config
+                self.main_window.save_opencode_config()
+
+        self.show_success("删除成功", f"{provider.name} 配置已删除")
+        self._load_data()
+
+
+
+
 class NativeProviderDialog(QDialog):
     """原生 Provider 配置对话框"""
 
@@ -10081,8 +10970,8 @@ class MainWindow(FluentWindow):
 
             info_bar = InfoBar(
                 InfoBarIcon.INFORMATION,
-                "发现新版本",
-                f"v{latest_version} 可用，点击查看",
+                tr("dialog.new_version_found"),
+                tr("dialog.new_version_available", version=latest_version),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 duration=-1,
@@ -13154,7 +14043,7 @@ class SkillPage(BasePage):
             return
 
         pattern = self.perm_table.item(row, 0).text()
-        w = FluentMessageBox("确认删除", f'确定要删除权限 "{pattern}" 吗？', self)
+        w = FluentMessageBox(tr("common.confirm_delete_title"), tr("dialog.confirm_delete_permission", pattern=pattern), self)
         if w.exec_():
             config = self.main_window.opencode_config or {}
             skill_perms = config.get("permission", {}).get("skill", {})

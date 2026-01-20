@@ -594,6 +594,9 @@
     "agents_added": "Added {count} Agents",
     "mcp_enabled": "\"{name}\" enabled",
     "mcp_disabled": "\"{name}\" disabled",
-    "reload_failed": "Reload failed:\n{msg}"
+    "reload_failed": "Reload failed:\n{msg}",
+    "new_version_found": "New Version Found",
+    "new_version_available": "v{version} available, click to view",
+    "confirm_delete_permission": "Are you sure you want to delete permission \"{pattern}\"?"
   }
 }

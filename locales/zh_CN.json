@@ -741,6 +741,9 @@
     "agents_added": "已添加 {count} 个 Agent",
     "mcp_enabled": "已启用 \"{name}\"",
     "mcp_disabled": "已禁用 \"{name}\"",
-    "reload_failed": "重新加载失败：\n{msg}"
+    "reload_failed": "重新加载失败：\n{msg}",
+    "new_version_found": "发现新版本",
+    "new_version_available": "v{version} 可用，点击查看",
+    "confirm_delete_permission": "确定要删除权限 \"{pattern}\" 吗？"
   }
 }

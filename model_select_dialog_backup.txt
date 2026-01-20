@@ -1,0 +1,471 @@
+class ModelSelectDialog(BaseDialog):
+    """模型选择对话框"""
+
+    def __init__(
+        self, main_window, provider_name: str, model_ids: List[str], parent=None
+    ):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.provider_name = provider_name
+        self.model_ids = list(dict.fromkeys(model_ids or []))
+        self._selected: List[str] = []
+        self._items = []
+        self._row_widgets: Dict[str, Dict[str, Any]] = {}
+        self._visible_model_ids: List[str] = []
+        self._bulk_controls: Dict[str, Dict[str, Any]] = {}
+        self._batch_config: Dict[str, Any] = {}
+
+        self.setWindowTitle(tr("provider.model_select_title"))
+        self.setMinimumSize(900, 560)
+        self._setup_ui()
+        self._load_categories()
+        self._refresh_models()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(12)
+
+        layout.addWidget(TitleLabel(tr("provider.model_select_title"), self))
+        layout.addWidget(BodyLabel(tr("provider.model_list_hint"), self))
+
+        filter_layout = QHBoxLayout()
+        filter_layout.setSpacing(8)
+
+        filter_layout.addWidget(BodyLabel(tr("provider.group_mode"), self))
+        self.group_mode_combo = ComboBox(self)
+        self.group_mode_combo.addItems(
+            [
+                tr("provider.group_vendor"),
+                tr("provider.group_prefix"),
+                tr("provider.group_letter"),
+            ]
+        )
+        self.group_mode_combo.currentTextChanged.connect(self._on_group_mode_changed)
+        filter_layout.addWidget(self.group_mode_combo)
+
+        filter_layout.addWidget(BodyLabel(tr("provider.filter_mode"), self))
+        self.match_mode_combo = ComboBox(self)
+        self.match_mode_combo.addItems(
+            [
+                tr("provider.filter_contains"),
+                tr("provider.filter_prefix"),
+                tr("provider.filter_regex"),
+            ]
+        )
+        self.match_mode_combo.currentTextChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.match_mode_combo)
+
+        self.keyword_edit = LineEdit(self)
+        self.keyword_edit.setPlaceholderText(tr("provider.keyword_filter"))
+        self.keyword_edit.textChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.keyword_edit, 1)
+
+        self.clear_btn = PushButton(tr("provider.clear_filter"), self)
+        self.clear_btn.clicked.connect(self._clear_filters)
+        filter_layout.addWidget(self.clear_btn)
+
+        layout.addLayout(filter_layout)
+
+        self.batch_layout = QHBoxLayout()
+        self.batch_layout.setSpacing(8)
+        self.batch_layout.addWidget(BodyLabel(tr("provider.batch_config") + ":", self))
+        layout.addLayout(self.batch_layout)
+
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(12)
+
+        self.category_list = ListWidget(self)
+        self.category_list.setFixedWidth(200)
+        self.category_list.currentTextChanged.connect(self._on_category_list_changed)
+        content_layout.addWidget(self.category_list)
+
+        self.model_list = ListWidget(self)
+        self.model_list.setSpacing(6)
+        self.model_list.setUniformItemSizes(True)
+        self.model_list.setSelectionMode(QAbstractItemView.NoSelection)
+        content_layout.addWidget(self.model_list, 1)
+
+        layout.addLayout(content_layout, 1)
+
+        footer_layout = QHBoxLayout()
+        footer_layout.setSpacing(8)
+
+        self.select_all_check = CheckBox(tr("common.select_all"), self)
+        self.select_all_check.stateChanged.connect(self._on_select_all_changed)
+        self.select_all_check.setTristate(False)
+        footer_layout.addWidget(self.select_all_check)
+
+        self.count_label = CaptionLabel(
+            tr("provider.selected_count", selected=0, total=0), self
+        )
+        footer_layout.addWidget(self.count_label)
+
+        self.empty_label = CaptionLabel(tr("provider.no_models_to_add"), self)
+        self.empty_label.setVisible(False)
+        footer_layout.addWidget(self.empty_label)
+
+        footer_layout.addStretch()
+
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
+        self.cancel_btn.clicked.connect(self.reject)
+        footer_layout.addWidget(self.cancel_btn)
+
+        self.confirm_btn = PrimaryPushButton(tr("provider.add_selected"), self)
+        self.confirm_btn.clicked.connect(self._on_confirm)
+        footer_layout.addWidget(self.confirm_btn)
+
+        layout.addLayout(footer_layout)
+
+    def _build_batch_controls(self):
+        self._batch_config = {}
+        self._bulk_controls = {}
+        while self.batch_layout.count() > 1:
+            item = self.batch_layout.takeAt(1)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+    def _load_categories(self):
+        self._rebuild_categories()
+        self._build_batch_controls()
+        self._add_batch_control("attachment", "附件", [])
+        self._add_batch_control("modalities", "图片", [])
+        self._add_batch_control("limit", "输出长度", ["4k", "8k", "16k", "32k", "64k"])
+        self._add_batch_control(
+            "options", "Options", ["fast", "medium", "high", "xhigh"]
+        )
+        self._add_batch_control("thinking", "Thinking", ["8k", "16k", "32k", "64k"])
+        self._add_batch_control("variants", "Variants", ["high/medium/low", "high/low"])
+
+    def _add_batch_control(
+        self,
+        key: str,
+        label: str,
+        choices: List[str],
+    ):
+        container = QWidget(self)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+
+        checkbox = CheckBox(label, container)
+        checkbox.stateChanged.connect(
+            lambda state, k=key: self._on_batch_check_changed(k, state)
+        )
+        layout.addWidget(checkbox)
+
+        combo = None
+        if choices:
+            combo = ComboBox(container)
+            combo.addItems(choices)
+            combo.currentTextChanged.connect(
+                lambda text, k=key: self._on_batch_combo_changed(k, text)
+            )
+            metrics = QFontMetrics(combo.font())
+            max_text_width = max(metrics.horizontalAdvance(text) for text in choices)
+            combo.setMinimumWidth(max_text_width + 18)
+            layout.addWidget(combo)
+
+        self.batch_layout.addWidget(container)
+        self._bulk_controls[key] = {
+            "container": container,
+            "checkbox": checkbox,
+            "combo": combo,
+        }
+        self._batch_config[key] = {"enabled": False, "value": None}
+
+    def _on_batch_check_changed(self, key: str, state: int):
+        config = self._batch_config.get(key)
+        if config is None:
+            return
+        config["enabled"] = state == Qt.Checked
+
+    def _on_batch_combo_changed(self, key: str, text: str):
+        config = self._batch_config.get(key)
+        if config is None:
+            return
+        config["value"] = text
+
+    def _on_group_mode_changed(self):
+        self._rebuild_categories()
+        self._refresh_models()
+
+    def _on_category_list_changed(self, text: str):
+        self._refresh_models()
+        self._update_batch_controls()
+
+    def _on_filter_changed(self):
+        self._refresh_models()
+
+    def _clear_filters(self):
+        self.group_mode_combo.setCurrentIndex(0)
+        self.match_mode_combo.setCurrentIndex(0)
+        self.keyword_edit.clear()
+
+    def _rebuild_categories(self):
+        self.category_list.blockSignals(True)
+        self.category_list.clear()
+        self.category_list.addItem("全部")
+
+        groups = self._group_models()
+        for group in sorted(groups.keys(), key=str.lower):
+            if group != "全部":
+                self.category_list.addItem(group)
+
+        self.category_list.setCurrentRow(0)
+        self.category_list.blockSignals(False)
+
+    def _group_models(self) -> Dict[str, List[str]]:
+        mode = self.group_mode_combo.currentText()
+        groups: Dict[str, List[str]] = {}
+        for model_id in self.model_ids:
+            key = self._get_group_key(model_id, mode)
+            groups.setdefault(key, []).append(model_id)
+        return groups
+
+    def _get_group_key(self, model_id: str, mode: str) -> str:
+        lower = model_id.lower()
+        if mode == "前缀分组":
+            if "-" in model_id:
+                return model_id.split("-", 1)[0]
+            if "/" in model_id:
+                return model_id.split("/", 1)[0]
+            return model_id[:1].upper() if model_id else "其他"
+        if mode == "首字母":
+            return model_id[:1].upper() if model_id else "其他"
+        # 厂商识别
+        if "claude" in lower:
+            return "Claude 系列"
+        if "gemini" in lower:
+            return "Gemini 系列"
+        if any(token in lower for token in ("gpt", "openai", "codex", "o1")):
+            return "OpenAI/Codex 系列"
+        return "其他模型"
+
+    def _resolve_category_for_preset(self, model_id: str) -> str:
+        return self._get_group_key(model_id, "厂商识别")
+
+    def _refresh_preset_combo(self):
+        return
+
+    def _get_preset_names(self, category: str) -> List[str]:
+        names = list(MODEL_PRESET_PACKS.get(category, {}).keys())
+        names += list(MODEL_PRESET_CUSTOM.get(category, {}).keys())
+        if not names:
+            names.append("基础")
+        return names
+
+    def _get_default_preset_for_category(self, category: str) -> Dict[str, Any]:
+        preset_name = MODEL_PRESET_DEFAULT.get(category, "基础")
+        return self._get_preset(category, preset_name)
+
+    def _get_bulk_category(self) -> str:
+        if not self._visible_model_ids:
+            return "其他模型"
+        return self._resolve_category_for_preset(self._visible_model_ids[0])
+
+    def _get_category_bulk_support(self, category: str) -> Dict[str, bool]:
+        support = {
+            "attachment": True,
+            "modalities": True,
+            "limit": True,
+            "options": False,
+            "thinking": False,
+            "variants": False,
+        }
+        if category == "Claude 系列":
+            support["thinking"] = True
+            support["variants"] = True
+        elif category == "OpenAI/Codex 系列":
+            support["options"] = True
+            support["variants"] = True
+        elif category == "Gemini 系列":
+            support["thinking"] = True
+            support["variants"] = True
+        return support
+
+    def _update_batch_controls(self):
+        if not self._bulk_controls:
+            return
+        category = self._get_bulk_category()
+        support = self._get_category_bulk_support(category)
+        for key, meta in self._bulk_controls.items():
+            checkbox = meta.get("checkbox")
+            combo = meta.get("combo")
+            enabled = support.get(key, False)
+            if checkbox is not None:
+                checkbox.setEnabled(enabled)
+                if not enabled:
+                    checkbox.setChecked(False)
+                    config = self._batch_config.get(key)
+                    if config is not None:
+                        config["enabled"] = False
+            if combo is not None:
+                combo.setEnabled(enabled)
+
+    def _get_preset(self, category: str, preset_name: str) -> Dict[str, Any]:
+        if preset_name in MODEL_PRESET_CUSTOM.get(category, {}):
+            return MODEL_PRESET_CUSTOM[category][preset_name]
+        presets = MODEL_PRESET_PACKS.get(category, {})
+        if preset_name in presets:
+            return presets[preset_name]
+        return {
+            "attachment": False,
+            "modalities": {"input": ["text"], "output": ["text"]},
+            "limit": {"context": 64000, "output": 8192},
+            "options": {},
+            "variants": {},
+        }
+
+    def _on_model_check_changed(self, model_id: str, state: int):
+        if state == Qt.Checked:
+            if model_id not in self._selected:
+                self._selected.append(model_id)
+        else:
+            if model_id in self._selected:
+                self._selected.remove(model_id)
+        self._update_count_label()
+        self._sync_select_all_state()
+
+    def _toggle_model_check(self, model_id: str):
+        row = self._row_widgets.get(model_id)
+        if not row:
+            return
+        checkbox = row.get("checkbox")
+        if checkbox is None:
+            return
+        checkbox.setChecked(not checkbox.isChecked())
+
+    def _build_model_row(self, model_id: str):
+        row_widget = QWidget(self.model_list)
+        row_layout = QHBoxLayout(row_widget)
+        row_layout.setContentsMargins(6, 4, 6, 4)
+        row_layout.setSpacing(8)
+
+        check = CheckBox("", row_widget)
+        check.setChecked(model_id in self._selected)
+        check.stateChanged.connect(
+            lambda state, mid=model_id: self._on_model_check_changed(mid, state)
+        )
+        row_layout.addWidget(check)
+
+        name_label = BodyLabel(model_id, row_widget)
+        name_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        name_label.mousePressEvent = (
+            lambda event, mid=model_id: self._toggle_model_check(mid)
+        )
+        row_layout.addWidget(name_label, 1)
+
+        row_widget.mousePressEvent = (
+            lambda event, mid=model_id: self._toggle_model_check(mid)
+        )
+
+        item = QListWidgetItem(self.model_list)
+        item.setSizeHint(row_widget.sizeHint())
+        self.model_list.setItemWidget(item, row_widget)
+
+        self._row_widgets[model_id] = {
+            "item": item,
+            "checkbox": check,
+        }
+        self._items.append(model_id)
+
+    def _refresh_models(self):
+        self.model_list.blockSignals(True)
+        self.model_list.clear()
+        self._items = []
+        self._visible_model_ids = []
+        self._row_widgets = {}
+        self.model_list.setFocusPolicy(Qt.NoFocus)
+
+        group = (
+            self.category_list.currentItem().text()
+            if self.category_list.currentItem()
+            else "全部"
+        )
+        keyword = self.keyword_edit.text().strip()
+        match_mode = self.match_mode_combo.currentText()
+        pattern = keyword.lower()
+        regex = None
+        if pattern and match_mode == "正则":
+            try:
+                regex = re.compile(pattern, re.IGNORECASE)
+            except re.error:
+                regex = None
+
+        for model_id in self.model_ids:
+            if group != "全部":
+                if (
+                    self._get_group_key(model_id, self.group_mode_combo.currentText())
+                    != group
+                ):
+                    continue
+            if pattern:
+                if match_mode == "包含":
+                    if pattern not in model_id.lower():
+                        continue
+                elif match_mode == "前缀":
+                    if not model_id.lower().startswith(pattern):
+                        continue
+                elif match_mode == "正则":
+                    if not regex or not regex.search(model_id):
+                        continue
+            self._build_model_row(model_id)
+            self._visible_model_ids.append(model_id)
+
+        self.model_list.blockSignals(False)
+        self._update_count_label()
+        self._sync_select_all_state()
+        self._update_batch_controls()
+
+        if not self._items:
+            self.empty_label.setVisible(True)
+        else:
+            self.empty_label.setVisible(False)
+
+    def _on_select_all_changed(self, state):
+        if not self._items:
+            return
+        target_state = state == Qt.Checked
+        for model_id, row in self._row_widgets.items():
+            checkbox = row.get("checkbox")
+            if checkbox is None:
+                continue
+            checkbox.blockSignals(True)
+            checkbox.setChecked(target_state)
+            checkbox.blockSignals(False)
+            if target_state:
+                if model_id not in self._selected:
+                    self._selected.append(model_id)
+            else:
+                if model_id in self._selected:
+                    self._selected.remove(model_id)
+        self._update_count_label()
+
+    def _sync_select_all_state(self):
+        if not self._items:
+            self.select_all_check.setChecked(False)
+            return
+        checked = sum(1 for model_id in self._items if model_id in self._selected)
+        if checked == len(self._items):
+            self.select_all_check.setChecked(True)
+        else:
+            self.select_all_check.setChecked(False)
+
+    def _update_count_label(self):
+        total = len(self._items)
+        selected = len(self._selected)
+        self.count_label.setText(f"已选 {selected} / 共 {total}")
+
+    def _on_confirm(self):
+        selected = [model_id for model_id in self._items if model_id in self._selected]
+        self._selected = selected
+        self.accept()
+
+    def get_selected_model_ids(self) -> List[str]:
+        return list(self._selected)
+
+    def get_batch_config(self) -> Dict[str, Any]:
+        return dict(self._batch_config)
+
+
