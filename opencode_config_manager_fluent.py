@@ -12186,23 +12186,25 @@ class SkillMarketDialog(MessageBoxBase):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.titleLabel = SubtitleLabel("Skill 市场", self)
+        self.titleLabel = SubtitleLabel(tr("skill.market_dialog.title"), self)
         self.selected_skill = None
 
         # 搜索框
         search_layout = QHBoxLayout()
         self.search_edit = LineEdit(self.widget)
-        self.search_edit.setPlaceholderText("搜索 Skills...")
+        self.search_edit.setPlaceholderText(
+            tr("skill.market_dialog.search_placeholder")
+        )
         self.search_edit.textChanged.connect(self._on_search)
         search_layout.addWidget(self.search_edit)
 
-        search_btn = PushButton(FIF.SEARCH, "搜索", self.widget)
+        search_btn = PushButton(FIF.SEARCH, tr("common.search"), self.widget)
         search_btn.clicked.connect(self._on_search)
         search_layout.addWidget(search_btn)
 
         # 分类筛选
         self.category_combo = ComboBox(self.widget)
-        self.category_combo.addItem("全部分类")
+        self.category_combo.addItem(tr("skill.market_dialog.category_all"))
         self.category_combo.addItems(SkillMarket.get_categories())
         self.category_combo.currentTextChanged.connect(self._on_category_changed)
         search_layout.addWidget(self.category_combo)
@@ -12210,7 +12212,9 @@ class SkillMarketDialog(MessageBoxBase):
         # Skills 表格
         self.table = TableWidget(self.widget)
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["名称", "描述", "分类", "仓库"])
+        self.table.setHorizontalHeaderLabels(
+            [tr("common.name"), tr("common.description"), "分类", "仓库"]
+        )
         self.table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeToContents
         )
@@ -12235,9 +12239,9 @@ class SkillMarketDialog(MessageBoxBase):
         self.viewLayout.addLayout(search_layout)
         self.viewLayout.addWidget(self.table)
 
-        self.yesButton.setText("安装选中")
+        self.yesButton.setText(tr("skill.market_dialog.install_button"))
         self.yesButton.setEnabled(False)
-        self.cancelButton.setText("取消")
+        self.cancelButton.setText(tr("common.cancel"))
 
         self.widget.setMinimumWidth(800)
         self.widget.setMinimumHeight(600)
@@ -12265,7 +12269,7 @@ class SkillMarketDialog(MessageBoxBase):
 
     def _on_category_changed(self, category: str):
         """分类筛选"""
-        if category == "全部分类":
+        if category == tr("skill.market_dialog.category_all"):
             skills = SkillMarket.get_all_skills()
         else:
             skills = SkillMarket.get_by_category(category)
@@ -12854,10 +12858,12 @@ class SkillInstallDialog(MessageBoxBase):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.titleLabel = SubtitleLabel("安装 Skill", self)
+        self.titleLabel = SubtitleLabel(tr("skill.install_dialog.title"), self)
 
         # 来源输入
-        self.source_label = BodyLabel("来源:", self.widget)
+        self.source_label = BodyLabel(
+            tr("skill.install_dialog.source_label"), self.widget
+        )
         self.source_edit = LineEdit(self.widget)
         self.source_edit.setPlaceholderText("vercel-labs/git-release")
 
@@ -12871,14 +12877,16 @@ class SkillInstallDialog(MessageBoxBase):
         )
 
         # 安装位置
-        self.location_label = BodyLabel("安装位置:", self.widget)
+        self.location_label = BodyLabel(
+            tr("skill.install_dialog.location_label"), self.widget
+        )
         self.location_combo = ComboBox(self.widget)
         self.location_combo.addItems(
             [
-                "OpenCode 全局 (~/.config/opencode/skills/)",
-                "OpenCode 项目 (.opencode/skills/)",
-                "Claude 全局 (~/.claude/skills/)",
-                "Claude 项目 (.claude/skills/)",
+                tr("skill.install_dialog.location_opencode_global"),
+                tr("skill.install_dialog.location_opencode_project"),
+                tr("skill.install_dialog.location_claude_global"),
+                tr("skill.install_dialog.location_claude_project"),
             ]
         )
 
@@ -12894,8 +12902,8 @@ class SkillInstallDialog(MessageBoxBase):
         self.viewLayout.addWidget(self.location_combo)
         self.viewLayout.addWidget(self.progress_label)
 
-        self.yesButton.setText("安装")
-        self.cancelButton.setText("取消")
+        self.yesButton.setText(tr("skill.install_dialog.install_button"))
+        self.cancelButton.setText(tr("common.cancel"))
 
         self.widget.setMinimumWidth(500)
 
@@ -12904,11 +12912,11 @@ class SkillInstallDialog(MessageBoxBase):
 
     def get_target_dir(self) -> Path:
         loc_text = self.location_combo.currentText()
-        if "OpenCode 全局" in loc_text:
+        if tr("skill.install_dialog.location_opencode_global") in loc_text:
             return Path.home() / ".config" / "opencode" / "skills"
-        elif "OpenCode 项目" in loc_text:
+        elif tr("skill.install_dialog.location_opencode_project") in loc_text:
             return Path.cwd() / ".opencode" / "skills"
-        elif "Claude 全局" in loc_text:
+        elif tr("skill.install_dialog.location_claude_global") in loc_text:
             return Path.home() / ".claude" / "skills"
         else:
             return Path.cwd() / ".claude" / "skills"
@@ -12925,7 +12933,7 @@ class SkillUpdateDialog(MessageBoxBase):
     def __init__(self, updates: List[Dict[str, Any]], parent=None):
         super().__init__(parent)
         self.updates = updates
-        self.titleLabel = SubtitleLabel("检查更新", self)
+        self.titleLabel = SubtitleLabel(tr("skill.update_dialog.title"), self)
 
         # 统计信息
         total = len(updates)
