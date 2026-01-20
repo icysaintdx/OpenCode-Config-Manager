@@ -1,0 +1,644 @@
+找到 214 个需要翻译的UI中文字符串:
+
+行 6190: 配置 Provider
+  self.config_btn = PrimaryPushButton(FIF.SETTING, "配置 Provider", self)
+
+行 6194: 测试连接
+  self.test_btn = PushButton(FIF.WIFI, "测试连接", self)
+
+行 6198: 删除配置
+  self.delete_btn = PushButton(FIF.DELETE, "删除配置", self)
+
+行 6208: 状态
+  self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
+
+行 6208: 环境变量
+  self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
+
+行 6606: 全部
+  self.category_list.addItem("全部")
+
+行 6856: 已选 {selected} / 共 {total}
+  self.count_label.setText(f"已选 {selected} / 共 {total}")
+
+行 6974: 取消
+  self.cancel_btn = PushButton("取消", self)
+
+行 6978: 保存
+  self.save_btn = PrimaryPushButton("保存", self)
+
+行 7000: 错误
+  InfoBar.error("错误", "请输入 Provider 名称", parent=self)
+
+行 7000: 请输入 Provider 名称
+  InfoBar.error("错误", "请输入 Provider 名称", parent=self)
+
+行 7012: 错误
+  InfoBar.error("错误", f'Provider "{name}" 已存在', parent=self)
+
+行 7012:  已存在
+  InfoBar.error("错误", f'Provider "{name}" 已存在', parent=self)
+
+行 7075: 配置 Provider
+  self.config_btn = PrimaryPushButton(FIF.SETTING, "配置 Provider", self)
+
+行 7079: 测试连接
+  self.test_btn = PushButton(FIF.WIFI, "测试连接", self)
+
+行 7083: 删除配置
+  self.delete_btn = PushButton(FIF.DELETE, "删除配置", self)
+
+行 7093: 状态
+  self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
+
+行 7093: 环境变量
+  self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
+
+行 7306: 配置 {self.provider.name}
+  self.setWindowTitle(f"配置 {self.provider.name}")
+
+行 7354: 认证配置
+  auth_title = StrongBodyLabel("认证配置", auth_card)
+
+行 7384: 导入 {env_var}
+  import_btn.setToolTip(f"导入 {env_var}")
+
+行 7402: Provider 选项
+  option_title = StrongBodyLabel("Provider 选项", option_card)
+
+行 7425: 可选
+  input_widget.setPlaceholderText(field.default or "可选")
+
+行 7440: 取消
+  cancel_btn = PushButton("取消", self)
+
+行 7444: 保存
+  save_btn = PrimaryPushButton("保存", self)
+
+行 7490: 验证失败
+  QMessageBox.warning(self, "验证失败", f"{field.label} 是必填项")
+
+行 7490: {field.label} 是必填项
+  QMessageBox.warning(self, "验证失败", f"{field.label} 是必填项")
+
+行 7497: 保存失败
+  QMessageBox.critical(self, "保存失败", f"无法保存认证配置: {e}")
+
+行 7497: 无法保存认证配置: {e}
+  QMessageBox.critical(self, "保存失败", f"无法保存认证配置: {e}")
+
+行 7730: 编辑模型
+  self.setWindowTitle("编辑模型" if self.is_edit else "添加模型")
+
+行 7730: 添加模型
+  self.setWindowTitle("编辑模型" if self.is_edit else "添加模型")
+
+行 7825: 基本信息
+  basic_layout.addWidget(SubtitleLabel("基本信息", basic_card))
+
+行 7829: 模型 ID:
+  id_layout.addWidget(BodyLabel("模型 ID:", self))
+
+行 7831: 如: claude-sonnet-4-5-20250929
+  self.id_edit.setPlaceholderText("如: claude-sonnet-4-5-20250929")
+
+行 7840: 显示名称:
+  name_layout.addWidget(BodyLabel("显示名称:", self))
+
+行 7847: 支持附件 (图片/文档)
+  self.attachment_check = CheckBox("支持附件 (图片/文档)", self)
+
+行 7853: 输入模态:
+  modalities_layout.addWidget(BodyLabel("输入模态:", self))
+
+行 7864: 输出模态:
+  modalities_layout.addWidget(BodyLabel("输出模态:", self))
+
+行 7877: 上下文窗口:
+  limit_layout.addWidget(BodyLabel("上下文窗口:", self))
+
+行 7885: 最大输出:
+  limit_layout.addWidget(BodyLabel("最大输出:", self))
+
+行 7908: Options 配置
+  self.pivot.addItem(routeKey="options", text="Options 配置")
+
+行 7914: Variants 变体
+  self.pivot.addItem(routeKey="variants", text="Variants 变体")
+
+行 7930: 取消
+  self.cancel_btn = PushButton("取消", self)
+
+行 7934: 保存
+  self.save_btn = PrimaryPushButton("保存", self)
+
+行 7968: Claude Thinking 配置
+  claude_layout.addWidget(CaptionLabel("Claude Thinking 配置", claude_card))
+
+行 7988: 一键添加
+  btn_full = PrimaryPushButton("一键添加", claude_card)
+
+行 8001: OpenAI 推理配置
+  openai_layout.addWidget(CaptionLabel("OpenAI 推理配置", openai_card))
+
+行 8027: Gemini Thinking 配置
+  gemini_layout.addWidget(CaptionLabel("Gemini Thinking 配置", gemini_card))
+
+行 8047: Options 键值对列表:
+  options_label = BodyLabel("Options 键值对列表:", scroll_content)
+
+行 8053: 键
+  self.options_table.setHorizontalHeaderLabels(["键", "值"])
+
+行 8053: 值
+  self.options_table.setHorizontalHeaderLabels(["键", "值"])
+
+行 8067: 键:
+  key_label = BodyLabel("键:", scroll_content)
+
+行 8076: 值:
+  value_label = BodyLabel("值:", scroll_content)
+
+行 8090: 添加
+  add_opt_btn = PrimaryPushButton("添加", scroll_content)
+
+行 8094: 删除选中
+  del_opt_btn = PushButton("删除选中", scroll_content)
+
+行 8114: 模型变体配置 (Variants):
+  variants_label = BodyLabel("模型变体配置 (Variants):", parent)
+
+行 8121: 变体名称
+  self.variants_table.setHorizontalHeaderLabels(["变体名称", "配置"])
+
+行 8121: 配置
+  self.variants_table.setHorizontalHeaderLabels(["变体名称", "配置"])
+
+行 8133: 变体名:
+  name_label = BodyLabel("变体名:", parent)
+
+行 8145: 预设:
+  preset_layout.addWidget(CaptionLabel("预设:", parent))
+
+行 8157: 配置 (JSON):
+  layout.addWidget(BodyLabel("配置 (JSON):", parent))
+
+行 8167: 添加变体
+  add_var_btn = PrimaryPushButton("添加变体", parent)
+
+行 8171: 删除变体
+  del_var_btn = PushButton("删除变体", parent)
+
+行 8272: 提示
+  InfoBar.warning("提示", "请输入变体名称", parent=self)
+
+行 8272: 请输入变体名称
+  InfoBar.warning("提示", "请输入变体名称", parent=self)
+
+行 8277: 错误
+  InfoBar.error("错误", f"JSON 格式错误: {e}", parent=self)
+
+行 8277: JSON 格式错误: {e}
+  InfoBar.error("错误", f"JSON 格式错误: {e}", parent=self)
+
+行 8346: 错误
+  InfoBar.error("错误", "请输入模型 ID", parent=self)
+
+行 8346: 请输入模型 ID
+  InfoBar.error("错误", "请输入模型 ID", parent=self)
+
+行 8385: 错误
+  InfoBar.error("错误", f'模型 "{model_id}" 已存在', parent=self)
+
+行 8385: 模型 
+  InfoBar.error("错误", f'模型 "{model_id}" 已存在', parent=self)
+
+行 8385:  已存在
+  InfoBar.error("错误", f'模型 "{model_id}" 已存在', parent=self)
+
+行 8436: 错误
+  InfoBar.error("错误", f"配置校验失败：\n{msg}", parent=self)
+
+行 8436: 配置校验失败：\n{msg}
+  InfoBar.error("错误", f"配置校验失败：\n{msg}", parent=self)
+
+行 8459: 从预设添加模型
+  self.setWindowTitle("从预设添加模型")
+
+行 8469: 模型系列:
+  series_layout.addWidget(BodyLabel("模型系列:", self))
+
+行 8514: 提示
+  InfoBar.warning("提示", "请选择至少一个模型", parent=self)
+
+行 8514: 请选择至少一个模型
+  InfoBar.warning("提示", "请选择至少一个模型", parent=self)
+
+行 8570: 成功
+  InfoBar.success("成功", f"已添加 {added} 个模型", parent=self)
+
+行 8570: 已添加 {added} 个模型
+  InfoBar.success("成功", f"已添加 {added} 个模型", parent=self)
+
+行 9237: 标签:
+  tags_layout.addWidget(BodyLabel("标签:", self.extra_group))
+
+行 9244: 主页链接:
+  homepage_layout.addWidget(BodyLabel("主页链接:", self.extra_group))
+
+行 9251: 文档链接:
+  docs_layout.addWidget(BodyLabel("文档链接:", self.extra_group))
+
+行 9267: 完整 MCP 配置预览
+  preview_header.addWidget(BodyLabel("完整 MCP 配置预览", self.preview_group))
+
+行 9268: 包含 mcpServers 包装
+  self.preview_wrap_check = CheckBox("包含 mcpServers 包装", self.preview_group)
+
+行 9302: 取消
+  self.cancel_btn = PushButton("取消", self)
+
+行 9306: 保存
+  self.save_btn = PrimaryPushButton("保存", self)
+
+行 9811: 模型 (可选):
+  model_label = BodyLabel("模型 (可选):", basic_card)
+
+行 9827: 参数配置
+  param_layout.addWidget(SubtitleLabel("参数配置", param_card))
+
+行 9881: 工具和权限配置
+  tools_layout.addWidget(SubtitleLabel("工具和权限配置", tools_card))
+
+行 9894: 权限配置 (JSON):
+  perm_label = BodyLabel("权限配置 (JSON):", tools_card)
+
+行 9909: 系统提示词
+  prompt_label = SubtitleLabel("系统提示词", prompt_card)
+
+行 10080: 选择预设 Agent:
+  layout.addWidget(BodyLabel("选择预设 Agent:", self))
+
+行 10092: 取消
+  self.cancel_btn = PushButton("取消", self)
+
+行 10096: 添加选中
+  self.add_btn = PrimaryPushButton("添加选中", self)
+
+行 11395: 编辑
+  self.edit_btn = PushButton(FIF.EDIT, "编辑", self)
+
+行 11399: 删除
+  self.delete_btn = PushButton(FIF.DELETE, "删除", self)
+
+行 11403: 批量模型:
+  self.bulk_model_label = BodyLabel("批量模型:", self)
+
+行 11470: - 全部保持 -
+  self.bulk_model_combo.addItem("- 全部保持 -")
+
+行 11782: 编辑
+  self.edit_btn = PushButton(FIF.EDIT, "编辑", self)
+
+行 11786: 删除
+  self.delete_btn = PushButton(FIF.DELETE, "删除", self)
+
+行 11790: 批量模型:
+  self.bulk_model_label = BodyLabel("批量模型:", self)
+
+行 11867: - 全部保持 -
+  self.bulk_model_combo.addItem("- 全部保持 -")
+
+行 11971: Category 名称:
+  name_layout.addWidget(BodyLabel("Category 名称:", self))
+
+行 11982: 绑定模型:
+  model_layout.addWidget(BodyLabel("绑定模型:", self))
+
+行 12016: 取消
+  self.cancel_btn = PushButton("取消", self)
+
+行 12020: 保存
+  self.save_btn = PrimaryPushButton("保存", self)
+
+行 12068: 错误
+  InfoBar.error("错误", f'Category "{name}" 已存在', parent=self)
+
+行 12068:  已存在
+  InfoBar.error("错误", f'Category "{name}" 已存在', parent=self)
+
+行 12088: 从预设添加 Category
+  self.setWindowTitle("从预设添加 Category")
+
+行 12096: 选择预设 Category
+  layout.addWidget(SubtitleLabel("选择预设 Category", self))
+
+行 12108: 绑定模型:
+  model_layout.addWidget(BodyLabel("绑定模型:", self))
+
+行 12118: 取消
+  self.cancel_btn = PushButton("取消", self)
+
+行 12122: 添加
+  self.add_btn = PrimaryPushButton("添加", self)
+
+行 12155: 提示
+  InfoBar.warning("提示", f'Category "{name}" 已存在', parent=self)
+
+行 12155:  已存在
+  InfoBar.warning("提示", f'Category "{name}" 已存在', parent=self)
+
+行 12796: 安全扫描 - {skill_name}
+  self.titleLabel = SubtitleLabel(f"安全扫描 - {skill_name}", self)
+
+行 12804: 安全评分: {score}/100
+  score_label = TitleLabel(f"安全评分: {score}/100", self.widget)
+
+行 12824: 未知
+  level_label = StrongBodyLabel(level_names.get(level, "未知"), self.widget)
+
+行 12831: 发现 {len(issues)} 个潜在问题:
+  issues_label = BodyLabel(f"发现 {len(issues)} 个潜在问题:", self.widget)
+
+行 12833: 未发现安全问题
+  issues_label = BodyLabel("未发现安全问题", self.widget)
+
+行 12838: 行号
+  self.table.setHorizontalHeaderLabels(["行号", "风险等级", "描述", "代码"])
+
+行 12838: 风险等级
+  self.table.setHorizontalHeaderLabels(["行号", "风险等级", "描述", "代码"])
+
+行 12838: 描述
+  self.table.setHorizontalHeaderLabels(["行号", "风险等级", "描述", "代码"])
+
+行 12838: 代码
+  self.table.setHorizontalHeaderLabels(["行号", "风险等级", "描述", "代码"])
+
+行 12865: 确定
+  self.yesButton.setText("确定")
+
+行 13373: 全选
+  self.select_all_btn = PushButton("全选", self.widget)
+
+行 13377: 取消全选
+  self.deselect_all_btn = PushButton("取消全选", self.widget)
+
+行 13388: 更新选中
+  self.yesButton.setText("更新选中")
+
+行 13389: 取消
+  self.cancelButton.setText("取消")
+
+行 13544: 刷新
+  refresh_btn = PushButton(FIF.SYNC, "刷新", left_widget)
+
+行 13581: 选择一个 Skill 查看详情
+  self.detail_name = StrongBodyLabel("选择一个 Skill 查看详情", detail_card)
+
+行 13616: 编辑
+  self.edit_skill_btn = PushButton(FIF.EDIT, "编辑", right_widget)
+
+行 13628: 删除
+  self.delete_skill_btn = PushButton(FIF.DELETE, "删除", right_widget)
+
+行 13669: 路径: {skill.path}
+  self.detail_path.setText(f"路径: {skill.path}")
+
+行 13742: 选择一个 Skill 查看详情
+  self.detail_name.setText("选择一个 Skill 查看详情")
+
+行 13760: 创建/编辑 SKILL.md
+  create_layout.addWidget(SubtitleLabel("创建/编辑 SKILL.md", create_widget))
+
+行 13776: 名称 *:
+  name_layout.addWidget(BodyLabel("名称 *:", basic_card))
+
+行 13787: 描述 *:
+  desc_layout.addWidget(BodyLabel("描述 *:", basic_card))
+
+行 13828: Skill 内容 (Markdown):
+  create_layout.addWidget(BodyLabel("Skill 内容 (Markdown):", create_widget))
+
+行 13843: 清空
+  clear_btn = PushButton(FIF.DELETE, "清空", create_widget)
+
+行 13937: 全局 Skill 权限
+  left_layout.addWidget(SubtitleLabel("全局 Skill 权限", left_widget))
+
+行 13946: 添加
+  add_perm_btn = PrimaryPushButton(FIF.ADD, "添加", left_widget)
+
+行 13950: 删除
+  del_perm_btn = PushButton(FIF.DELETE, "删除", left_widget)
+
+行 13976: 模式:
+  pattern_layout.addWidget(BodyLabel("模式:", edit_card))
+
+行 13986: 权限:
+  perm_sel_layout.addWidget(BodyLabel("权限:", edit_card))
+
+行 13994: 保存权限
+  save_perm_btn = PrimaryPushButton("保存权限", edit_card)
+
+行 14005: Agent 级别配置
+  right_layout.addWidget(SubtitleLabel("Agent 级别配置", right_widget))
+
+行 14007: 为特定 Agent 配置 Skill 权限或禁用 Skill 工具
+  CaptionLabel("为特定 Agent 配置 Skill 权限或禁用 Skill 工具", right_widget)
+
+行 14012: 选择 Agent:
+  agent_layout.addWidget(BodyLabel("选择 Agent:", right_widget))
+
+行 14028: Agent 权限覆盖:
+  right_layout.addWidget(BodyLabel("Agent 权限覆盖:", right_widget))
+
+行 14047: 模式:
+  agent_pattern_layout.addWidget(BodyLabel("模式:", agent_edit_card))
+
+行 14056: 权限:
+  agent_perm_layout.addWidget(BodyLabel("权限:", agent_edit_card))
+
+行 14064: 添加
+  add_agent_perm_btn = PushButton(FIF.ADD, "添加", agent_edit_card)
+
+行 14068: 删除
+  del_agent_perm_btn = PushButton(FIF.DELETE, "删除", agent_edit_card)
+
+行 14395: 正在更新 {skill.name} ({i + 1}/{total})...
+  progress.setLabelText(f"正在更新 {skill.name} ({i + 1}/{total})...")
+
+行 14430: 请稍候
+  self.titleLabel = SubtitleLabel("请稍候", self)
+
+行 14485: 添加
+  add_btn = PushButton(FIF.ADD, "添加", inst_card)
+
+行 14490: 删除
+  del_btn = PushButton(FIF.DELETE, "删除", inst_card)
+
+行 14500: 快捷:
+  quick_layout.addWidget(BodyLabel("快捷:", inst_card))
+
+行 14523: 编辑位置:
+  loc_layout.addWidget(BodyLabel("编辑位置:", agents_card))
+
+行 14524: 全局
+  self.global_radio = RadioButton("全局", agents_card)
+
+行 14528: 项目
+  self.project_radio = RadioButton("项目", agents_card)
+
+行 14551: 重新加载
+  reload_btn = PushButton("重新加载", agents_card)
+
+行 14556: 使用模板
+  template_btn = PushButton("使用模板", agents_card)
+
+行 14619: 路径: {path}
+  self.path_label.setText(f"路径: {path}")
+
+行 16659: 最近备份: 无
+  self.backup_info_label.setText("最近备份: 无")
+
+行 16986: 恢复备份
+  self.setWindowTitle("恢复备份")
+
+行 16996: 选择要恢复的备份:
+  layout.addWidget(BodyLabel("选择要恢复的备份:"))
+
+行 17001: CLI 类型
+  self.backup_table.setHorizontalHeaderLabels(["CLI 类型", "备份时间", "文件"])
+
+行 17001: 备份时间
+  self.backup_table.setHorizontalHeaderLabels(["CLI 类型", "备份时间", "文件"])
+
+行 17001: 文件
+  self.backup_table.setHorizontalHeaderLabels(["CLI 类型", "备份时间", "文件"])
+
+行 17017: 取消
+  cancel_btn = PushButton("取消", self)
+
+行 17021: 恢复
+  restore_btn = PrimaryPushButton("恢复", self)
+
+行 17063: 恢复失败
+  InfoBar.error(title="恢复失败", content="无法恢复备份", parent=self)
+
+行 17063: 无法恢复备份
+  InfoBar.error(title="恢复失败", content="无法恢复备份", parent=self)
+
+行 17075: 编辑 {cli_type.upper()} 通用配置
+  self.setWindowTitle(f"编辑 {cli_type.upper()} 通用配置")
+
+行 17131: 取消
+  cancel_btn = PushButton("取消", self)
+
+行 17135: 保存
+  save_btn = PrimaryPushButton("保存", self)
+
+行 17166: 刷新检测
+  refresh_btn = PrimaryPushButton(FIF.SYNC, "刷新检测", detect_card)
+
+行 17172: 手动选择:
+  manual_layout.addWidget(BodyLabel("手动选择:", detect_card))
+
+行 17185: 选择文件
+  manual_btn = PushButton(FIF.FOLDER, "选择文件", detect_card)
+
+行 17219: 点击“预览转换”在弹窗中查看左右对照。
+  BodyLabel("点击“预览转换”在弹窗中查看左右对照。", preview_card)
+
+行 17225: 预览转换
+  preview_btn = PushButton("预览转换", preview_card)
+
+行 17229: 导入到 OpenCode
+  import_btn = PrimaryPushButton("导入到 OpenCode", preview_card)
+
+行 17233: 确认映射
+  confirm_btn = PushButton("确认映射", preview_card)
+
+行 17317: 配置转换预览
+  dialog.setWindowTitle("配置转换预览")
+
+行 17327: 原始配置
+  left_layout.addWidget(SubtitleLabel("原始配置", dialog))
+
+行 17336: 转换后的 OpenCode 配置
+  right_layout.addWidget(SubtitleLabel("转换后的 OpenCode 配置", dialog))
+
+行 17367: 关闭
+  close_btn = PrimaryPushButton("关闭", dialog)
+
+行 17472: 确认导入映射
+  self.setWindowTitle("确认导入映射")
+
+行 17481: 请确认必要字段
+  layout.addWidget(SubtitleLabel("请确认必要字段", self))
+
+行 17495: 未检测到可导入的 Provider
+  BodyLabel("未检测到可导入的 Provider", scroll_container)
+
+行 17509: 显示名称:
+  name_layout.addWidget(BodyLabel("显示名称:", card))
+
+行 17543: 取消
+  cancel_btn = PushButton("取消", self)
+
+行 17547: 确认导入
+  ok_btn = PrimaryPushButton("确认导入", self)
+
+行 17590: 备份管理
+  self.setWindowTitle("备份管理")
+
+行 17602: 备份 OpenCode
+  backup_opencode_btn = PrimaryPushButton(FIF.SAVE, "备份 OpenCode", self)
+
+行 17606: 备份 Oh My OpenCode
+  backup_ohmy_btn = PushButton(FIF.SAVE, "备份 Oh My OpenCode", self)
+
+行 17612: 刷新
+  refresh_btn = PushButton(FIF.SYNC, "刷新", self)
+
+行 17616: 打开备份目录
+  open_dir_btn = PushButton(FIF.FOLDER, "打开备份目录", self)
+
+行 17620: 预览内容
+  preview_btn = PushButton(FIF.VIEW, "预览内容", self)
+
+行 17627: 备份列表
+  layout.addWidget(SubtitleLabel("备份列表", self))
+
+行 17651: 恢复选中备份
+  restore_btn = PrimaryPushButton("恢复选中备份", self)
+
+行 17655: 删除备份
+  delete_btn = PushButton(FIF.DELETE, "删除备份", self)
+
+行 17661: 关闭
+  close_btn = PushButton("关闭", self)
+
+行 17688: 成功
+  InfoBar.success("成功", f"已备份到: {path}", parent=self)
+
+行 17688: 已备份到: {path}
+  InfoBar.success("成功", f"已备份到: {path}", parent=self)
+
+行 17699: 成功
+  InfoBar.success("成功", f"已备份到: {path}", parent=self)
+
+行 17699: 已备份到: {path}
+  InfoBar.success("成功", f"已备份到: {path}", parent=self)
+
+行 17728: 错误
+  InfoBar.error("错误", f"无法读取备份内容: {e}", parent=self)
+
+行 17728: 无法读取备份内容: {e}
+  InfoBar.error("错误", f"无法读取备份内容: {e}", parent=self)
+
+行 17732: 备份内容预览
+  dialog.setWindowTitle("备份内容预览")
+
+行 17740: 关闭
+  close_btn = PrimaryPushButton("关闭", dialog)
+

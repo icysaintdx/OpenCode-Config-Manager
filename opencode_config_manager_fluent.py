@@ -6100,7 +6100,9 @@ class ModelPresetCustomDialog(BaseDialog):
     def _on_add(self):
         selected = self.model_list.selectedItems()
         if not selected:
-            InfoBar.warning(tr("common.hint"), tr("dialog.select_at_least_one_model"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.select_at_least_one_model"), parent=self
+            )
             return
 
         series = self.series_combo.currentText()
@@ -6156,7 +6158,9 @@ class ModelPresetCustomDialog(BaseDialog):
                 added += 1
 
         self.main_window.save_opencode_config()
-        InfoBar.success(tr("common.success"), tr("dialog.models_added", count=added), parent=self)
+        InfoBar.success(
+            tr("common.success"), tr("dialog.models_added", count=added), parent=self
+        )
         self.accept()
 
 
@@ -6863,8 +6867,6 @@ class ModelSelectDialog(BaseDialog):
         return dict(self._batch_config)
 
 
-
-
 class ProviderDialog(BaseDialog):
     """Provider 编辑对话框"""
 
@@ -7279,8 +7281,6 @@ class NativeProviderPage(BasePage):
         self._load_data()
 
 
-
-
 class NativeProviderDialog(QDialog):
     """原生 Provider 配置对话框"""
 
@@ -7523,8 +7523,6 @@ class NativeProviderDialog(QDialog):
 
 
 # ==================== Model 页面 ====================
-
-
 
 
 class ModelPage(BasePage):
@@ -8495,7 +8493,7 @@ class PresetModelDialog(BaseDialog):
         btn_layout.addWidget(self.cancel_btn)
 
         self.save_btn = PrimaryPushButton(tr("common.save"), self)
-        self.save_btn.clicked.connect(self._on_save)
+        self.save_btn.clicked.connect(self._on_add)
         btn_layout.addWidget(self.save_btn)
 
         layout.addLayout(btn_layout)
@@ -8959,7 +8957,9 @@ class OhMyMCPDialog(BaseDialog):
         config["disabled_mcps"] = list(mcps.keys())
         self.main_window.save_ohmyopencode_config()
         self._load_data()
-        InfoBar.success(tr("common.success"), tr("dialog.disabled_all_ohmymcp"), parent=self)
+        InfoBar.success(
+            tr("common.success"), tr("dialog.disabled_all_ohmymcp"), parent=self
+        )
 
     def _toggle_mcp(self, mcp_name: str):
         """切换指定 MCP 的启用状态"""
@@ -8975,11 +8975,19 @@ class OhMyMCPDialog(BaseDialog):
         if mcp_name in disabled_mcps:
             # 当前是禁用状态，启用它
             disabled_mcps.remove(mcp_name)
-            InfoBar.success(tr("common.success"), tr("dialog.mcp_enabled", name=mcp_name), parent=self)
+            InfoBar.success(
+                tr("common.success"),
+                tr("dialog.mcp_enabled", name=mcp_name),
+                parent=self,
+            )
         else:
             # 当前是启用状态，禁用它
             disabled_mcps.append(mcp_name)
-            InfoBar.success(tr("common.success"), tr("dialog.mcp_disabled", name=mcp_name), parent=self)
+            InfoBar.success(
+                tr("common.success"),
+                tr("dialog.mcp_disabled", name=mcp_name),
+                parent=self,
+            )
 
         config["disabled_mcps"] = disabled_mcps
         self.main_window.save_ohmyopencode_config()
@@ -9326,10 +9334,14 @@ class MCPDialog(BaseDialog):
     def _on_preset_clicked(self, preset_key: str) -> None:
         preset = self._get_preset_data(preset_key)
         if not preset:
-            InfoBar.warning(tr("common.hint"), tr("dialog.preset_data_unavailable"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.preset_data_unavailable"), parent=self
+            )
             return
         if preset.get("type") != self.mcp_type:
-            InfoBar.warning(tr("common.hint"), tr("dialog.preset_type_mismatch"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.preset_type_mismatch"), parent=self
+            )
             return
         # 使用预设的键名作为 MCP 名称，而不是 name 字段（name 字段可能包含特殊字符）
         if self.name_edit.isEnabled():
@@ -9674,14 +9686,20 @@ class OpenCodeAgentPage(BasePage):
             return
 
         name = self.table.item(row, 0).text()
-        w = FluentMessageBox(tr("common.confirm_delete_title"), tr("dialog.confirm_delete_agent", name=name), self)
+        w = FluentMessageBox(
+            tr("common.confirm_delete_title"),
+            tr("dialog.confirm_delete_agent", name=name),
+            self,
+        )
         if w.exec_():
             config = self.main_window.opencode_config or {}
             if "agent" in config and name in config["agent"]:
                 del config["agent"][name]
                 self.main_window.save_opencode_config()
                 self._load_data()
-                self.show_success(tr("common.success"), tr("dialog.agent_deleted", name=name))
+                self.show_success(
+                    tr("common.success"), tr("dialog.agent_deleted", name=name)
+                )
 
 
 class OpenCodeAgentDialog(BaseDialog):
@@ -10084,7 +10102,9 @@ class PresetOpenCodeAgentDialog(BaseDialog):
     def _on_add(self):
         selected = self.agent_list.selectedItems()
         if not selected:
-            InfoBar.warning(tr("common.hint"), tr("dialog.select_at_least_one_agent"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.select_at_least_one_agent"), parent=self
+            )
             return
 
         config = self.main_window.opencode_config
@@ -10111,7 +10131,9 @@ class PresetOpenCodeAgentDialog(BaseDialog):
                 added += 1
 
         self.main_window.save_opencode_config()
-        InfoBar.success(tr("common.success"), tr("dialog.agents_added", count=added), parent=self)
+        InfoBar.success(
+            tr("common.success"), tr("dialog.agents_added", count=added), parent=self
+        )
         self.accept()
 
 
@@ -11096,7 +11118,11 @@ class MainWindow(FluentWindow):
                     msg = "\n".join(f"• {e['message']}" for e in errors[:8])
                     if len(errors) > 8:
                         msg += f"\n... 还有 {len(errors) - 8} 个错误"
-                    InfoBar.error(tr("common.error"), tr("dialog.reload_failed", msg=msg), parent=self)
+                    InfoBar.error(
+                        tr("common.error"),
+                        tr("dialog.reload_failed", msg=msg),
+                        parent=self,
+                    )
                     return
                 self.opencode_config = new_config
             else:
@@ -11193,7 +11219,9 @@ class MainWindow(FluentWindow):
 • 点击「确定」使用 .json 文件（删除 .jsonc）
 • 点击「取消」使用 .jsonc 文件（保持现状）"""
 
-            dialog = FluentMessageBox(tr("dialog.config_file_conflict", config_name=config_name), msg, self)
+            dialog = FluentMessageBox(
+                tr("dialog.config_file_conflict", config_name=config_name), msg, self
+            )
 
             if dialog.exec_():
                 # 用户选择使用 .json，删除 .jsonc
@@ -11271,7 +11299,9 @@ class MainWindow(FluentWindow):
         msg_lines.append("\n是否尝试自动修复？（会先备份原配置）")
 
         # 创建对话框
-        dialog = FluentMessageBox(tr("dialog.config_format_check"), tr("dialog.msg_15").join(msg_lines), self)
+        dialog = FluentMessageBox(
+            tr("dialog.config_format_check"), tr("dialog.msg_15").join(msg_lines), self
+        )
 
         if dialog.exec_():
             # 用户点击确认，执行修复
@@ -11505,14 +11535,20 @@ class OhMyAgentPage(BasePage):
             return
 
         name = self.table.item(row, 0).text()
-        w = FluentMessageBox(tr("common.confirm_delete_title"), tr("dialog.confirm_delete_agent", name=name), self)
+        w = FluentMessageBox(
+            tr("common.confirm_delete_title"),
+            tr("dialog.confirm_delete_agent", name=name),
+            self,
+        )
         if w.exec_():
             config = self.main_window.ohmyopencode_config or {}
             if "agents" in config and name in config["agents"]:
                 del config["agents"][name]
                 self.main_window.save_ohmyopencode_config()
                 self._load_data()
-                self.show_success(tr("common.success"), tr("dialog.agent_deleted", name=name))
+                self.show_success(
+                    tr("common.success"), tr("dialog.agent_deleted", name=name)
+                )
 
 
 class OhMyAgentDialog(BaseDialog):
@@ -11892,14 +11928,20 @@ class CategoryPage(BasePage):
             return
 
         name = self.table.item(row, 0).text()
-        w = FluentMessageBox(tr("common.confirm_delete_title"), tr("dialog.confirm_delete_category", name=name), self)
+        w = FluentMessageBox(
+            tr("common.confirm_delete_title"),
+            tr("dialog.confirm_delete_category", name=name),
+            self,
+        )
         if w.exec_():
             config = self.main_window.ohmyopencode_config or {}
             if "categories" in config and name in config["categories"]:
                 del config["categories"][name]
                 self.main_window.save_ohmyopencode_config()
                 self._load_data()
-                self.show_success(tr("common.success"), tr("dialog.category_deleted", name=name))
+                self.show_success(
+                    tr("common.success"), tr("dialog.category_deleted", name=name)
+                )
 
 
 class CategoryDialog(BaseDialog):
@@ -12009,7 +12051,9 @@ class CategoryDialog(BaseDialog):
     def _on_save(self):
         name = self.name_edit.text().strip()
         if not name:
-            InfoBar.error(tr("common.error"), tr("dialog.enter_category_name"), parent=self)
+            InfoBar.error(
+                tr("common.error"), tr("dialog.enter_category_name"), parent=self
+            )
             return
 
         config = self.main_window.ohmyopencode_config
@@ -12090,7 +12134,9 @@ class PresetCategoryDialog(BaseDialog):
     def _on_add(self):
         current = self.list_widget.currentItem()
         if not current:
-            InfoBar.warning(tr("common.hint"), tr("dialog.select_preset_category"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.select_preset_category"), parent=self
+            )
             return
 
         text = current.text()
@@ -13929,7 +13975,9 @@ class SkillPage(BasePage):
         pattern_layout = QHBoxLayout()
         pattern_layout.addWidget(BodyLabel("模式:", edit_card))
         self.perm_pattern_edit = LineEdit(edit_card)
-        self.perm_pattern_edit.setPlaceholderText(tr("dialog.placeholder_allow_pattern"))
+        self.perm_pattern_edit.setPlaceholderText(
+            tr("dialog.placeholder_allow_pattern")
+        )
         self.perm_pattern_edit.setToolTip(get_tooltip("skill_pattern"))
         pattern_layout.addWidget(self.perm_pattern_edit)
         edit_layout.addLayout(pattern_layout)
@@ -13998,7 +14046,9 @@ class SkillPage(BasePage):
         agent_pattern_layout = QHBoxLayout()
         agent_pattern_layout.addWidget(BodyLabel("模式:", agent_edit_card))
         self.agent_perm_pattern_edit = LineEdit(agent_edit_card)
-        self.agent_perm_pattern_edit.setPlaceholderText(tr("dialog.placeholder_deny_pattern"))
+        self.agent_perm_pattern_edit.setPlaceholderText(
+            tr("dialog.placeholder_deny_pattern")
+        )
         agent_pattern_layout.addWidget(self.agent_perm_pattern_edit)
         agent_edit_layout.addLayout(agent_pattern_layout)
 
@@ -14043,7 +14093,11 @@ class SkillPage(BasePage):
             return
 
         pattern = self.perm_table.item(row, 0).text()
-        w = FluentMessageBox(tr("common.confirm_delete_title"), tr("dialog.confirm_delete_permission", pattern=pattern), self)
+        w = FluentMessageBox(
+            tr("common.confirm_delete_title"),
+            tr("dialog.confirm_delete_permission", pattern=pattern),
+            self,
+        )
         if w.exec_():
             config = self.main_window.opencode_config or {}
             skill_perms = config.get("permission", {}).get("skill", {})
@@ -17657,11 +17711,15 @@ class BackupDialog(BaseDialog):
         """预览选中备份内容"""
         row = self.backup_table.currentRow()
         if row < 0:
-            InfoBar.warning(tr("common.hint"), tr("dialog.select_backup_first"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.select_backup_first"), parent=self
+            )
             return
         backup_path = Path(self.backup_table.item(row, 3).text())
         if not backup_path.exists():
-            InfoBar.error(tr("common.error"), tr("dialog.backup_file_not_exist"), parent=self)
+            InfoBar.error(
+                tr("common.error"), tr("dialog.backup_file_not_exist"), parent=self
+            )
             return
         try:
             with open(backup_path, "r", encoding="utf-8") as f:
@@ -17688,7 +17746,9 @@ class BackupDialog(BaseDialog):
         """恢复备份"""
         row = self.backup_table.currentRow()
         if row < 0:
-            InfoBar.warning(tr("common.hint"), tr("dialog.select_backup_first"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.select_backup_first"), parent=self
+            )
             return
 
         backup_path = Path(self.backup_table.item(row, 3).text())
@@ -17707,7 +17767,9 @@ class BackupDialog(BaseDialog):
         )
         if w.exec_():
             if self.backup_manager.restore(backup_path, target_path):
-                InfoBar.success(tr("common.success"), tr("dialog.backup_restored"), parent=self)
+                InfoBar.success(
+                    tr("common.success"), tr("dialog.backup_restored"), parent=self
+                )
                 # 重新加载配置
                 if target_path == ConfigPaths.get_opencode_config():
                     self.main_window.opencode_config = ConfigManager.load_json(
@@ -17718,24 +17780,34 @@ class BackupDialog(BaseDialog):
                         target_path
                     )
             else:
-                InfoBar.error(tr("common.error"), tr("dialog.restore_failed"), parent=self)
+                InfoBar.error(
+                    tr("common.error"), tr("dialog.restore_failed"), parent=self
+                )
 
     def _delete_backup(self):
         """删除备份"""
         row = self.backup_table.currentRow()
         if row < 0:
-            InfoBar.warning(tr("common.hint"), tr("dialog.select_backup_first"), parent=self)
+            InfoBar.warning(
+                tr("common.hint"), tr("dialog.select_backup_first"), parent=self
+            )
             return
 
         backup_path = Path(self.backup_table.item(row, 3).text())
 
-        w = FluentMessageBox(tr("common.confirm_delete_title"), tr("dialog.confirm_delete_backup"), self)
+        w = FluentMessageBox(
+            tr("common.confirm_delete_title"), tr("dialog.confirm_delete_backup"), self
+        )
         if w.exec_():
             if self.backup_manager.delete_backup(backup_path):
-                InfoBar.success(tr("common.success"), tr("dialog.backup_deleted"), parent=self)
+                InfoBar.success(
+                    tr("common.success"), tr("dialog.backup_deleted"), parent=self
+                )
                 self._load_backups()
             else:
-                InfoBar.error(tr("common.error"), tr("dialog.delete_failed"), parent=self)
+                InfoBar.error(
+                    tr("common.error"), tr("dialog.delete_failed"), parent=self
+                )
 
 
 # ==================== 程序入口 ====================
