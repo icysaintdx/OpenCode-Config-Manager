@@ -694,7 +694,11 @@
     "config_deleted": "Provider 配置已删除",
     "test_success": "连接测试成功",
     "test_failed": "连接测试失败",
-    "select_provider_first": "请先选择一个 Provider"
+    "select_provider_first": "请先选择一个 Provider",
+    "detected_env_vars": "检测到环境变量",
+    "auth_config": "认证配置",
+    "import_env_var": "导入 {env_var}",
+    "provider_options": "Provider 选项"
   },
   "dialog": {
     "select_at_least_one_model": "请选择至少一个模型",

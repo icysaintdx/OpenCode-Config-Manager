@@ -547,7 +547,11 @@
     "config_deleted": "Provider configuration deleted",
     "test_success": "Connection test successful",
     "test_failed": "Connection test failed",
-    "select_provider_first": "Please select a provider first"
+    "select_provider_first": "Please select a provider first",
+    "detected_env_vars": "Detected environment variables",
+    "auth_config": "Authentication Configuration",
+    "import_env_var": "Import {env_var}",
+    "provider_options": "Provider Options"
   },
   "dialog": {
     "select_at_least_one_model": "Please select at least one model",

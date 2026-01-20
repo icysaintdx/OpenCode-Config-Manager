@@ -6169,7 +6169,7 @@ class NativeProviderPage(BasePage):
     """原生 Provider 配置页面 - 管理 OpenCode 官方支持的原生 AI 服务提供商"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("原生 Provider", parent)
+        super().__init__(tr("native_provider.title"), parent)
         self.main_window = main_window
         self.auth_manager = AuthManager()
         self.env_detector = EnvVarDetector()
@@ -6187,15 +6187,21 @@ class NativeProviderPage(BasePage):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        self.config_btn = PrimaryPushButton(FIF.SETTING, "配置 Provider", self)
+        self.config_btn = PrimaryPushButton(
+            FIF.SETTING, tr("native_provider.config_provider"), self
+        )
         self.config_btn.clicked.connect(self._on_config)
         toolbar.addWidget(self.config_btn)
 
-        self.test_btn = PushButton(FIF.WIFI, "测试连接", self)
+        self.test_btn = PushButton(
+            FIF.WIFI, tr("native_provider.test_connection"), self
+        )
         self.test_btn.clicked.connect(self._on_test)
         toolbar.addWidget(self.test_btn)
 
-        self.delete_btn = PushButton(FIF.DELETE, "删除配置", self)
+        self.delete_btn = PushButton(
+            FIF.DELETE, tr("native_provider.delete_config"), self
+        )
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
@@ -6205,7 +6211,14 @@ class NativeProviderPage(BasePage):
         # Provider 列表表格
         self.table = TableWidget(self)
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
+        self.table.setHorizontalHeaderLabels(
+            [
+                "Provider",
+                "SDK",
+                tr("native_provider.status"),
+                tr("native_provider.env_vars"),
+            ]
+        )
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
@@ -6246,7 +6259,11 @@ class NativeProviderPage(BasePage):
 
             # 状态
             is_configured = provider.id in auth_data and auth_data[provider.id]
-            status_text = "已配置" if is_configured else "未配置"
+            status_text = (
+                tr("native_provider.configured")
+                if is_configured
+                else tr("native_provider.not_configured")
+            )
             status_item = QTableWidgetItem(status_text)
             if is_configured:
                 status_item.setForeground(QColor("#4CAF50"))
@@ -7050,237 +7067,6 @@ class ProviderDialog(BaseDialog):
 
 
 # ==================== 原生 Provider 页面 ====================
-class NativeProviderPage(BasePage):
-    """原生 Provider 配置页面 - 管理 OpenCode 官方支持的原生 AI 服务提供商"""
-
-    def __init__(self, main_window, parent=None):
-        super().__init__("原生 Provider", parent)
-        self.main_window = main_window
-        self.auth_manager = AuthManager()
-        self.env_detector = EnvVarDetector()
-        self._setup_ui()
-        self._load_data()
-        # 连接配置变更信号
-        self.main_window.config_changed.connect(self._on_config_changed)
-
-    def _on_config_changed(self):
-        """配置变更时刷新列表"""
-        self._load_data()
-
-    def _setup_ui(self):
-        """初始化 UI 布局"""
-        # 工具栏
-        toolbar = QHBoxLayout()
-
-        self.config_btn = PrimaryPushButton(FIF.SETTING, "配置 Provider", self)
-        self.config_btn.clicked.connect(self._on_config)
-        toolbar.addWidget(self.config_btn)
-
-        self.test_btn = PushButton(FIF.WIFI, "测试连接", self)
-        self.test_btn.clicked.connect(self._on_test)
-        toolbar.addWidget(self.test_btn)
-
-        self.delete_btn = PushButton(FIF.DELETE, "删除配置", self)
-        self.delete_btn.clicked.connect(self._on_delete)
-        toolbar.addWidget(self.delete_btn)
-
-        toolbar.addStretch()
-        self._layout.addLayout(toolbar)
-
-        # Provider 列表表格
-        self.table = TableWidget(self)
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Provider", "SDK", "状态", "环境变量"])
-
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Fixed)
-        header.resizeSection(0, 160)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Fixed)
-        header.resizeSection(2, 80)
-        header.setSectionResizeMode(3, QHeaderView.Stretch)
-
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table.doubleClicked.connect(self._on_config)
-        self._layout.addWidget(self.table)
-
-    def _load_data(self):
-        """加载 Provider 数据"""
-        self.table.setRowCount(0)
-
-        # 读取已配置的认证
-        auth_data = {}
-        try:
-            auth_data = self.auth_manager.read_auth()
-        except Exception:
-            pass
-
-        for provider in NATIVE_PROVIDERS:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-
-            # Provider 名称
-            name_item = QTableWidgetItem(provider.name)
-            name_item.setData(Qt.UserRole, provider.id)
-            self.table.setItem(row, 0, name_item)
-
-            # SDK
-            self.table.setItem(row, 1, QTableWidgetItem(provider.sdk))
-
-            # 状态
-            is_configured = provider.id in auth_data and auth_data[provider.id]
-            status_text = "已配置" if is_configured else "未配置"
-            status_item = QTableWidgetItem(status_text)
-            if is_configured:
-                status_item.setForeground(QColor("#4CAF50"))
-            else:
-                status_item.setForeground(QColor("#9E9E9E"))
-            self.table.setItem(row, 2, status_item)
-
-            # 环境变量
-            env_vars = ", ".join(provider.env_vars) if provider.env_vars else "-"
-            env_item = QTableWidgetItem(env_vars)
-            env_item.setToolTip(env_vars)
-            self.table.setItem(row, 3, env_item)
-
-    def _get_selected_provider(self) -> Optional[NativeProviderConfig]:
-        """获取当前选中的 Provider"""
-        row = self.table.currentRow()
-        if row < 0:
-            return None
-        provider_id = self.table.item(row, 0).data(Qt.UserRole)
-        return get_native_provider(provider_id)
-
-    def _on_config(self):
-        """配置 Provider"""
-        provider = self._get_selected_provider()
-        if not provider:
-            self.show_warning("提示", "请先选择一个 Provider")
-            return
-
-        dialog = NativeProviderDialog(
-            self.main_window,
-            provider,
-            self.auth_manager,
-            self.env_detector,
-            parent=self,
-        )
-        if dialog.exec_():
-            self._load_data()
-            self.show_success("成功", f"{provider.name} 配置已保存")
-
-    def _on_test(self):
-        """测试连接"""
-        provider = self._get_selected_provider()
-        if not provider:
-            self.show_warning("提示", "请先选择一个 Provider")
-            return
-
-        if not provider.test_endpoint:
-            self.show_warning("提示", "此 Provider 不支持连接测试")
-            return
-
-        # 获取认证信息
-        auth_data = self.auth_manager.get_provider_auth(provider.id)
-        if not auth_data:
-            self.show_error("测试失败", "请先配置此 Provider")
-            return
-
-        api_key = auth_data.get("apiKey", "")
-        if api_key:
-            api_key = _resolve_env_value(api_key)
-
-        if not api_key:
-            self.show_error("测试失败", "未找到 API Key")
-            return
-
-        # 获取 baseURL
-        config = self.main_window.opencode_config or {}
-        provider_options = (
-            config.get("provider", {}).get(provider.id, {}).get("options", {})
-        )
-        base_url = provider_options.get("baseURL", "")
-
-        if not base_url:
-            default_urls = {
-                "anthropic": "https://api.anthropic.com",
-                "openai": "https://api.openai.com",
-                "gemini": "https://generativelanguage.googleapis.com",
-                "xai": "https://api.x.ai",
-                "groq": "https://api.groq.com",
-                "openrouter": "https://openrouter.ai/api",
-                "deepseek": "https://api.deepseek.com",
-                "opencode": "https://api.opencode.ai",
-            }
-            base_url = default_urls.get(provider.id, "")
-
-        if not base_url:
-            self.show_error("测试失败", "无法确定 API 地址")
-            return
-
-        test_url = base_url.rstrip("/") + provider.test_endpoint
-
-        # 执行测试
-        self.show_warning("测试中", "正在测试连接...")
-
-        start_time = time.time()
-        try:
-            req = urllib.request.Request(test_url)
-            req.add_header("Authorization", f"Bearer {api_key}")
-            req.add_header("x-api-key", api_key)
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                elapsed = int((time.time() - start_time) * 1000)
-                self.show_success("连接成功", f"响应时间: {elapsed}ms")
-        except urllib.error.HTTPError as e:
-            self.show_error("连接失败", f"HTTP {e.code}: {e.reason}")
-        except Exception as e:
-            self.show_error("连接失败", str(e))
-
-    def _on_delete(self):
-        """删除配置"""
-        provider = self._get_selected_provider()
-        if not provider:
-            self.show_warning("提示", "请先选择一个 Provider")
-            return
-
-        # 检查是否已配置
-        auth_data = self.auth_manager.get_provider_auth(provider.id)
-        if not auth_data:
-            self.show_warning("提示", "此 Provider 尚未配置")
-            return
-
-        # 确认删除
-        msg_box = FluentMessageBox(
-            "确认删除",
-            f"确定要删除 {provider.name} 的配置吗？\n这将删除认证信息和选项配置。",
-            self,
-        )
-        if msg_box.exec_() != QMessageBox.Yes:
-            return
-
-        # 删除认证
-        try:
-            self.auth_manager.delete_provider_auth(provider.id)
-        except Exception as e:
-            self.show_error("删除失败", f"无法删除认证配置: {e}")
-            return
-
-        # 删除选项
-        config = self.main_window.opencode_config or {}
-        if "provider" in config and provider.id in config["provider"]:
-            if "options" in config["provider"][provider.id]:
-                del config["provider"][provider.id]["options"]
-                if not config["provider"][provider.id]:
-                    del config["provider"][provider.id]
-                self.main_window.opencode_config = config
-                self.main_window.save_opencode_config()
-
-        self.show_success("删除成功", f"{provider.name} 配置已删除")
-        self._load_data()
-
-
 class NativeProviderDialog(QDialog):
     """原生 Provider 配置对话框"""
 
@@ -7307,28 +7093,6 @@ class NativeProviderDialog(QDialog):
         self.setMinimumWidth(500)
         self.setMinimumHeight(400)
 
-        # 设置深色背景样式
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #2b2b2b;
-            }
-            QGroupBox {
-                background-color: #363636;
-                border: 1px solid #454545;
-                border-radius: 6px;
-                margin-top: 12px;
-                padding-top: 10px;
-                color: #e0e0e0;
-                font-weight: bold;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-                color: #e0e0e0;
-            }
-        """)
-
         layout = QVBoxLayout(self)
         layout.setSpacing(16)
 
@@ -7340,7 +7104,8 @@ class NativeProviderDialog(QDialog):
         detected_env = self.env_detector.detect_env_vars(self.provider.id)
         if detected_env:
             env_hint = CaptionLabel(
-                f"✓ 检测到环境变量: {', '.join(detected_env.keys())}", self
+                f"✓ {tr('native_provider.detected_env_vars')}: {', '.join(detected_env.keys())}",
+                self,
             )
             env_hint.setStyleSheet("color: #4CAF50;")
             layout.addWidget(env_hint)
@@ -7351,7 +7116,7 @@ class NativeProviderDialog(QDialog):
         auth_card_layout.setContentsMargins(16, 16, 16, 16)
         auth_card_layout.setSpacing(12)
 
-        auth_title = StrongBodyLabel("认证配置", auth_card)
+        auth_title = StrongBodyLabel(tr("native_provider.auth_config"), auth_card)
         auth_card_layout.addWidget(auth_title)
 
         current_auth = self.auth_manager.get_provider_auth(self.provider.id) or {}
@@ -7381,7 +7146,9 @@ class NativeProviderDialog(QDialog):
             env_var = self._get_env_var_for_field(field.key)
             if env_var and env_var in detected_env:
                 import_btn = ToolButton(FIF.DOWNLOAD, auth_card)
-                import_btn.setToolTip(f"导入 {env_var}")
+                import_btn.setToolTip(
+                    tr("native_provider.import_env_var", env_var=env_var)
+                )
                 import_btn.clicked.connect(
                     partial(self._import_env_var, input_widget, env_var)
                 )
@@ -7399,7 +7166,9 @@ class NativeProviderDialog(QDialog):
             option_card_layout.setContentsMargins(16, 16, 16, 16)
             option_card_layout.setSpacing(12)
 
-            option_title = StrongBodyLabel("Provider 选项", option_card)
+            option_title = StrongBodyLabel(
+                tr("native_provider.provider_options"), option_card
+            )
             option_card_layout.addWidget(option_title)
 
             config = self.main_window.opencode_config or {}
@@ -7437,11 +7206,11 @@ class NativeProviderDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        cancel_btn = PushButton("取消", self)
+        cancel_btn = PushButton(tr("common.cancel"), self)
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        save_btn = PrimaryPushButton("保存", self)
+        save_btn = PrimaryPushButton(tr("common.save"), self)
         save_btn.clicked.connect(self._on_save)
         btn_layout.addWidget(save_btn)
 
