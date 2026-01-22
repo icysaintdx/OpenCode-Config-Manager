@@ -12121,7 +12121,7 @@ class OhMyAgentPage(BasePage):
         current = self.bulk_model_combo.currentText()
         self.bulk_model_combo.blockSignals(True)
         self.bulk_model_combo.clear()
-        self.bulk_model_combo.addItem("- 全部保持 -")
+        self.bulk_model_combo.addItem(tr("common.keep_all"))
         self.bulk_model_combo.addItems(models)
         if current:
             self.bulk_model_combo.setCurrentText(current)
@@ -12140,7 +12140,7 @@ class OhMyAgentPage(BasePage):
 
     def _on_bulk_model_changed(self) -> None:
         model = self.bulk_model_combo.currentText()
-        if model == "- 全部保持 -":
+        if model == tr("common.keep_all"):
             return
         config = self.main_window.ohmyopencode_config
         if config is None:
@@ -12459,7 +12459,12 @@ class CategoryPage(BasePage):
         self.table = TableWidget(self)
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
-            ["名称", "绑定模型", "Temperature", "描述"]
+            [
+                tr("common.name"),
+                tr("category.bind_model").rstrip(":"),
+                "Temperature",
+                tr("common.description"),
+            ]
         )
         # 调整列宽：名称20字符，Temperature12字符，剩余均分
         header = self.table.horizontalHeader()
@@ -12522,7 +12527,7 @@ class CategoryPage(BasePage):
         current = self.bulk_model_combo.currentText()
         self.bulk_model_combo.blockSignals(True)
         self.bulk_model_combo.clear()
-        self.bulk_model_combo.addItem("- 全部保持 -")
+        self.bulk_model_combo.addItem(tr("common.keep_all"))
         self.bulk_model_combo.addItems(models)
         if current:
             self.bulk_model_combo.setCurrentText(current)
@@ -12541,7 +12546,7 @@ class CategoryPage(BasePage):
 
     def _on_bulk_model_changed(self) -> None:
         model = self.bulk_model_combo.currentText()
-        if model == "- 全部保持 -":
+        if model == tr("common.keep_all"):
             return
         config = self.main_window.ohmyopencode_config
         if config is None:
@@ -17889,14 +17894,16 @@ class ImportPage(BasePage):
 
     def _setup_ui(self):
         # 检测到的配置卡片
-        detect_card = self.add_card("检测到的外部配置")
+        detect_card = self.add_card(tr("cli_export.detected_configs"))
         detect_card.setStyleSheet(
             "SimpleCardWidget { background-color: transparent; border: none; }"
         )
         detect_layout = detect_card.layout()
 
         # 刷新按钮
-        refresh_btn = PrimaryPushButton(FIF.SYNC, "刷新检测", detect_card)
+        refresh_btn = PrimaryPushButton(
+            FIF.SYNC, tr("cli_export.refresh_detection"), detect_card
+        )
         refresh_btn.clicked.connect(self._refresh_scan)
         detect_layout.addWidget(refresh_btn)
 

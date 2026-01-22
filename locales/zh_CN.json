@@ -709,6 +709,7 @@
   "cli_export": {
     "title": "CLI 工具导出",
     "description": "将 OpenCode 中的 Provider 配置一键导出到 Claude Code / Codex CLI / Gemini CLI 使用",
+    "detected_configs": "检测到的外部配置",
     "fix": "修复",
     "refresh_detection": "刷新检测",
     "batch_export_all": "一键导出全部",

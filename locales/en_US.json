@@ -745,6 +745,7 @@
   "cli_export": {
     "title": "CLI Export",
     "description": "Export OpenCode Provider configuration to Claude Code / Codex CLI / Gemini CLI with one click",
+    "detected_configs": "Detected External Configurations",
     "fix": "Fix",
     "refresh_detection": "Refresh Detection",
     "batch_export_all": "Export All",
