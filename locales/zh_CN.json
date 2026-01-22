@@ -660,6 +660,8 @@
     "add_permission": "添加权限",
     "skill_saved": "Skill 已保存",
     "skill_deleted": "Skill 已删除",
+    "skill_deleted_detail": "Skill \"{name}\" 已删除",
+    "skill_saved_detail": "Skill 已保存: {path}",
     "permission_tab": {
       "global_title": "全局 Skill 权限",
       "global_subtitle": "配置 permission.skill 权限，控制 Skill 的加载行为",
@@ -778,7 +780,8 @@
     "not_detected": "未检测",
     "import_success": "导入成功",
     "import_failed": "导入失败",
-    "no_configs_detected": "未检测到可导入的配置"
+    "no_configs_detected": "未检测到可导入的配置",
+    "config_imported": "已导入 {source} 的配置"
   },
   "permission": {
     "title": "权限管理",
@@ -811,7 +814,10 @@
     "category_exists": "Category \"{name}\" 已存在",
     "category_saved": "Category 已保存",
     "category_deleted": "Category 已删除",
-    "delete_confirm_msg": "确定要删除 Category \"{name}\" 吗？"
+    "delete_confirm_msg": "确定要删除 Category \"{name}\" 吗？",
+    "category_added": "Category 已添加",
+    "preset_category_added": "预设 Category 已添加",
+    "category_updated": "Category 已更新"
   },
   "ohmyagent": {
     "title": "Oh My Agent",
@@ -825,7 +831,10 @@
     "select_model": "选择模型",
     "agent_saved": "Agent 已保存",
     "agent_deleted": "Agent 已删除",
-    "delete_confirm_msg": "确定要删除 Agent \"{name}\" 吗？"
+    "delete_confirm_msg": "确定要删除 Agent \"{name}\" 吗？",
+    "agent_added": "Agent 已添加",
+    "preset_agent_added": "预设 Agent 已添加",
+    "agent_updated": "Agent 已更新"
   },
   "help": {
     "title": "帮助",
@@ -874,9 +883,12 @@
     "project": "项目",
     "save_instructions": "保存 Instructions",
     "save_agents_md": "保存 AGENTS.md",
-    "instructions_saved": "Instructions 已保存",
-    "agents_md_saved": "AGENTS.md 已保存",
-    "load_template": "加载模板"
+    "instructions_saved": "Instructions 配置已保存",
+    "agents_md_saved": "AGENTS.md 已保存: {path}",
+    "load_template": "加载模板",
+    "permission_deleted": "权限 \"{pattern}\" 已删除",
+    "permission_saved": "权限 \"{pattern}\" 已保存",
+    "agent_permission_added": "Agent \"{agent}\" 权限 \"{pattern}\" 已添加"
   },
   "compaction": {
     "title": "上下文压缩",

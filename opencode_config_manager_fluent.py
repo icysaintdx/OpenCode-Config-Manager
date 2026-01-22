@@ -12165,14 +12165,18 @@ class OhMyAgentPage(BasePage):
         dialog = OhMyAgentDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Agent 已添加")
+            self.show_success(
+                self.tr("common.success"), self.tr("ohmyagent.agent_added")
+            )
 
     def _on_add_preset(self):
         """从预设添加 Agent"""
         dialog = PresetOhMyAgentDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "预设 Agent 已添加")
+            self.show_success(
+                self.tr("common.success"), self.tr("ohmyagent.preset_agent_added")
+            )
 
     def _on_edit(self):
         """编辑 Agent"""
@@ -12187,7 +12191,9 @@ class OhMyAgentPage(BasePage):
         dialog = OhMyAgentDialog(self.main_window, agent_name=name, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Agent 已更新")
+            self.show_success(
+                self.tr("common.success"), self.tr("ohmyagent.agent_updated")
+            )
 
     def _on_delete(self):
         """删除 Agent"""
@@ -12570,13 +12576,17 @@ class CategoryPage(BasePage):
         dialog = CategoryDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Category 已添加")
+            self.show_success(
+                self.tr("common.success"), self.tr("category.category_added")
+            )
 
     def _on_add_preset(self):
         dialog = PresetCategoryDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "预设 Category 已添加")
+            self.show_success(
+                self.tr("common.success"), self.tr("category.preset_category_added")
+            )
 
     def _on_edit(self):
         row = self.table.currentRow()
@@ -12590,7 +12600,9 @@ class CategoryPage(BasePage):
         dialog = CategoryDialog(self.main_window, category_name=name, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", "Category 已更新")
+            self.show_success(
+                self.tr("common.success"), self.tr("category.category_updated")
+            )
 
     def _on_delete(self):
         row = self.table.currentRow()
@@ -14427,7 +14439,12 @@ class SkillPage(BasePage):
             try:
                 skill_dir = self._current_skill.path.parent
                 shutil.rmtree(skill_dir)
-                self.show_success("成功", f'Skill "{self._current_skill.name}" 已删除')
+                self.show_success(
+                    self.tr("common.success"),
+                    self.tr(
+                        "skill.skill_deleted_detail", name=self._current_skill.name
+                    ),
+                )
                 self._current_skill = None
                 self._refresh_skill_list()
                 self._clear_detail()
@@ -14621,7 +14638,10 @@ class SkillPage(BasePage):
             with open(skill_file, "w", encoding="utf-8") as f:
                 f.write(skill_content)
 
-            self.show_success("成功", f"Skill 已保存: {skill_file}")
+            self.show_success(
+                self.tr("common.success"),
+                self.tr("skill.skill_saved_detail", path=str(skill_file)),
+            )
             self._refresh_skill_list()
             self._on_clear_create_form()
         except Exception as e:
@@ -14845,7 +14865,10 @@ class SkillPage(BasePage):
                 del skill_perms[pattern]
                 self.main_window.save_opencode_config()
                 self._load_permission_data()
-                self.show_success("成功", f'权限 "{pattern}" 已删除')
+                self.show_success(
+                    self.tr("common.success"),
+                    self.tr("rules.permission_deleted", pattern=pattern),
+                )
 
     def _on_perm_selected(self):
         """选中权限时填充编辑区"""
@@ -14880,7 +14903,10 @@ class SkillPage(BasePage):
         config["permission"]["skill"][pattern] = self.perm_level_combo.currentText()
         self.main_window.save_opencode_config()
         self._load_permission_data()
-        self.show_success("成功", f'权限 "{pattern}" 已保存')
+        self.show_success(
+            self.tr("common.success"),
+            self.tr("rules.permission_saved", pattern=pattern),
+        )
 
     def _on_agent_changed(self, agent_name: str):
         """切换 Agent 时加载其配置"""
@@ -14957,7 +14983,10 @@ class SkillPage(BasePage):
         )
         self.main_window.save_opencode_config()
         self._load_agent_skill_config(agent_name)
-        self.show_success("成功", f'Agent "{agent_name}" 权限 "{pattern}" 已添加')
+        self.show_success(
+            self.tr("common.success"),
+            self.tr("rules.agent_permission_added", agent=agent_name, pattern=pattern),
+        )
 
     def _on_delete_agent_permission(self):
         """删除 Agent 权限覆盖"""
@@ -14984,7 +15013,10 @@ class SkillPage(BasePage):
             del agent_perms[pattern]
             self.main_window.save_opencode_config()
             self._load_agent_skill_config(agent_name)
-            self.show_success("成功", f'权限 "{pattern}" 已删除')
+            self.show_success(
+                self.tr("common.success"),
+                self.tr("rules.permission_deleted", pattern=pattern),
+            )
 
     def _on_open_market(self):
         """打开 Skill 市场"""
@@ -15352,7 +15384,9 @@ class RulesPage(BasePage):
 
     def _on_save_instructions(self):
         self.main_window.save_opencode_config()
-        self.show_success("成功", "Instructions 配置已保存")
+        self.show_success(
+            self.tr("common.success"), self.tr("rules.instructions_saved")
+        )
 
     def _get_agents_path(self) -> Path:
         if self.global_radio.isChecked():
@@ -15384,7 +15418,10 @@ class RulesPage(BasePage):
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
-            self.show_success("成功", f"AGENTS.md 已保存: {path}")
+            self.show_success(
+                self.tr("common.success"),
+                self.tr("rules.agents_md_saved", path=str(path)),
+            )
         except Exception as e:
             self.show_error("错误", f"保存失败: {e}")
 
@@ -18190,7 +18227,10 @@ class ImportPage(BasePage):
 
         # 保存
         if self.main_window.save_opencode_config():
-            self.show_success("成功", f"已导入 {source} 的配置")
+            self.show_success(
+                self.tr("common.success"),
+                self.tr("import.config_imported", source=source),
+            )
 
     def _confirm_mapping(self):
         """手动确认映射"""

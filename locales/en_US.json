@@ -644,6 +644,8 @@
     "add_permission": "Add Permission",
     "skill_saved": "Skill saved",
     "skill_deleted": "Skill deleted",
+    "skill_deleted_detail": "Skill \"{name}\" deleted",
+    "skill_saved_detail": "Skill saved: {path}",
     "permission_tab": {
       "global_title": "Global Skill Permissions",
       "global_subtitle": "Configure permission.skill permissions to control Skill loading behavior",
@@ -825,7 +827,29 @@
     "select_model": "Select Model",
     "agent_saved": "Agent saved",
     "agent_deleted": "Agent deleted",
-    "delete_confirm_msg": "Are you sure you want to delete Agent \"{name}\"?"
+    "delete_confirm_msg": "Are you sure you want to delete Agent \"{name}\"?",
+    "agent_added": "Agent added",
+    "preset_agent_added": "Preset Agent added",
+    "agent_updated": "Agent updated"
+  },
+  "category": {
+    "title": "Category Management",
+    "add_category": "Add Category",
+    "edit_category": "Edit Category",
+    "delete_category": "Delete Category",
+    "category_name": "Category Name",
+    "bind_model": "Bind Model:",
+    "temperature": "Temperature",
+    "models": "Model List",
+    "select_models": "Select Models",
+    "select_preset_category": "Select Preset Category",
+    "category_exists": "Category \"{name}\" already exists",
+    "category_saved": "Category saved",
+    "category_deleted": "Category deleted",
+    "delete_confirm_msg": "Are you sure you want to delete Category \"{name}\"?",
+    "category_added": "Category added",
+    "preset_category_added": "Preset Category added",
+    "category_updated": "Category updated"
   },
   "rules": {
     "title": "Rules Management",
@@ -839,9 +863,12 @@
     "project": "Project",
     "save_instructions": "Save Instructions",
     "save_agents_md": "Save AGENTS.md",
-    "instructions_saved": "Instructions saved",
-    "agents_md_saved": "AGENTS.md saved",
-    "load_template": "Load Template"
+    "instructions_saved": "Instructions configuration saved",
+    "agents_md_saved": "AGENTS.md saved: {path}",
+    "load_template": "Load Template",
+    "permission_deleted": "Permission \"{pattern}\" deleted",
+    "permission_saved": "Permission \"{pattern}\" saved",
+    "agent_permission_added": "Agent \"{agent}\" permission \"{pattern}\" added"
   },
   "backup": {
     "title": "Backup Management",
@@ -883,7 +910,8 @@
     "not_detected": "Not Detected",
     "import_success": "Import successful",
     "import_failed": "Import failed",
-    "no_configs_detected": "No importable configurations detected"
+    "no_configs_detected": "No importable configurations detected",
+    "config_imported": "Imported configuration from {source}"
   },
   "native_provider": {
     "title": "Native Provider",
