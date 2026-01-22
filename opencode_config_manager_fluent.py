@@ -14885,7 +14885,9 @@ class SkillPage(BasePage):
         """保存权限"""
         pattern = self.perm_pattern_edit.text().strip()
         if not pattern:
-            self.show_warning("提示", "请输入模式")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.please_enter_pattern")
+            )
             return
 
         config = self.main_window.opencode_config
@@ -14960,7 +14962,9 @@ class SkillPage(BasePage):
         """添加 Agent 权限覆盖"""
         pattern = self.agent_perm_pattern_edit.text().strip()
         if not pattern:
-            self.show_warning("提示", "请输入模式")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.please_enter_pattern")
+            )
             return
 
         agent_name = self.agent_combo.currentText()
@@ -15079,7 +15083,9 @@ class SkillPage(BasePage):
             target_dir = dialog.get_target_dir()
 
             if not source:
-                self.show_warning("提示", "请输入来源")
+                self.show_warning(
+                    self.tr("common.info"), self.tr("common.please_enter_source")
+                )
                 return
 
             try:
@@ -15352,7 +15358,9 @@ class RulesPage(BasePage):
     def _on_add_instruction(self):
         path = self.inst_path_edit.text().strip()
         if not path:
-            self.show_warning("提示", "请输入文件路径")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.please_enter_file_path")
+            )
             return
 
         config = self.main_window.opencode_config
@@ -18093,7 +18101,9 @@ class ImportPage(BasePage):
                 source_type, results[source]["data"]
             )
             if not converted:
-                self.show_warning("提示", "无法转换此配置格式")
+                self.show_warning(
+                    self.tr("common.info"), self.tr("common.cannot_convert_format")
+                )
                 return
 
             import json
@@ -18157,7 +18167,9 @@ class ImportPage(BasePage):
 
             dialog.exec_()
         else:
-            self.show_warning("提示", "所选配置不存在或为空")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.config_not_exist_or_empty")
+            )
 
     def _import_selected(self):
         """导入选中的配置"""
@@ -18170,7 +18182,9 @@ class ImportPage(BasePage):
         results = self.import_service.scan_external_configs()
 
         if source not in results or not results[source]["data"]:
-            self.show_warning("提示", "所选配置不存在或为空")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.config_not_exist_or_empty")
+            )
             return
 
         source_type = results[source].get("type", "")
@@ -18179,7 +18193,9 @@ class ImportPage(BasePage):
         )
 
         if not converted:
-            self.show_warning("提示", "无法转换此配置格式")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.cannot_convert_format")
+            )
             return
 
         # 打开确认映射对话框
@@ -18188,7 +18204,9 @@ class ImportPage(BasePage):
             return
         confirmed = dialog.get_confirmed_config()
         if not confirmed:
-            self.show_warning("提示", "未确认任何有效的导入配置")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.no_valid_import_config")
+            )
             return
 
         self._apply_import(source, confirmed)
@@ -18244,7 +18262,9 @@ class ImportPage(BasePage):
             return
         confirmed = dialog.get_confirmed_config()
         if not confirmed:
-            self.show_warning("提示", "未确认任何有效的导入配置")
+            self.show_warning(
+                self.tr("common.info"), self.tr("common.no_valid_import_config")
+            )
             return
         self._apply_import("手动确认", confirmed)
 

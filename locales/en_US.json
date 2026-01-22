@@ -80,7 +80,13 @@
     "add_from_preset": "Add from Preset",
     "bulk_model": "Bulk Model",
     "keep_all": "- Keep All -",
-    "confirm_delete_title": "Confirm Delete"
+    "confirm_delete_title": "Confirm Delete",
+    "please_enter_pattern": "Please enter pattern",
+    "please_enter_source": "Please enter source",
+    "please_enter_file_path": "Please enter file path",
+    "cannot_convert_format": "Cannot convert this configuration format",
+    "config_not_exist_or_empty": "Selected configuration does not exist or is empty",
+    "no_valid_import_config": "No valid import configuration confirmed"
   },
   "home": {
     "title": "Home",
