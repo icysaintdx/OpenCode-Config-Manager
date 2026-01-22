@@ -6863,7 +6863,10 @@ class NativeProviderPage(BasePage):
         )
         if dialog.exec_():
             self._load_data()
-            self.show_success("成功", f"{provider.name} 配置已保存")
+            self.show_success(
+                tr("common.success"),
+                tr("native_provider.config_saved", name=provider.name),
+            )
 
     def _on_test(self):
         """测试连接"""
@@ -6875,7 +6878,9 @@ class NativeProviderPage(BasePage):
             return
 
         if not provider.test_endpoint:
-            self.show_warning("提示", "此 Provider 不支持连接测试")
+            self.show_warning(
+                tr("common.info"), tr("native_provider.test_not_supported")
+            )
             return
 
         # 获取认证信息
@@ -6957,7 +6962,9 @@ class NativeProviderPage(BasePage):
         # 检查是否已配置
         auth_data = self.auth_manager.get_provider_auth(provider.id)
         if not auth_data:
-            self.show_warning("提示", "此 Provider 尚未配置")
+            self.show_warning(
+                tr("common.info"), tr("native_provider.provider_not_configured")
+            )
             return
 
         # 确认删除
@@ -7001,7 +7008,9 @@ class NativeProviderPage(BasePage):
         # 获取认证信息
         auth_data = self.auth_manager.get_provider_auth(provider.id)
         if not auth_data:
-            self.show_warning("提示", "此 Provider 尚未配置")
+            self.show_warning(
+                tr("common.info"), tr("native_provider.provider_not_configured")
+            )
             return
 
         # 获取 API Key
