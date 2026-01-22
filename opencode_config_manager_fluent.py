@@ -7016,7 +7016,7 @@ class NativeProviderPage(BasePage):
         # 获取 API Key
         api_key = auth_data.get("apiKey", "")
         if not api_key:
-            self.show_warning("提示", "未配置 API Key")
+            self.show_warning(tr("common.info"), tr("provider.no_api_key"))
             return
 
         # 获取 baseURL
@@ -7026,7 +7026,7 @@ class NativeProviderPage(BasePage):
         base_url = options.get("baseURL", provider.default_base_url)
 
         if not base_url:
-            self.show_warning("提示", "未配置 baseURL")
+            self.show_warning(tr("common.info"), tr("provider.no_base_url"))
             return
 
         # 显示加载提示
@@ -7890,7 +7890,9 @@ class ProviderDialog(BaseDialog):
             service.fetch_async(name, options)
         else:
             InfoBar.warning(
-                "提示", "未配置 baseURL 或模型列表地址，跳过自动拉取", parent=self
+                tr("common.info"),
+                tr("provider.no_base_url") + "，跳过自动拉取",
+                parent=self,
             )
 
         self.accept()
@@ -8882,7 +8884,9 @@ class ModelDialog(BaseDialog):
         """添加变体"""
         name = self.variant_name_edit.text().strip()
         if not name:
-            InfoBar.warning("提示", "请输入变体名称", parent=self)
+            InfoBar.warning(
+                tr("common.info"), tr("model.enter_variant_name"), parent=self
+            )
             return
         try:
             config = json.loads(self.variant_config_edit.toPlainText().strip() or "{}")
@@ -9200,7 +9204,9 @@ class PresetModelDialog(BaseDialog):
                 added += 1
 
         self.main_window.save_opencode_config()
-        InfoBar.success("成功", f"已添加 {added} 个模型", parent=self)
+        InfoBar.success(
+            tr("common.success"), tr("provider.models_added", count=added), parent=self
+        )
         self.accept()
 
 
@@ -12819,7 +12825,11 @@ class PresetCategoryDialog(BaseDialog):
             config["categories"] = {}
 
         if name in config["categories"]:
-            InfoBar.warning("提示", f'Category "{name}" 已存在', parent=self)
+            InfoBar.warning(
+                tr("common.info"),
+                tr("category.category_exists", name=name),
+                parent=self,
+            )
             return
 
         config["categories"][name] = {
@@ -18425,7 +18435,9 @@ class BackupDialog(BaseDialog):
             ConfigPaths.get_opencode_config(), tag="manual"
         )
         if path:
-            InfoBar.success("成功", f"已备份到: {path}", parent=self)
+            InfoBar.success(
+                tr("common.success"), tr("backup.backed_up_to", path=path), parent=self
+            )
             self._load_backups()
         else:
             InfoBar.error(tr("common.error"), tr("dialog.backup_failed"), parent=self)
@@ -18436,7 +18448,9 @@ class BackupDialog(BaseDialog):
             ConfigPaths.get_ohmyopencode_config(), tag="manual"
         )
         if path:
-            InfoBar.success("成功", f"已备份到: {path}", parent=self)
+            InfoBar.success(
+                tr("common.success"), tr("backup.backed_up_to", path=path), parent=self
+            )
             self._load_backups()
         else:
             InfoBar.error(tr("common.error"), tr("dialog.backup_failed"), parent=self)

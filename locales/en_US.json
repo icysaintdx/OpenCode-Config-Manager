@@ -257,6 +257,7 @@
     "custom_model": "Custom Model",
     "thinking_mode": "Thinking Mode",
     "thinking_budget": "Thinking Budget",
+    "enter_variant_name": "Please enter variant name",
     "delete_confirm": "Are you sure to delete model \"{name}\"?\nThis action cannot be undone.",
     "delete_confirm_title": "Confirm Delete",
     "added_success": "Model added",
@@ -807,6 +808,7 @@
     "models": "Model List",
     "select_models": "Select Models",
     "select_preset_category": "Select Preset Category",
+    "category_exists": "Category \"{name}\" already exists",
     "category_saved": "Category saved",
     "category_deleted": "Category deleted",
     "delete_confirm_msg": "Are you sure you want to delete Category \"{name}\"?"
@@ -851,6 +853,7 @@
     "backup_time": "Backup Time",
     "file": "File",
     "restore": "Restore",
+    "backed_up_to": "Backed up to: {path}",
     "backup_name": "Backup Name",
     "backup_date": "Backup Date",
     "backup_size": "Size",
