@@ -13343,16 +13343,13 @@ class SkillMarketDialog(MessageBoxBase):
                 tr("skill.market_dialog.repo_label"),
             ]
         )
+        # 设置列宽：名称自适应，描述拉伸，分类和仓库固定宽度
         self.table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeToContents
         )
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeToContents
-        )
-        self.table.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeToContents
-        )
+        self.table.setColumnWidth(2, 100)  # 分类列固定 100px
+        self.table.setColumnWidth(3, 200)  # 仓库列固定 200px
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
