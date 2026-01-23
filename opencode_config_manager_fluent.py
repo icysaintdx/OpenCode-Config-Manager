@@ -11674,9 +11674,8 @@ class MainWindow(FluentWindow):
         # 1. 更新窗口标题
         self.setWindowTitle(f"OCCM - OpenCode Config Manager v{APP_VERSION}")
 
-        # 2. 保存当前选中的页面索引和导航栏展开状态
+        # 2. 保存当前选中的页面索引
         current_index = self.stackedWidget.currentIndex()
-        was_expanded = not self.navigationInterface.isCompact  # 保存展开状态
 
         # 3. 由于 QFluentWidgets 的 NavigationInterface 不支持直接更新文本
         # 我们采用最简单的方案：重新初始化导航栏
@@ -11714,10 +11713,8 @@ class MainWindow(FluentWindow):
             if current_widget and hasattr(current_widget, "_refresh_ui_texts"):
                 current_widget._refresh_ui_texts()
 
-        # 5. 恢复导航栏展开状态
-        if was_expanded:
-            # 如果之前是展开的，保持展开
-            self.navigationInterface.expand(useAni=False)
+        # 5. 强制展开导航栏（避免切换后自动收缩）
+        QTimer.singleShot(100, lambda: self.navigationInterface.expand(useAni=False))
 
         # 6. 通知所有页面刷新文本
         for page in [
