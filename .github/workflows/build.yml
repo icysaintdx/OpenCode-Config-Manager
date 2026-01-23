@@ -162,34 +162,77 @@ jobs:
           Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
           Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.10.11/arm64
 
-      - name: 5. 清理扩展属性 + 签名 .app 包
+      - name: 5. 清理扩展属性 + 签名 .app 包 (使用 entitlements)
         run: |
           # 清理 macOS 扩展属性 彻底解决「文件已损坏」警告
           xattr -cr dist/OCCM_${{ env.TAG_NAME }}.app
-          # 深度强制签名 --deep 递归签所有依赖 --force 覆盖旧签名 --sign - 免证书签名
-          codesign --force --deep --options runtime --sign - dist/OCCM_${{ env.TAG_NAME }}.app
+          # 使用 entitlements.plist 进行签名 (支持 macOS 15.5 + M4 芯片)
+          codesign --force --deep --sign - --entitlements entitlements.plist dist/OCCM_${{ env.TAG_NAME }}.app
           # 验证签名是否成功
           codesign -vvv dist/OCCM_${{ env.TAG_NAME }}.app
         shell: /bin/bash -e {0}
 
-      - name: 6. 打包 DMG 镜像
+      - name: 6. 打包 DMG 镜像 (包含自动安装脚本)
         run: |
           # 安装 create-dmg 已存在则跳过
           brew install create-dmg || true
+          
+          # 创建 DMG 内容目录
+          mkdir -p dmg_contents
+          
+          # 复制 .app
+          cp -R "dist/OCCM_${{ env.TAG_NAME }}.app" dmg_contents/
+          
+          # 创建安装脚本启动器
+          cat > dmg_contents/安装.command << 'EOFINSTALL'
+          #!/bin/bash
+          cd "$(dirname "$0")"
+          ./install_update.sh
+          EOFINSTALL
+          chmod +x dmg_contents/安装.command
+          
+          # 复制安装脚本
+          cp install_update.sh dmg_contents/
+          chmod +x dmg_contents/install_update.sh
+          
+          # 复制诊断脚本
+          cp diagnose_macos.sh dmg_contents/
+          chmod +x dmg_contents/diagnose_macos.sh
+          
+          # 创建 README
+          cat > dmg_contents/README.txt << 'EOFREADME'
+          OCCM - OpenCode Config Manager
+          
+          安装方法:
+          1. 双击"安装.command"自动安装 (推荐)
+          2. 或手动拖拽 OCCM.app 到应用程序文件夹
+          
+          如果遇到"应用已损坏"或无法启动:
+          1. 打开终端
+          2. 运行: xattr -cr /Applications/OCCM.app
+          3. 重新启动应用
+          
+          诊断工具:
+          - 双击 diagnose_macos.sh 运行诊断
+          
+          更多帮助: https://github.com/icysaintdx/OpenCode-Config-Manager
+          EOFREADME
+          
           # 删除旧的 dmg 包 避免冲突
           rm -rf dist/OCCM_${{ env.TAG_NAME }}.dmg
+          
           # 生成 Mac 标准带拖拽引导的 DMG 镜像
           create-dmg \
             --volname "OCCM ${{ env.TAG_NAME }}" \
-            --window-size 800 450 \
-            --icon-size 128 \
+            --window-size 800 500 \
+            --icon-size 100 \
             --icon "OCCM_${{ env.TAG_NAME }}.app" 200 200 \
             --app-drop-link 600 200 \
             --hide-extension "OCCM_${{ env.TAG_NAME }}.app" \
             --volicon "assets/icon.icns" \
             --no-internet-enable \
             "dist/OCCM_${{ env.TAG_NAME }}.dmg" \
-            "dist/OCCM_${{ env.TAG_NAME }}.app"
+            "dmg_contents/"
         shell: /bin/bash -e {0}
 
       - name: 7. 签名 DMG 文件 (修复签名失效问题)

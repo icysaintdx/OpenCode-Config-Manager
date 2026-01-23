@@ -11,6 +11,66 @@ OpenCode & Oh My OpenCode 配置管理器 v1.2.0 (QFluentWidgets 版本)
 # 必须在所有其他 import 之前执行
 import os
 import sys
+import platform
+import traceback
+import time
+
+
+# macOS 崩溃处理器 (必须在 PyQt5 导入之前设置)
+def setup_macos_crash_handler():
+    """设置 macOS 崩溃处理器"""
+    if platform.system() != "Darwin":
+        return
+
+    def exception_handler(exc_type, exc_value, exc_traceback):
+        """捕获未处理的异常"""
+        from pathlib import Path
+
+        # 写入崩溃日志
+        crash_log_dir = Path.home() / "Library" / "Logs" / "OCCM"
+        crash_log_dir.mkdir(parents=True, exist_ok=True)
+
+        crash_log_file = crash_log_dir / f"crash_{int(time.time())}.log"
+
+        with open(crash_log_file, "w", encoding="utf-8") as f:
+            f.write(f"OCCM Crash Report\n")
+            f.write(f"=" * 80 + "\n")
+            f.write(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"System: {platform.platform()}\n")
+            f.write(f"Python: {sys.version}\n")
+            f.write(f"Architecture: {platform.machine()}\n")
+            f.write(f"macOS Version: {platform.mac_ver()[0]}\n")
+            f.write(f"\nException:\n")
+            f.write("=" * 80 + "\n")
+            traceback.print_exception(exc_type, exc_value, exc_traceback, file=f)
+
+        # 尝试显示错误对话框
+        try:
+            from PyQt5.QtWidgets import QMessageBox, QApplication
+
+            app = QApplication.instance() or QApplication(sys.argv)
+            QMessageBox.critical(
+                None,
+                "OCCM 崩溃",
+                f"应用程序遇到错误并需要关闭。\n\n"
+                f"错误日志已保存到:\n{crash_log_file}\n\n"
+                f"请将此日志文件发送给开发者以帮助修复问题。\n\n"
+                f"GitHub: https://github.com/icysaintdx/OpenCode-Config-Manager/issues",
+            )
+        except:
+            # 如果 GUI 无法显示,至少打印到控制台
+            print(f"\n{'=' * 80}")
+            print(f"OCCM 崩溃 - 日志已保存到: {crash_log_file}")
+            print(f"{'=' * 80}\n")
+
+        # 调用默认处理器
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+    sys.excepthook = exception_handler
+
+
+# 立即设置崩溃处理器
+setup_macos_crash_handler()
 
 if sys.platform == "win32" and getattr(sys, "frozen", False):
     # 检查临时目录路径是否包含非 ASCII 字符
