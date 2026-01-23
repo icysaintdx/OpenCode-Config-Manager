@@ -15313,10 +15313,14 @@ class SkillPage(BasePage):
                         owner, repo_name = skill["repo"].split("/")
                         # 获取子目录路径（如果有）
                         subdir = skill.get("path", None)
+
+                        # 自动检测分支 (main 或 master)
+                        branch = SkillInstaller.detect_default_branch(owner, repo_name)
+
                         success, message = SkillInstaller.install_from_github(
                             owner,
                             repo_name,
-                            "main",
+                            branch,
                             target_dir,
                             subdir=subdir,
                             progress_callback=install_dialog.update_progress,
