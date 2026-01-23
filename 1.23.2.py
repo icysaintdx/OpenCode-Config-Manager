@@ -11,66 +11,6 @@ OpenCode & Oh My OpenCode 配置管理器 v1.2.0 (QFluentWidgets 版本)
 # 必须在所有其他 import 之前执行
 import os
 import sys
-import platform
-import traceback
-import time
-
-
-# macOS 崩溃处理器 (必须在 PyQt5 导入之前设置)
-def setup_macos_crash_handler():
-    """设置 macOS 崩溃处理器"""
-    if platform.system() != "Darwin":
-        return
-
-    def exception_handler(exc_type, exc_value, exc_traceback):
-        """捕获未处理的异常"""
-        from pathlib import Path
-
-        # 写入崩溃日志
-        crash_log_dir = Path.home() / "Library" / "Logs" / "OCCM"
-        crash_log_dir.mkdir(parents=True, exist_ok=True)
-
-        crash_log_file = crash_log_dir / f"crash_{int(time.time())}.log"
-
-        with open(crash_log_file, "w", encoding="utf-8") as f:
-            f.write(f"OCCM Crash Report\n")
-            f.write(f"=" * 80 + "\n")
-            f.write(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"System: {platform.platform()}\n")
-            f.write(f"Python: {sys.version}\n")
-            f.write(f"Architecture: {platform.machine()}\n")
-            f.write(f"macOS Version: {platform.mac_ver()[0]}\n")
-            f.write(f"\nException:\n")
-            f.write("=" * 80 + "\n")
-            traceback.print_exception(exc_type, exc_value, exc_traceback, file=f)
-
-        # 尝试显示错误对话框
-        try:
-            from PyQt5.QtWidgets import QMessageBox, QApplication
-
-            app = QApplication.instance() or QApplication(sys.argv)
-            QMessageBox.critical(
-                None,
-                "OCCM 崩溃",
-                f"应用程序遇到错误并需要关闭。\n\n"
-                f"错误日志已保存到:\n{crash_log_file}\n\n"
-                f"请将此日志文件发送给开发者以帮助修复问题。\n\n"
-                f"GitHub: https://github.com/icysaintdx/OpenCode-Config-Manager/issues",
-            )
-        except:
-            # 如果 GUI 无法显示,至少打印到控制台
-            print(f"\n{'=' * 80}")
-            print(f"OCCM 崩溃 - 日志已保存到: {crash_log_file}")
-            print(f"{'=' * 80}\n")
-
-        # 调用默认处理器
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-
-    sys.excepthook = exception_handler
-
-
-# 立即设置崩溃处理器
-setup_macos_crash_handler()
 
 if sys.platform == "win32" and getattr(sys, "frozen", False):
     # 检查临时目录路径是否包含非 ASCII 字符
@@ -797,11 +737,11 @@ class EnvVarDetector:
 
 
 STATUS_LABELS = {
-    "operational": "monitor.status_operational",
-    "degraded": "monitor.status_degraded",
-    "failed": "monitor.status_failed",
-    "error": "monitor.status_error",
-    "no_config": "monitor.status_no_config",
+    "operational": "正常",
+    "degraded": "延迟",
+    "failed": "异常",
+    "error": "错误",
+    "no_config": "未配置",
 }
 
 # 状态颜色 - 与 UIConfig 配色方案一致
@@ -923,7 +863,6 @@ from qfluentwidgets import (
     PrimaryPushButton,
     TransparentPushButton,
     HyperlinkButton,
-    HyperlinkLabel,
     ToolButton,
     LineEdit,
     TextEdit,
@@ -1130,14 +1069,8 @@ def tr(key: str, **kwargs) -> str:
 class UIConfig:
     """全局 UI 配置"""
 
-    # 字体配置 - 参考 Any-code 项目，优先使用系统原生字体
-    # Sans-serif 字体栈：优先系统字体，中文字体作为 fallback
-    FONT_FAMILY_SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'Microsoft YaHei UI', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', 'SimSun', '宋体', 'Arial Unicode MS', sans-serif"
-
-    # Monospace 字体栈：用于代码和等宽文本
-    FONT_FAMILY_MONO = "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'Microsoft YaHei Mono', '微软雅黑', monospace"
-
-    # 字体大小配置
+    # 字体配置 - 使用系统默认字体，更清晰
+    FONT_FAMILY = "Microsoft YaHei UI, Segoe UI, PingFang SC, Helvetica Neue, Arial"
     FONT_SIZE_TITLE = 16
     FONT_SIZE_BODY = 14
     FONT_SIZE_SMALL = 12
@@ -1160,18 +1093,14 @@ class UIConfig:
 
     @staticmethod
     def get_stylesheet() -> str:
-        """获取全局 QSS 样式表 - 优化字体渲染，解决英文显示和遮挡问题"""
-        # 字体栈定义
-        font_sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'Microsoft YaHei UI', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', 'SimSun', '宋体', 'Arial Unicode MS', sans-serif"
-        font_mono = "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'Microsoft YaHei Mono', '微软雅黑', monospace"
-
+        """获取全局 QSS 样式表 - 只设置字体，颜色由主题控制"""
         return f"""
             /* ==================== 全局字体 ==================== */
             * {{
-                font-family: {font_sans};
+                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", "Monaco", "Courier New", monospace;
             }}
             QWidget {{
-                font-family: {font_sans};
+                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", "Monaco", "Courier New", monospace;
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
             }}
 
@@ -1179,78 +1108,44 @@ class UIConfig:
             TitleLabel {{
                 font-size: 18px;
                 font-weight: bold;
-                font-family: {font_sans};
             }}
             SubtitleLabel {{
                 font-size: {UIConfig.FONT_SIZE_TITLE}px;
                 font-weight: bold;
-                font-family: {font_sans};
             }}
             BodyLabel {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
             }}
             CaptionLabel {{
                 font-size: {UIConfig.FONT_SIZE_SMALL}px;
-                font-family: {font_sans};
             }}
             StrongBodyLabel {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
                 font-weight: bold;
-                font-family: {font_sans};
             }}
 
             /* ==================== 按钮字体 ==================== */
             QPushButton, PushButton, PrimaryPushButton, TransparentPushButton, ToolButton {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
-                padding: 6px 16px;
-                min-height: 32px;
             }}
 
             /* ==================== 输入框字体 ==================== */
-            QLineEdit, LineEdit {{
+            QLineEdit, LineEdit, QTextEdit, TextEdit, QPlainTextEdit, PlainTextEdit {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
-                padding: 6px 12px;
-                min-height: 32px;
-            }}
-            
-            QTextEdit, TextEdit, QPlainTextEdit, PlainTextEdit {{
-                font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_mono};
-                line-height: 1.6;
             }}
 
             /* ==================== 下拉框字体 ==================== */
             QComboBox, ComboBox {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
-                padding: 6px 12px;
-                min-height: 32px;
-            }}
-            
-            QComboBox::drop-down {{
-                width: 30px;
-            }}
-            
-            QComboBox QAbstractItemView {{
-                font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
-                padding: 4px;
             }}
 
             /* ==================== 表格字体 ==================== */
             QTableWidget, TableWidget {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
             }}
             QHeaderView::section {{
                 font-weight: 600;
-                font-size: 13px;
-                font-family: {font_sans};
-                padding: 8px 12px;
-                min-height: 36px;
+                font-size: 12px;
             }}
             
             /* ==================== 修复表格左上角单元格白色问题 ==================== */
@@ -1262,24 +1157,6 @@ class UIConfig:
             /* ==================== 列表字体 ==================== */
             QListWidget, ListWidget {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
-            }}
-            
-            QListWidget::item {{
-                padding: 8px 12px;
-                min-height: 36px;
-            }}
-
-            /* ==================== 菜单字体 ==================== */
-            QMenu {{
-                font-size: {UIConfig.FONT_SIZE_BODY}px;
-                font-family: {font_sans};
-                padding: 4px;
-            }}
-            
-            QMenu::item {{
-                padding: 8px 24px 8px 12px;
-                min-height: 32px;
             }}
 
             /* ==================== 滚动条样式 ==================== */
@@ -1292,14 +1169,6 @@ class UIConfig:
 
             /* ==================== 工具提示字体 ==================== */
             QToolTip {{
-                font-size: {UIConfig.FONT_SIZE_SMALL}px;
-                font-family: {font_sans};
-                padding: 6px 10px;
-            }}
-            
-            /* ==================== 代码/等宽文本 ==================== */
-            code, pre, .monospace {{
-                font-family: {font_mono};
                 font-size: {UIConfig.FONT_SIZE_SMALL}px;
             }}
         """
@@ -2940,28 +2809,9 @@ class ConfigManager:
                 if backup_manager:
                     backup_manager.backup(path, tag="jsonc-auto")
 
-            # 如果是 oh-my-opencode 配置文件，自动添加 $schema 字段
-            if "oh-my-opencode" in str(path):
-                # 创建新的数据副本，避免修改原始数据
-                data_to_save = data.copy()
-                # 添加 $schema 字段到最前面
-                schema_url = "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json"
-                # 使用 OrderedDict 确保 $schema 在最前面
-                from collections import OrderedDict
-
-                ordered_data = OrderedDict()
-                ordered_data["$schema"] = schema_url
-                # 添加其他字段
-                for key, value in data_to_save.items():
-                    if key != "$schema":  # 避免重复
-                        ordered_data[key] = value
-                data_to_save = ordered_data
-            else:
-                data_to_save = data
-
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(data_to_save, f, indent=2, ensure_ascii=False)
+                json.dump(data, f, indent=2, ensure_ascii=False)
             return True, jsonc_warning
         except Exception as e:
             print(f"Save failed {path}: {e}")
@@ -7013,10 +6863,7 @@ class NativeProviderPage(BasePage):
         )
         if dialog.exec_():
             self._load_data()
-            self.show_success(
-                tr("common.success"),
-                tr("native_provider.config_saved", name=provider.name),
-            )
+            self.show_success("成功", f"{provider.name} 配置已保存")
 
     def _on_test(self):
         """测试连接"""
@@ -7028,9 +6875,7 @@ class NativeProviderPage(BasePage):
             return
 
         if not provider.test_endpoint:
-            self.show_warning(
-                tr("common.info"), tr("native_provider.test_not_supported")
-            )
+            self.show_warning("提示", "此 Provider 不支持连接测试")
             return
 
         # 获取认证信息
@@ -7112,9 +6957,7 @@ class NativeProviderPage(BasePage):
         # 检查是否已配置
         auth_data = self.auth_manager.get_provider_auth(provider.id)
         if not auth_data:
-            self.show_warning(
-                tr("common.info"), tr("native_provider.provider_not_configured")
-            )
+            self.show_warning("提示", "此 Provider 尚未配置")
             return
 
         # 确认删除
@@ -7158,15 +7001,13 @@ class NativeProviderPage(BasePage):
         # 获取认证信息
         auth_data = self.auth_manager.get_provider_auth(provider.id)
         if not auth_data:
-            self.show_warning(
-                tr("common.info"), tr("native_provider.provider_not_configured")
-            )
+            self.show_warning("提示", "此 Provider 尚未配置")
             return
 
         # 获取 API Key
         api_key = auth_data.get("apiKey", "")
         if not api_key:
-            self.show_warning(tr("common.info"), tr("provider.no_api_key"))
+            self.show_warning("提示", "未配置 API Key")
             return
 
         # 获取 baseURL
@@ -7176,7 +7017,7 @@ class NativeProviderPage(BasePage):
         base_url = options.get("baseURL", provider.default_base_url)
 
         if not base_url:
-            self.show_warning(tr("common.info"), tr("provider.no_base_url"))
+            self.show_warning("提示", "未配置 baseURL")
             return
 
         # 显示加载提示
@@ -7994,7 +7835,7 @@ class ProviderDialog(BaseDialog):
     def _on_save(self):
         name = self.name_edit.text().strip()
         if not name:
-            InfoBar.error(tr("common.error"), tr("provider.enter_name"), parent=self)
+            InfoBar.error("错误", "请输入 Provider 名称", parent=self)
             return
 
         config = self.main_window.opencode_config
@@ -8006,11 +7847,7 @@ class ProviderDialog(BaseDialog):
             config["provider"] = {}
 
         if not self.is_edit and name in config["provider"]:
-            InfoBar.error(
-                tr("common.error"),
-                tr("provider.provider_exists", name=name),
-                parent=self,
-            )
+            InfoBar.error("错误", f'Provider "{name}" 已存在', parent=self)
             return
 
         provider_data = config["provider"].get(name, {"models": {}})
@@ -8044,9 +7881,7 @@ class ProviderDialog(BaseDialog):
             service.fetch_async(name, options)
         else:
             InfoBar.warning(
-                tr("common.info"),
-                tr("provider.no_base_url") + "，跳过自动拉取",
-                parent=self,
+                "提示", "未配置 baseURL 或模型列表地址，跳过自动拉取", parent=self
             )
 
         self.accept()
@@ -8333,6 +8168,12 @@ class ModelPage(BasePage):
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
+        self.bulk_model_label = BodyLabel(tr("model.bulk_model"), self)
+        toolbar.addWidget(self.bulk_model_label)
+        self.bulk_model_combo = ComboBox(self)
+        self.bulk_model_combo.setMinimumWidth(220)
+        toolbar.addWidget(self.bulk_model_combo)
+
         toolbar.addStretch()
         self._layout.addLayout(toolbar)
 
@@ -8458,16 +8299,6 @@ class ModelPage(BasePage):
                     del models[model_id]
                     self.main_window.save_opencode_config()
                     self._load_models(provider)
-
-                    # 修复焦点问题：删除后自动选中下一行或上一行
-                    new_row_count = self.table.rowCount()
-                    if new_row_count > 0:
-                        # 如果删除的不是最后一行，选中原位置的行（现在是下一行）
-                        # 如果删除的是最后一行，选中新的最后一行
-                        new_row = min(row, new_row_count - 1)
-                        self.table.selectRow(new_row)
-                        self.table.setCurrentCell(new_row, 0)
-
                     self.show_success(
                         tr("common.success"), tr("model.deleted_success", name=model_id)
                     )
@@ -9042,9 +8873,7 @@ class ModelDialog(BaseDialog):
         """添加变体"""
         name = self.variant_name_edit.text().strip()
         if not name:
-            InfoBar.warning(
-                tr("common.info"), tr("model.enter_variant_name"), parent=self
-            )
+            InfoBar.warning("提示", "请输入变体名称", parent=self)
             return
         try:
             config = json.loads(self.variant_config_edit.toPlainText().strip() or "{}")
@@ -9362,9 +9191,7 @@ class PresetModelDialog(BaseDialog):
                 added += 1
 
         self.main_window.save_opencode_config()
-        InfoBar.success(
-            tr("common.success"), tr("provider.models_added", count=added), parent=self
-        )
+        InfoBar.success("成功", f"已添加 {added} 个模型", parent=self)
         self.accept()
 
 
@@ -9916,9 +9743,6 @@ class MCPDialog(BaseDialog):
             self._load_mcp_data()
         self._update_preview()
 
-        # 监听语言切换事件
-        _lang_manager.language_changed.connect(self._on_language_changed)
-
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
@@ -10381,32 +10205,6 @@ class MCPDialog(BaseDialog):
     def _on_format_preview(self) -> None:
         self._update_preview()
         self.preview_edit.moveCursor(QTextCursor.Start)
-
-    def _on_language_changed(self, lang_code: str) -> None:
-        """处理语言切换事件"""
-        # 更新窗口标题
-        if self.is_edit:
-            self.setWindowTitle(tr("mcp.dialog.edit_title"))
-        else:
-            title = (
-                tr("mcp.dialog.add_local_title")
-                if self.mcp_type == "local"
-                else tr("mcp.dialog.add_remote_title")
-            )
-            self.setWindowTitle(title)
-
-        # 更新 QGroupBox 标题
-        self.extra_group.setTitle(tr("mcp.additional_info"))
-        self.preview_group.setTitle(tr("mcp.full_json_preview"))
-
-        # 更新 CheckBox 文本
-        self.preview_wrap_check.setText(tr("mcp.include_wrapper"))
-        self.enabled_check.setText(tr("mcp.dialog.enable_checkbox"))
-
-        # 更新按钮文本
-        self.cancel_btn.setText(tr("common.cancel"))
-        self.save_btn.setText(tr("common.save"))
-        self.format_btn.setText(tr("cli_export.format_json"))
 
 
 # ==================== OpenCode Agent 页面 ====================
@@ -11269,7 +11067,36 @@ class HelpPage(BasePage):
         priority_layout.addWidget(
             SubtitleLabel(tr("help.priority_title"), priority_widget)
         )
-        priority_content = tr("help.priority_content")
+        priority_content = """
+1. 远程配置 (Remote)
+   通过 API 或远程服务器获取的配置
+   优先级最高，会覆盖所有本地配置
+
+2. 全局配置 (Global)
+   位置: ~/.config/opencode/opencode.json
+   影响所有项目的默认配置
+
+3. 自定义配置 (Custom)
+   通过 --config 参数指定的配置文件
+   用于特定场景的配置覆盖
+
+4. 项目配置 (Project)
+   位置: <项目根目录>/opencode.json
+   项目级别的配置，仅影响当前项目
+
+5. .opencode 目录配置
+   位置: <项目根目录>/.opencode/config.json
+   项目内的隐藏配置目录
+
+6. 内联配置 (Inline)
+   通过命令行参数直接指定的配置
+   优先级最低，但最灵活
+
+配置合并规则:
+- 高优先级配置会覆盖低优先级的同名配置项
+- 未指定的配置项会继承低优先级的值
+- Provider 和 Model 配置会进行深度合并
+"""
         priority_text = PlainTextEdit(priority_widget)
         priority_text.setPlainText(priority_content.strip())
         priority_text.setReadOnly(True)
@@ -11281,7 +11108,42 @@ class HelpPage(BasePage):
         usage_widget = QWidget()
         usage_layout = QVBoxLayout(usage_widget)
         usage_layout.addWidget(SubtitleLabel(tr("help.usage_title"), usage_widget))
-        usage_content = tr("help.usage_content")
+        usage_content = """
+一、Provider 管理
+   添加自定义 API 提供商
+   配置 API 地址和密钥
+   支持多种 SDK: @ai-sdk/anthropic, @ai-sdk/openai 等
+
+二、Model 管理
+   在 Provider 下添加模型
+   支持预设常用模型快速选择
+   配置模型参数（上下文限制、输出限制等）
+
+三、Agent 管理 (Oh My OpenCode)
+   配置不同用途的 Agent
+   绑定已配置的 Provider/Model
+   支持预设 Agent 模板
+
+四、Category 管理 (Oh My OpenCode)
+   配置任务分类
+   设置不同分类的 Temperature
+   绑定对应的模型
+
+五、权限管理
+   配置工具的使用权限
+   allow: 允许使用
+   ask: 每次询问
+   deny: 禁止使用
+
+六、外部导入
+   检测 Claude Code 等工具的配置
+   一键导入已有配置
+
+注意事项:
+- 修改后请点击保存按钮
+- 建议定期备份配置文件
+- Agent/Category 的模型必须是已配置的 Provider/Model
+"""
         usage_text = PlainTextEdit(usage_widget)
         usage_text.setPlainText(usage_content.strip())
         usage_text.setReadOnly(True)
@@ -11295,7 +11157,54 @@ class HelpPage(BasePage):
         options_layout.addWidget(
             SubtitleLabel(tr("help.options_title"), options_widget)
         )
-        options_content = tr("help.options_content")
+        options_content = """
+根据 OpenCode 官方文档:
+
+【Options】模型的默认配置参数
+- 每次调用模型时都会使用这些配置
+- 适合放置常用的固定配置
+- 例如: thinking.type, thinking.budgetTokens
+
+【Variants】可切换的变体配置
+- 用户可通过 variant_cycle 快捷键切换
+- 适合放置不同场景的配置组合
+- 例如: high/medium/low 不同的 budgetTokens
+
+═══════════════════════════════════════════════════════════════
+Thinking 模式配置示例
+═══════════════════════════════════════════════════════════════
+
+【Claude】
+  options:
+    thinking:
+      type: "enabled"
+      budgetTokens: 16000
+  variants:
+    high:
+      thinking:
+        budgetTokens: 32000
+    max:
+      thinking:
+        budgetTokens: 64000
+
+【OpenAI】
+  options:
+    reasoningEffort: "high"
+  variants:
+    medium:
+      reasoningEffort: "medium"
+    low:
+      reasoningEffort: "low"
+
+【Gemini】
+  options:
+    thinkingConfig:
+      thinkingBudget: 8000
+  variants:
+    high:
+      thinkingConfig:
+        thinkingBudget: 16000
+"""
         options_text = PlainTextEdit(options_widget)
         options_text.setPlainText(options_content.strip())
         options_text.setReadOnly(True)
@@ -11464,7 +11373,7 @@ class MainWindow(FluentWindow):
                 font-weight: 900;
             }}
             NavigationTreeWidget {{
-                font-family: {UIConfig.FONT_FAMILY_SANS};
+                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", monospace;
                 font-size: {font_size}px;
                 font-weight: 900;
             }}
@@ -12015,30 +11924,28 @@ class MainWindow(FluentWindow):
         warnings = [i for i in issues if i["level"] == "warning"]
 
         # 构建消息
-        msg_lines = [tr("dialog.config_issues_detected") + "\n"]
+        msg_lines = ["检测到配置文件存在以下问题：\n"]
 
         if errors:
-            msg_lines.append(f"❌ {len(errors)} {tr('dialog.errors_count')}")
+            msg_lines.append(f"❌ {len(errors)} 个错误:")
             for e in errors[:8]:
                 msg_lines.append(f"  • {e['message']}")
             if len(errors) > 8:
-                msg_lines.append(tr("dialog.more_errors").format(count=len(errors) - 8))
+                msg_lines.append(f"  ... 还有 {len(errors) - 8} 个错误")
             msg_lines.append("")
 
         if warnings:
-            msg_lines.append(f"⚠️ {len(warnings)} {tr('dialog.warnings_count')}")
+            msg_lines.append(f"⚠️ {len(warnings)} 个警告:")
             for w in warnings[:8]:
                 msg_lines.append(f"  • {w['message']}")
             if len(warnings) > 8:
-                msg_lines.append(
-                    tr("dialog.more_warnings").format(count=len(warnings) - 8)
-                )
+                msg_lines.append(f"  ... 还有 {len(warnings) - 8} 个警告")
 
-        msg_lines.append("\n" + tr("dialog.auto_fix_prompt"))
+        msg_lines.append("\n是否尝试自动修复？（会先备份原配置）")
 
         # 创建对话框
         dialog = FluentMessageBox(
-            tr("dialog.config_format_check"), "\n".join(msg_lines), self
+            tr("dialog.config_format_check"), tr("dialog.msg_15").join(msg_lines), self
         )
 
         if dialog.exec_():
@@ -12047,8 +11954,8 @@ class MainWindow(FluentWindow):
         else:
             # 用户取消，显示警告
             InfoBar.warning(
-                title=tr("dialog.config_issues_not_fixed"),
-                content=tr("dialog.config_issues_warning"),
+                title="配置问题未修复",
+                content="部分功能可能无法正常工作，建议手动检查配置文件",
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
@@ -12130,11 +12037,11 @@ class OhMyAgentPage(BasePage):
         self.preset_btn.clicked.connect(self._on_add_preset)
         toolbar.addWidget(self.preset_btn)
 
-        self.edit_btn = PushButton(FIF.EDIT, tr("common.edit"), self)
+        self.edit_btn = PushButton(FIF.EDIT, "编辑", self)
         self.edit_btn.clicked.connect(self._on_edit)
         toolbar.addWidget(self.edit_btn)
 
-        self.delete_btn = PushButton(FIF.DELETE, tr("common.delete"), self)
+        self.delete_btn = PushButton(FIF.DELETE, "删除", self)
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
@@ -12205,7 +12112,7 @@ class OhMyAgentPage(BasePage):
         current = self.bulk_model_combo.currentText()
         self.bulk_model_combo.blockSignals(True)
         self.bulk_model_combo.clear()
-        self.bulk_model_combo.addItem(tr("common.keep_all"))
+        self.bulk_model_combo.addItem("- 全部保持 -")
         self.bulk_model_combo.addItems(models)
         if current:
             self.bulk_model_combo.setCurrentText(current)
@@ -12224,7 +12131,7 @@ class OhMyAgentPage(BasePage):
 
     def _on_bulk_model_changed(self) -> None:
         model = self.bulk_model_combo.currentText()
-        if model == tr("common.keep_all"):
+        if model == "- 全部保持 -":
             return
         config = self.main_window.ohmyopencode_config
         if config is None:
@@ -12243,18 +12150,14 @@ class OhMyAgentPage(BasePage):
         dialog = OhMyAgentDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success(
-                self.tr("common.success"), self.tr("ohmyagent.agent_added")
-            )
+            self.show_success("成功", "Agent 已添加")
 
     def _on_add_preset(self):
         """从预设添加 Agent"""
         dialog = PresetOhMyAgentDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success(
-                self.tr("common.success"), self.tr("ohmyagent.preset_agent_added")
-            )
+            self.show_success("成功", "预设 Agent 已添加")
 
     def _on_edit(self):
         """编辑 Agent"""
@@ -12269,9 +12172,7 @@ class OhMyAgentPage(BasePage):
         dialog = OhMyAgentDialog(self.main_window, agent_name=name, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success(
-                self.tr("common.success"), self.tr("ohmyagent.agent_updated")
-            )
+            self.show_success("成功", "Agent 已更新")
 
     def _on_delete(self):
         """删除 Agent"""
@@ -12470,11 +12371,7 @@ class PresetOhMyAgentDialog(BaseDialog):
     def _on_add(self):
         current = self.list_widget.currentItem()
         if not current:
-            InfoBar.warning(
-                tr("common.warning"),
-                tr("ohmyagent.preset_dialog.select_preset"),
-                parent=self,
-            )
+            InfoBar.warning(tr("common.warning"), "请选择一个预设 Agent", parent=self)
             return
 
         # 解析选中的预设
@@ -12491,11 +12388,7 @@ class PresetOhMyAgentDialog(BaseDialog):
             config["agents"] = {}
 
         if name in config["agents"]:
-            InfoBar.warning(
-                tr("common.warning"),
-                tr("ohmyagent.preset_dialog.agent_exists", name=name),
-                parent=self,
-            )
+            InfoBar.warning(tr("common.warning"), f'Agent "{name}" 已存在', parent=self)
             return
 
         config["agents"][name] = {
@@ -12535,11 +12428,11 @@ class CategoryPage(BasePage):
         self.preset_btn.clicked.connect(self._on_add_preset)
         toolbar.addWidget(self.preset_btn)
 
-        self.edit_btn = PushButton(FIF.EDIT, tr("common.edit"), self)
+        self.edit_btn = PushButton(FIF.EDIT, "编辑", self)
         self.edit_btn.clicked.connect(self._on_edit)
         toolbar.addWidget(self.edit_btn)
 
-        self.delete_btn = PushButton(FIF.DELETE, tr("common.delete"), self)
+        self.delete_btn = PushButton(FIF.DELETE, "删除", self)
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
@@ -12557,12 +12450,7 @@ class CategoryPage(BasePage):
         self.table = TableWidget(self)
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
-            [
-                tr("common.name"),
-                tr("category.bind_model").rstrip(":"),
-                "Temperature",
-                tr("common.description"),
-            ]
+            ["名称", "绑定模型", "Temperature", "描述"]
         )
         # 调整列宽：名称20字符，Temperature12字符，剩余均分
         header = self.table.horizontalHeader()
@@ -12625,7 +12513,7 @@ class CategoryPage(BasePage):
         current = self.bulk_model_combo.currentText()
         self.bulk_model_combo.blockSignals(True)
         self.bulk_model_combo.clear()
-        self.bulk_model_combo.addItem(tr("common.keep_all"))
+        self.bulk_model_combo.addItem("- 全部保持 -")
         self.bulk_model_combo.addItems(models)
         if current:
             self.bulk_model_combo.setCurrentText(current)
@@ -12644,7 +12532,7 @@ class CategoryPage(BasePage):
 
     def _on_bulk_model_changed(self) -> None:
         model = self.bulk_model_combo.currentText()
-        if model == tr("common.keep_all"):
+        if model == "- 全部保持 -":
             return
         config = self.main_window.ohmyopencode_config
         if config is None:
@@ -12662,17 +12550,13 @@ class CategoryPage(BasePage):
         dialog = CategoryDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success(
-                self.tr("common.success"), self.tr("category.category_added")
-            )
+            self.show_success("成功", "Category 已添加")
 
     def _on_add_preset(self):
         dialog = PresetCategoryDialog(self.main_window, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success(
-                self.tr("common.success"), self.tr("category.preset_category_added")
-            )
+            self.show_success("成功", "预设 Category 已添加")
 
     def _on_edit(self):
         row = self.table.currentRow()
@@ -12686,9 +12570,7 @@ class CategoryPage(BasePage):
         dialog = CategoryDialog(self.main_window, category_name=name, parent=self)
         if dialog.exec_():
             self._load_data()
-            self.show_success(
-                self.tr("common.success"), self.tr("category.category_updated")
-            )
+            self.show_success("成功", "Category 已更新")
 
     def _on_delete(self):
         row = self.table.currentRow()
@@ -12856,7 +12738,7 @@ class PresetCategoryDialog(BaseDialog):
         super().__init__(parent)
         self.main_window = main_window
 
-        self.setWindowTitle(tr("category.preset_dialog_title"))
+        self.setWindowTitle("从预设添加 Category")
         self.setMinimumWidth(500)
         self._setup_ui()
 
@@ -12923,11 +12805,7 @@ class PresetCategoryDialog(BaseDialog):
             config["categories"] = {}
 
         if name in config["categories"]:
-            InfoBar.warning(
-                tr("common.info"),
-                tr("category.category_exists", name=name),
-                parent=self,
-            )
+            InfoBar.warning("提示", f'Category "{name}" 已存在', parent=self)
             return
 
         config["categories"][name] = {
@@ -13117,29 +12995,15 @@ class SkillDiscovery:
                     if not skill_dir.is_dir():
                         continue
 
-                    # 尝试查找 SKILL.md 或 SKILL.txt
-                    skill_file = None
-                    for filename in ["SKILL.md", "SKILL.txt"]:
-                        potential_file = skill_dir / filename
-                        if potential_file.exists():
-                            skill_file = potential_file
-                            break
-
-                    if not skill_file:
+                    skill_file = skill_dir / "SKILL.md"
+                    if not skill_file.exists():
                         continue
 
-                    try:
-                        skill = cls.parse_skill_file(skill_file)
-                        if skill and skill.name not in seen_names:
-                            skills.append(skill)
-                            seen_names.add(skill.name)
-                    except Exception as e:
-                        # 解析单个skill失败，记录但继续处理其他skills
-                        print(f"解析 skill 失败 {skill_dir.name}: {e}")
-                        continue
-            except Exception as e:
-                # 遍历目录失败，记录但继续处理其他路径
-                print(f"遍历目录失败 {base_path}: {e}")
+                    skill = cls.parse_skill_file(skill_file)
+                    if skill and skill.name not in seen_names:
+                        skills.append(skill)
+                        seen_names.add(skill.name)
+            except Exception:
                 continue
 
         return skills
@@ -13157,107 +13021,147 @@ class SkillDiscovery:
 class SkillMarket:
     """Skill 市场 - 内置常用 Skills 列表"""
 
-    # 内置 Skill 列表（仅 Anthropic 官方 Skills - 已验证可用）
+    # 内置 Skill 列表
     FEATURED_SKILLS = [
-        # UI/UX 和设计类
+        {
+            "name": "git-release",
+            "repo": "vercel-labs/git-release",
+            "description": "git_release_desc",
+            "category": "dev_tools",
+            "tags": ["git", "github", "release"],
+        },
+        {
+            "name": "code-review",
+            "repo": "anthropics/code-review-skill",
+            "description": "code_review_desc",
+            "category": "code_quality",
+            "tags": ["review", "quality", "best-practices"],
+        },
+        {
+            "name": "test-generator",
+            "repo": "openai/test-generator-skill",
+            "description": "test_generator_desc",
+            "category": "testing",
+            "tags": ["testing", "unit-test", "automation"],
+        },
+        {
+            "name": "documentation",
+            "repo": "anthropics/documentation-skill",
+            "description": "documentation_desc",
+            "category": "documentation",
+            "tags": ["docs", "documentation", "readme"],
+        },
+        {
+            "name": "refactoring",
+            "repo": "openai/refactoring-skill",
+            "description": "refactoring_desc",
+            "category": "code_quality",
+            "tags": ["refactor", "optimization", "clean-code"],
+        },
+        {
+            "name": "security-audit",
+            "repo": "anthropics/security-audit-skill",
+            "description": "security_audit_desc",
+            "category": "security",
+            "tags": ["security", "vulnerability", "audit"],
+        },
+        {
+            "name": "api-design",
+            "repo": "openai/api-design-skill",
+            "description": "api_design_desc",
+            "category": "api",
+            "tags": ["api", "rest", "design"],
+        },
+        {
+            "name": "database-migration",
+            "repo": "vercel-labs/database-migration-skill",
+            "description": "database_migration_desc",
+            "category": "database",
+            "tags": ["database", "migration", "sql"],
+        },
         {
             "name": "ui-ux-pro-max",
-            "repo": "nextlevelbuilder/ui-ux-pro-max-skill",
+            "repo": "code-yeongyu/ui-ux-pro-max",
             "description": "ui_ux_pro_max_desc",
             "category": "ui_ux",
-            "tags": ["ui", "ux", "design", "frontend"],
-            "path": ".opencode/skills/ui-ux-pro-max",
+            "tags": ["ui", "ux", "design", "frontend", "react"],
         },
         {
-            "name": "canvas-design",
-            "repo": "anthropics/skills",
-            "description": "canvas_design_desc",
-            "category": "ui_ux",
-            "tags": ["design", "canvas", "art"],
-            "path": "skills/canvas-design",
-        },
-        {
-            "name": "theme-factory",
-            "repo": "anthropics/skills",
-            "description": "theme_factory_desc",
-            "category": "ui_ux",
-            "tags": ["theme", "styling", "design"],
-            "path": "skills/theme-factory",
-        },
-        {
-            "name": "web-artifacts-builder",
-            "repo": "anthropics/skills",
-            "description": "web_artifacts_builder_desc",
-            "category": "ui_ux",
-            "tags": ["web", "react", "frontend"],
-            "path": "skills/web-artifacts-builder",
-        },
-        # 开发工具类
-        {
-            "name": "mcp-builder",
-            "repo": "anthropics/skills",
-            "description": "mcp_builder_desc",
-            "category": "dev_tools",
-            "tags": ["mcp", "server", "protocol"],
-            "path": "skills/mcp-builder",
-        },
-        {
-            "name": "webapp-testing",
-            "repo": "anthropics/skills",
-            "description": "webapp_testing_desc",
+            "name": "playwright",
+            "repo": "anthropics/playwright-skill",
+            "description": "playwright_desc",
             "category": "testing",
-            "tags": ["testing", "webapp", "automation"],
-            "path": "skills/webapp-testing",
+            "tags": ["browser", "automation", "testing", "scraping"],
         },
         {
-            "name": "skill-creator",
-            "repo": "anthropics/skills",
-            "description": "skill_creator_desc",
+            "name": "docker-compose",
+            "repo": "vercel-labs/docker-compose-skill",
+            "description": "docker_compose_desc",
+            "category": "devops",
+            "tags": ["docker", "container", "devops", "deployment"],
+        },
+        {
+            "name": "ci-cd-pipeline",
+            "repo": "github/ci-cd-pipeline-skill",
+            "description": "ci_cd_pipeline_desc",
+            "category": "devops",
+            "tags": ["ci", "cd", "pipeline", "automation"],
+        },
+        {
+            "name": "performance-optimization",
+            "repo": "openai/performance-optimization-skill",
+            "description": "performance_optimization_desc",
+            "category": "performance",
+            "tags": ["performance", "optimization", "profiling"],
+        },
+        {
+            "name": "error-handling",
+            "repo": "anthropics/error-handling-skill",
+            "description": "error_handling_desc",
+            "category": "code_quality",
+            "tags": ["error", "exception", "handling", "logging"],
+        },
+        {
+            "name": "regex-helper",
+            "repo": "openai/regex-helper-skill",
+            "description": "regex_helper_desc",
             "category": "dev_tools",
-            "tags": ["skill", "creator", "development"],
-            "path": "skills/skill-creator",
-        },
-        # 创意和媒体类
-        {
-            "name": "algorithmic-art",
-            "repo": "anthropics/skills",
-            "description": "algorithmic_art_desc",
-            "category": "creative",
-            "tags": ["art", "generative", "creative"],
-            "path": "skills/algorithmic-art",
+            "tags": ["regex", "pattern", "matching", "validation"],
         },
         {
-            "name": "slack-gif-creator",
-            "repo": "anthropics/skills",
-            "description": "slack_gif_creator_desc",
-            "category": "creative",
-            "tags": ["slack", "gif", "creative"],
-            "path": "skills/slack-gif-creator",
-        },
-        # 文档和沟通类
-        {
-            "name": "doc-coauthoring",
-            "repo": "anthropics/skills",
-            "description": "doc_coauthoring_desc",
-            "category": "documentation",
-            "tags": ["documentation", "collaboration", "writing"],
-            "path": "skills/doc-coauthoring",
+            "name": "sql-query-optimizer",
+            "repo": "vercel-labs/sql-query-optimizer-skill",
+            "description": "sql_query_optimizer_desc",
+            "category": "database",
+            "tags": ["sql", "database", "optimization", "query"],
         },
         {
-            "name": "brand-guidelines",
-            "repo": "anthropics/skills",
-            "description": "brand_guidelines_desc",
-            "category": "documentation",
-            "tags": ["brand", "guidelines", "design"],
-            "path": "skills/brand-guidelines",
+            "name": "accessibility-checker",
+            "repo": "anthropics/accessibility-checker-skill",
+            "description": "accessibility_checker_desc",
+            "category": "ui_ux",
+            "tags": ["accessibility", "a11y", "wcag", "frontend"],
         },
         {
-            "name": "internal-comms",
-            "repo": "anthropics/skills",
-            "description": "internal_comms_desc",
-            "category": "documentation",
-            "tags": ["communication", "internal", "team"],
-            "path": "skills/internal-comms",
+            "name": "i18n-translator",
+            "repo": "openai/i18n-translator-skill",
+            "description": "i18n_translator_desc",
+            "category": "dev_tools",
+            "tags": ["i18n", "l10n", "translation", "localization"],
+        },
+        {
+            "name": "git-workflow",
+            "repo": "github/git-workflow-skill",
+            "description": "git_workflow_desc",
+            "category": "dev_tools",
+            "tags": ["git", "workflow", "branching", "collaboration"],
+        },
+        {
+            "name": "code-formatter",
+            "repo": "anthropics/code-formatter-skill",
+            "description": "code_formatter_desc",
+            "category": "code_quality",
+            "tags": ["formatting", "style", "prettier", "eslint"],
         },
     ]
 
@@ -13362,33 +13266,10 @@ class SkillMarketDialog(MessageBoxBase):
         # 填充数据
         self._load_skills(SkillMarket.get_all_skills())
 
-        # 添加"浏览更多技能"链接
-        browse_more_layout = QHBoxLayout()
-        browse_more_layout.addStretch()
-
-        # SkillsMP 链接
-        skillsmp_label = HyperlinkLabel(self.widget)
-        skillsmp_label.setUrl("https://skillsmp.com/")
-        skillsmp_label.setText("🌐 SkillsMP.com")
-        skillsmp_label.setToolTip("访问 SkillsMP.com 浏览更多社区技能")
-        browse_more_layout.addWidget(skillsmp_label)
-
-        browse_more_layout.addSpacing(20)
-
-        # ComposioHQ 链接
-        composio_label = HyperlinkLabel(self.widget)
-        composio_label.setUrl("https://github.com/ComposioHQ/awesome-claude-skills")
-        composio_label.setText("🌐 ComposioHQ Skills")
-        composio_label.setToolTip("访问 ComposioHQ 浏览更多社区技能")
-        browse_more_layout.addWidget(composio_label)
-
-        browse_more_layout.addStretch()
-
         # 布局
         self.viewLayout.addWidget(self.titleLabel)
         self.viewLayout.addLayout(search_layout)
         self.viewLayout.addWidget(self.table)
-        self.viewLayout.addLayout(browse_more_layout)
 
         self.yesButton.setText(tr("skill.market_dialog.install_button"))
         self.yesButton.setEnabled(False)
@@ -13456,47 +13337,47 @@ class SkillSecurityScanner:
         {
             "pattern": r"os\.system\(",
             "level": "high",
-            "description_key": "skill.security_dialog.risk_os_system",
+            "description": "执行系统命令（可能执行恶意命令）",
         },
         {
             "pattern": r"subprocess\.(call|run|Popen)",
             "level": "high",
-            "description_key": "skill.security_dialog.risk_subprocess",
+            "description": "执行子进程（可能执行恶意程序）",
         },
         {
             "pattern": r"eval\(",
             "level": "critical",
-            "description_key": "skill.security_dialog.risk_eval",
+            "description": "执行动态代码（严重安全风险）",
         },
         {
             "pattern": r"exec\(",
             "level": "critical",
-            "description_key": "skill.security_dialog.risk_exec",
+            "description": "执行动态代码（严重安全风险）",
         },
         {
             "pattern": r"__import__\(",
             "level": "medium",
-            "description_key": "skill.security_dialog.risk_import",
+            "description": "动态导入模块（可能导入恶意模块）",
         },
         {
             "pattern": r"os\.remove\(",
             "level": "high",
-            "description_key": "skill.security_dialog.risk_remove",
+            "description": "删除文件（可能删除重要文件）",
         },
         {
             "pattern": r"shutil\.rmtree\(",
             "level": "high",
-            "description_key": "skill.security_dialog.risk_rmtree",
+            "description": "删除目录（可能删除重要目录）",
         },
         {
             "pattern": r"requests\.(get|post|put|delete)",
             "level": "low",
-            "description_key": "skill.security_dialog.risk_requests",
+            "description": "网络请求（可能泄露数据）",
         },
         {
             "pattern": r"socket\.",
             "level": "medium",
-            "description_key": "skill.security_dialog.risk_socket",
+            "description": "网络通信（可能建立恶意连接）",
         },
     ]
 
@@ -13515,7 +13396,7 @@ class SkillSecurityScanner:
             for pattern_info in cls.DANGEROUS_PATTERNS:
                 pattern = pattern_info["pattern"]
                 level = pattern_info["level"]
-                description_key = pattern_info["description_key"]
+                description = pattern_info["description"]
 
                 for line_num, line in enumerate(lines, 1):
                     if re.search(pattern, line):
@@ -13524,7 +13405,7 @@ class SkillSecurityScanner:
                                 "line": line_num,
                                 "code": line.strip(),
                                 "level": level,
-                                "description_key": description_key,
+                                "description": description,
                             }
                         )
 
@@ -13581,9 +13462,7 @@ class SecurityScanDialog(MessageBoxBase):
 
     def __init__(self, scan_result: Dict[str, Any], skill_name: str, parent=None):
         super().__init__(parent)
-        self.titleLabel = SubtitleLabel(
-            f"{tr('skill.security_dialog.title')} - {skill_name}", self
-        )
+        self.titleLabel = SubtitleLabel(f"安全扫描 - {skill_name}", self)
 
         score = scan_result["score"]
         level = scan_result["level"]
@@ -13591,9 +13470,7 @@ class SecurityScanDialog(MessageBoxBase):
 
         # 分数和等级
         score_layout = QHBoxLayout()
-        score_label = TitleLabel(
-            f"{tr('skill.security_dialog.score_label')} {score}/100", self.widget
-        )
+        score_label = TitleLabel(f"安全评分: {score}/100", self.widget)
         score_layout.addWidget(score_label)
 
         level_colors = {
@@ -13605,42 +13482,29 @@ class SecurityScanDialog(MessageBoxBase):
             "unknown": "#9E9E9E",
         }
         level_names = {
-            "safe": tr("skill.security_dialog.level_safe"),
-            "low": tr("skill.security_dialog.level_low"),
-            "medium": tr("skill.security_dialog.level_medium"),
-            "high": tr("skill.security_dialog.level_high"),
-            "critical": tr("skill.security_dialog.level_critical"),
-            "unknown": tr("skill.security_dialog.level_unknown"),
+            "safe": "安全",
+            "low": "低风险",
+            "medium": "中风险",
+            "high": "高风险",
+            "critical": "严重风险",
+            "unknown": "未知",
         }
 
-        level_label = StrongBodyLabel(
-            level_names.get(level, tr("skill.security_dialog.level_unknown")),
-            self.widget,
-        )
+        level_label = StrongBodyLabel(level_names.get(level, "未知"), self.widget)
         level_label.setStyleSheet(f"color: {level_colors.get(level, '#9E9E9E')};")
         score_layout.addWidget(level_label)
         score_layout.addStretch()
 
         # 问题列表
         if issues:
-            issues_label = BodyLabel(
-                f"{tr('skill.security_dialog.issues_found')} {len(issues)} {tr('skill.security_dialog.issues_count')}",
-                self.widget,
-            )
+            issues_label = BodyLabel(f"发现 {len(issues)} 个潜在问题:", self.widget)
         else:
-            issues_label = BodyLabel(tr("skill.security_dialog.no_issues"), self.widget)
+            issues_label = BodyLabel("未发现安全问题", self.widget)
 
         # 问题表格
         self.table = TableWidget(self.widget)
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(
-            [
-                tr("skill.security_dialog.table_line"),
-                tr("skill.security_dialog.table_risk"),
-                tr("skill.security_dialog.table_description"),
-                tr("skill.security_dialog.table_code"),
-            ]
-        )
+        self.table.setHorizontalHeaderLabels(["行号", "风险等级", "描述", "代码"])
         self.table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeToContents
         )
@@ -13658,9 +13522,7 @@ class SecurityScanDialog(MessageBoxBase):
 
             self.table.setItem(row, 0, QTableWidgetItem(str(issue["line"])))
             self.table.setItem(row, 1, QTableWidgetItem(issue["level"]))
-            # 使用翻译键获取描述
-            description = tr(issue.get("description_key", ""))
-            self.table.setItem(row, 2, QTableWidgetItem(description))
+            self.table.setItem(row, 2, QTableWidgetItem(issue["description"]))
             self.table.setItem(row, 3, QTableWidgetItem(issue["code"]))
 
         # 布局
@@ -13669,7 +13531,7 @@ class SecurityScanDialog(MessageBoxBase):
         self.viewLayout.addWidget(issues_label)
         self.viewLayout.addWidget(self.table)
 
-        self.yesButton.setText(tr("skill.security_dialog.close_button"))
+        self.yesButton.setText("确定")
         self.cancelButton.hide()
 
         self.widget.setMinimumWidth(900)
@@ -13679,44 +13541,6 @@ class SecurityScanDialog(MessageBoxBase):
 # ==================== Skill 安装器 ====================
 class SkillInstaller:
     """Skill 安装器 - 支持从 GitHub 和本地安装"""
-
-    @staticmethod
-    def detect_default_branch(owner: str, repo: str) -> str:
-        """检测GitHub仓库的默认分支
-
-        Args:
-            owner: GitHub 用户名
-            repo: 仓库名
-
-        Returns:
-            默认分支名（main 或 master），如果检测失败返回 "main"
-        """
-        import requests
-
-        try:
-            # 尝试通过 GitHub API 获取仓库信息
-            api_url = f"https://api.github.com/repos/{owner}/{repo}"
-            response = requests.get(api_url, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                return data.get("default_branch", "main")
-        except Exception:
-            pass
-
-        # API 失败时，尝试检测 main 和 master 分支
-        for branch in ["main", "master"]:
-            try:
-                test_url = (
-                    f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
-                )
-                response = requests.head(test_url, timeout=5)
-                if response.status_code == 200:
-                    return branch
-            except Exception:
-                continue
-
-        # 默认返回 main
-        return "main"
 
     @staticmethod
     def parse_source(source: str) -> Tuple[str, Dict[str, str]]:
@@ -13765,7 +13589,6 @@ class SkillInstaller:
         repo: str,
         branch: str,
         target_dir: Path,
-        subdir: str = None,
         progress_callback=None,
     ) -> Tuple[bool, str]:
         """从 GitHub 安装 Skill
@@ -13775,7 +13598,6 @@ class SkillInstaller:
             repo: 仓库名
             branch: 分支名
             target_dir: 目标目录（skills 根目录）
-            subdir: 子目录路径（如 "skills/mcp-builder"）
             progress_callback: 进度回调函数
 
         Returns:
@@ -13795,19 +13617,6 @@ class SkillInstaller:
                 f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
             )
             response = requests.get(zip_url, stream=True, timeout=30)
-
-            # 如果404，尝试检测并使用正确的分支
-            if response.status_code == 404:
-                if progress_callback:
-                    progress_callback("检测分支...")
-                detected_branch = SkillInstaller.detect_default_branch(owner, repo)
-                if detected_branch != branch:
-                    if progress_callback:
-                        progress_callback(f"使用分支: {detected_branch}")
-                    branch = detected_branch
-                    zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
-                    response = requests.get(zip_url, stream=True, timeout=30)
-
             response.raise_for_status()
 
             # 2. 解压到临时目录
@@ -13823,35 +13632,17 @@ class SkillInstaller:
                 with zipfile.ZipFile(zip_path, "r") as zip_ref:
                     zip_ref.extractall(temp_dir)
 
-                # 3. 查找 SKILL.md 或 SKILL.txt
+                # 3. 查找 SKILL.md
                 extracted_dir = Path(temp_dir) / f"{repo}-{branch}"
+                skill_md = extracted_dir / "SKILL.md"
 
-                # 如果指定了子目录，则在子目录中查找
-                if subdir:
-                    skill_dir = extracted_dir / subdir
-                    if not skill_dir.exists():
-                        return False, f"子目录不存在: {subdir}"
-                else:
-                    skill_dir = extracted_dir
-
-                # 尝试查找 SKILL.md 或 SKILL.txt
-                skill_file = None
-                for filename in ["SKILL.md", "SKILL.txt"]:
-                    potential_file = skill_dir / filename
-                    if potential_file.exists():
-                        skill_file = potential_file
-                        break
-
-                if not skill_file:
-                    return (
-                        False,
-                        f"未找到 SKILL.md 或 SKILL.txt 文件{f' (在 {subdir} 中)' if subdir else ''}",
-                    )
+                if not skill_md.exists():
+                    return False, "未找到 SKILL.md 文件"
 
                 # 4. 解析 Skill 名称
-                skill = SkillDiscovery.parse_skill_file(skill_file)
+                skill = SkillDiscovery.parse_skill_file(skill_md)
                 if not skill:
-                    return False, "SKILL 文件格式错误"
+                    return False, "SKILL.md 格式错误"
 
                 # 5. 复制到目标目录
                 if progress_callback:
@@ -13861,7 +13652,7 @@ class SkillInstaller:
                 if skill_target.exists():
                     shutil.rmtree(skill_target)
 
-                shutil.copytree(skill_dir, skill_target)
+                shutil.copytree(extracted_dir, skill_target)
 
                 # 6. 获取最新 commit hash
                 commit_hash = None
@@ -13885,10 +13676,6 @@ class SkillInstaller:
                     "installed_at": datetime.now().isoformat(),
                     "commit_hash": commit_hash,
                 }
-
-                # 如果有子目录，记录下来
-                if subdir:
-                    meta["subdir"] = subdir
 
                 meta_file = skill_target / ".skill-meta.json"
                 with open(meta_file, "w", encoding="utf-8") as f:
@@ -14083,15 +13870,11 @@ class SkillUpdater:
             # 重新安装
             target_dir = skill.path.parent.parent  # skills 根目录
 
-            # 获取子目录路径（如果有）
-            subdir = meta.get("subdir", None)
-
             success, message = SkillInstaller.install_from_github(
                 meta["owner"],
                 meta["repo"],
                 meta.get("branch", "main"),
                 target_dir,
-                subdir=subdir,
                 progress_callback=progress_callback,
             )
 
@@ -14264,11 +14047,11 @@ class SkillUpdateDialog(MessageBoxBase):
 
         # 按钮布局
         btn_layout = QHBoxLayout()
-        self.select_all_btn = PushButton(tr("common.select_all"), self.widget)
+        self.select_all_btn = PushButton("全选", self.widget)
         self.select_all_btn.clicked.connect(self._on_select_all)
         btn_layout.addWidget(self.select_all_btn)
 
-        self.deselect_all_btn = PushButton(tr("common.deselect_all"), self.widget)
+        self.deselect_all_btn = PushButton("取消全选", self.widget)
         self.deselect_all_btn.clicked.connect(self._on_deselect_all)
         btn_layout.addWidget(self.deselect_all_btn)
         btn_layout.addStretch()
@@ -14279,7 +14062,7 @@ class SkillUpdateDialog(MessageBoxBase):
         self.viewLayout.addWidget(self.table)
         self.viewLayout.addLayout(btn_layout)
 
-        self.yesButton.setText(tr("skill.update_selected"))
+        self.yesButton.setText("更新选中")
         self.cancelButton.setText(tr("common.cancel"))
 
         self.widget.setMinimumWidth(700)
@@ -14316,13 +14099,13 @@ class SkillPage(BasePage):
     6. 禁用 skill 工具 - 支持 agent.tools.skill: false 配置
     """
 
-    # 来源显示名称映射 - 使用翻译键
+    # 来源显示名称映射
     SOURCE_LABELS = {
-        "opencode-global": "skill.source_opencode_global",
-        "opencode-project": "skill.source_opencode_project",
-        "claude-global": "skill.source_claude_global",
-        "claude-project": "skill.source_claude_project",
-        "unknown": "skill.source_unknown",
+        "opencode-global": "🌐 OpenCode 全局",
+        "opencode-project": "📁 OpenCode 项目",
+        "claude-global": "🌐 Claude 全局",
+        "claude-project": "📁 Claude 项目",
+        "unknown": "❓ 未知",
     }
 
     def __init__(self, main_window, parent=None):
@@ -14376,10 +14159,7 @@ class SkillPage(BasePage):
             self.skill_list.clear()
             skills = SkillDiscovery.discover_all()
             for skill in skills:
-                source_key = self.SOURCE_LABELS.get(
-                    skill.source, "skill.source_unknown"
-                )
-                source_label = tr(source_key)
+                source_label = self.SOURCE_LABELS.get(skill.source, skill.source)
                 item = QListWidgetItem(f"{skill.name} ({source_label})")
                 item.setData(Qt.UserRole, skill)
                 self.skill_list.addItem(item)
@@ -14448,8 +14228,6 @@ class SkillPage(BasePage):
         # Skill 列表
         self.skill_list = ListWidget(left_widget)
         self.skill_list.itemClicked.connect(self._on_skill_selected)
-        # 确保显示垂直滚动条
-        self.skill_list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         left_layout.addWidget(self.skill_list, 1)
 
         # 路径说明
@@ -14508,7 +14286,7 @@ class SkillPage(BasePage):
 
         # 操作按钮
         btn_layout = QHBoxLayout()
-        self.edit_skill_btn = PushButton(FIF.EDIT, tr("common.edit"), right_widget)
+        self.edit_skill_btn = PushButton(FIF.EDIT, "编辑", right_widget)
         self.edit_skill_btn.clicked.connect(self._on_edit_skill)
         self.edit_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.edit_skill_btn)
@@ -14520,9 +14298,7 @@ class SkillPage(BasePage):
         self.scan_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.scan_skill_btn)
 
-        self.delete_skill_btn = PushButton(
-            FIF.DELETE, tr("common.delete"), right_widget
-        )
+        self.delete_skill_btn = PushButton(FIF.DELETE, "删除", right_widget)
         self.delete_skill_btn.clicked.connect(self._on_delete_skill)
         self.delete_skill_btn.setEnabled(False)
         btn_layout.addWidget(self.delete_skill_btn)
@@ -14554,17 +14330,16 @@ class SkillPage(BasePage):
         self._current_skill = skill
         self.detail_name.setText(skill.name)
         self.detail_desc.setText(skill.description)
-        source_key = self.SOURCE_LABELS.get(skill.source, "skill.source_unknown")
-        self.detail_source.setText(f"{tr('skill.skill_source')}: {tr(source_key)}")
+        self.detail_source.setText(
+            f"来源: {self.SOURCE_LABELS.get(skill.source, skill.source)}"
+        )
         self.detail_license.setText(
-            f"{tr('skill.skill_license')}: {skill.license_info}"
-            if skill.license_info
-            else ""
+            f"许可: {skill.license_info}" if skill.license_info else ""
         )
         self.detail_compat.setText(
             f"兼容: {skill.compatibility}" if skill.compatibility else ""
         )
-        self.detail_path.setText(f"{tr('skill.skill_path')}: {skill.path}")
+        self.detail_path.setText(f"路径: {skill.path}")
         self.detail_content.setText(skill.content)
 
         # 启用操作按钮
@@ -14611,20 +14386,15 @@ class SkillPage(BasePage):
             return
 
         w = FluentMessageBox(
-            tr("common.confirm_delete_title"),
-            f"{tr('skill.delete_confirm', name=self._current_skill.name)}\n{tr('skill.skill_path')}: {self._current_skill.path}",
+            "确认删除",
+            f'确定要删除 Skill "{self._current_skill.name}" 吗？\n路径: {self._current_skill.path}',
             self,
         )
         if w.exec_():
             try:
                 skill_dir = self._current_skill.path.parent
                 shutil.rmtree(skill_dir)
-                self.show_success(
-                    self.tr("common.success"),
-                    self.tr(
-                        "skill.skill_deleted_detail", name=self._current_skill.name
-                    ),
-                )
+                self.show_success("成功", f'Skill "{self._current_skill.name}" 已删除')
                 self._current_skill = None
                 self._refresh_skill_list()
                 self._clear_detail()
@@ -14689,11 +14459,13 @@ class SkillPage(BasePage):
 
         # 描述
         desc_layout = QHBoxLayout()
-        desc_layout.addWidget(BodyLabel(tr("skill.create_tab.desc_label"), basic_card))
+        license_layout.addWidget(
+            BodyLabel(tr("skill.create_tab.license_label"), basic_card)
+        )
         self.create_desc_edit = LineEdit(basic_card)
         self.create_desc_edit.setPlaceholderText(tr("dialog.placeholder_skill_desc"))
-        desc_layout.addWidget(self.create_desc_edit)
         basic_layout.addLayout(desc_layout)
+        desc_layout.addWidget(self.create_desc_edit)
 
         # License
         license_layout = QHBoxLayout()
@@ -14818,10 +14590,7 @@ class SkillPage(BasePage):
             with open(skill_file, "w", encoding="utf-8") as f:
                 f.write(skill_content)
 
-            self.show_success(
-                self.tr("common.success"),
-                self.tr("skill.skill_saved_detail", path=str(skill_file)),
-            )
+            self.show_success("成功", f"Skill 已保存: {skill_file}")
             self._refresh_skill_list()
             self._on_clear_create_form()
         except Exception as e:
@@ -15000,9 +14769,7 @@ class SkillPage(BasePage):
         add_agent_perm_btn.clicked.connect(self._on_add_agent_permission)
         agent_btn_layout.addWidget(add_agent_perm_btn)
 
-        del_agent_perm_btn = PushButton(
-            FIF.DELETE, tr("common.delete"), agent_edit_card
-        )
+        del_agent_perm_btn = PushButton(FIF.DELETE, "删除", agent_edit_card)
         del_agent_perm_btn.clicked.connect(self._on_delete_agent_permission)
         agent_btn_layout.addWidget(del_agent_perm_btn)
         agent_btn_layout.addStretch()
@@ -15045,10 +14812,7 @@ class SkillPage(BasePage):
                 del skill_perms[pattern]
                 self.main_window.save_opencode_config()
                 self._load_permission_data()
-                self.show_success(
-                    self.tr("common.success"),
-                    self.tr("rules.permission_deleted", pattern=pattern),
-                )
+                self.show_success("成功", f'权限 "{pattern}" 已删除')
 
     def _on_perm_selected(self):
         """选中权限时填充编辑区"""
@@ -15065,9 +14829,7 @@ class SkillPage(BasePage):
         """保存权限"""
         pattern = self.perm_pattern_edit.text().strip()
         if not pattern:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.please_enter_pattern")
-            )
+            self.show_warning("提示", "请输入模式")
             return
 
         config = self.main_window.opencode_config
@@ -15085,10 +14847,7 @@ class SkillPage(BasePage):
         config["permission"]["skill"][pattern] = self.perm_level_combo.currentText()
         self.main_window.save_opencode_config()
         self._load_permission_data()
-        self.show_success(
-            self.tr("common.success"),
-            self.tr("rules.permission_saved", pattern=pattern),
-        )
+        self.show_success("成功", f'权限 "{pattern}" 已保存')
 
     def _on_agent_changed(self, agent_name: str):
         """切换 Agent 时加载其配置"""
@@ -15142,9 +14901,7 @@ class SkillPage(BasePage):
         """添加 Agent 权限覆盖"""
         pattern = self.agent_perm_pattern_edit.text().strip()
         if not pattern:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.please_enter_pattern")
-            )
+            self.show_warning("提示", "请输入模式")
             return
 
         agent_name = self.agent_combo.currentText()
@@ -15167,10 +14924,7 @@ class SkillPage(BasePage):
         )
         self.main_window.save_opencode_config()
         self._load_agent_skill_config(agent_name)
-        self.show_success(
-            self.tr("common.success"),
-            self.tr("rules.agent_permission_added", agent=agent_name, pattern=pattern),
-        )
+        self.show_success("成功", f'Agent "{agent_name}" 权限 "{pattern}" 已添加')
 
     def _on_delete_agent_permission(self):
         """删除 Agent 权限覆盖"""
@@ -15197,10 +14951,7 @@ class SkillPage(BasePage):
             del agent_perms[pattern]
             self.main_window.save_opencode_config()
             self._load_agent_skill_config(agent_name)
-            self.show_success(
-                self.tr("common.success"),
-                self.tr("rules.permission_deleted", pattern=pattern),
-            )
+            self.show_success("成功", f'权限 "{pattern}" 已删除')
 
     def _on_open_market(self):
         """打开 Skill 市场"""
@@ -15222,18 +14973,11 @@ class SkillPage(BasePage):
 
                         # 从市场安装
                         owner, repo_name = skill["repo"].split("/")
-                        # 获取子目录路径（如果有）
-                        subdir = skill.get("path", None)
-
-                        # 自动检测分支 (main 或 master)
-                        branch = SkillInstaller.detect_default_branch(owner, repo_name)
-
                         success, message = SkillInstaller.install_from_github(
                             owner,
                             repo_name,
-                            branch,
+                            "main",
                             target_dir,
-                            subdir=subdir,
                             progress_callback=install_dialog.update_progress,
                         )
 
@@ -15270,9 +15014,7 @@ class SkillPage(BasePage):
             target_dir = dialog.get_target_dir()
 
             if not source:
-                self.show_warning(
-                    self.tr("common.info"), self.tr("common.please_enter_source")
-                )
+                self.show_warning("提示", "请输入来源")
                 return
 
             try:
@@ -15425,12 +15167,14 @@ class RulesPage(BasePage):
 
     def _setup_ui(self):
         # Instructions 配置卡片
-        inst_card = self.add_card(self.tr("rules.instructions_config"))
+        inst_card = self.add_card("Instructions 配置")
         inst_layout = inst_card.layout()
         inst_layout.setSpacing(12)
 
         inst_layout.addWidget(
-            BodyLabel(self.tr("rules.instructions_description"), inst_card)
+            BodyLabel(
+                "配置额外的指令文件，这些文件会与 AGENTS.md 合并加载。", inst_card
+            )
         )
 
         # Instructions 列表
@@ -15442,7 +15186,9 @@ class RulesPage(BasePage):
         add_layout = QHBoxLayout()
         add_layout.setSpacing(8)
         self.inst_path_edit = LineEdit(inst_card)
-        self.inst_path_edit.setPlaceholderText(self.tr("rules.file_path_placeholder"))
+        self.inst_path_edit.setPlaceholderText(
+            "文件路径，如: CONTRIBUTING.md, docs/*.md"
+        )
         self.inst_path_edit.setFixedHeight(36)
         add_layout.addWidget(self.inst_path_edit)
 
@@ -15451,7 +15197,7 @@ class RulesPage(BasePage):
         add_btn.clicked.connect(self._on_add_instruction)
         add_layout.addWidget(add_btn)
 
-        del_btn = PushButton(FIF.DELETE, tr("common.delete"), inst_card)
+        del_btn = PushButton(FIF.DELETE, "删除", inst_card)
         del_btn.setFixedHeight(36)
         del_btn.clicked.connect(self._on_delete_instruction)
         add_layout.addWidget(del_btn)
@@ -15477,7 +15223,7 @@ class RulesPage(BasePage):
         inst_layout.addWidget(save_inst_btn)
 
         # AGENTS.md 编辑卡片
-        agents_card = self.add_card(self.tr("rules.agents_md_edit"))
+        agents_card = self.add_card("AGENTS.md 编辑")
         agents_layout = agents_card.layout()
         agents_layout.setSpacing(12)
 
@@ -15512,12 +15258,12 @@ class RulesPage(BasePage):
         save_btn.clicked.connect(self._on_save_agents_md)
         btn_layout.addWidget(save_btn)
 
-        reload_btn = PushButton(self.tr("rules.reload"), agents_card)
+        reload_btn = PushButton("重新加载", agents_card)
         reload_btn.setFixedHeight(36)
         reload_btn.clicked.connect(self._load_agents_md)
         btn_layout.addWidget(reload_btn)
 
-        template_btn = PushButton(self.tr("rules.use_template"), agents_card)
+        template_btn = PushButton("使用模板", agents_card)
         template_btn.setFixedHeight(36)
         template_btn.clicked.connect(self._use_template)
         btn_layout.addWidget(template_btn)
@@ -15541,9 +15287,7 @@ class RulesPage(BasePage):
     def _on_add_instruction(self):
         path = self.inst_path_edit.text().strip()
         if not path:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.please_enter_file_path")
-            )
+            self.show_warning("提示", "请输入文件路径")
             return
 
         config = self.main_window.opencode_config
@@ -15575,9 +15319,7 @@ class RulesPage(BasePage):
 
     def _on_save_instructions(self):
         self.main_window.save_opencode_config()
-        self.show_success(
-            self.tr("common.success"), self.tr("rules.instructions_saved")
-        )
+        self.show_success("成功", "Instructions 配置已保存")
 
     def _get_agents_path(self) -> Path:
         if self.global_radio.isChecked():
@@ -15587,7 +15329,7 @@ class RulesPage(BasePage):
 
     def _load_agents_md(self):
         path = self._get_agents_path()
-        self.path_label.setText(f"{tr('rules.path_label')}: {path}")
+        self.path_label.setText(f"路径: {path}")
 
         if path.exists():
             try:
@@ -15595,9 +15337,11 @@ class RulesPage(BasePage):
                     content = f.read()
                 self.agents_edit.setPlainText(content)
             except Exception as e:
-                self.agents_edit.setPlainText(f"# {tr('rules.read_failed')}: {e}")
+                self.agents_edit.setPlainText(f"# 读取失败: {e}")
         else:
-            self.agents_edit.setPlainText(self.tr("rules.agents_md_not_exist"))
+            self.agents_edit.setPlainText(
+                '# AGENTS.md 文件不存在\n# 点击"使用模板"创建新文件'
+            )
 
     def _on_save_agents_md(self):
         path = self._get_agents_path()
@@ -15607,10 +15351,7 @@ class RulesPage(BasePage):
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
-            self.show_success(
-                self.tr("common.success"),
-                self.tr("rules.agents_md_saved", path=str(path)),
-            )
+            self.show_success("成功", f"AGENTS.md 已保存: {path}")
         except Exception as e:
             self.show_error("错误", f"保存失败: {e}")
 
@@ -15649,23 +15390,27 @@ class CompactionPage(BasePage):
 
     def _setup_ui(self):
         # 说明卡片
-        desc_card = self.add_card(tr("compaction.card_title"))
+        desc_card = self.add_card("上下文压缩 (Compaction)")
         desc_layout = desc_card.layout()
 
         desc_layout.addWidget(
             BodyLabel(
-                tr("compaction.description"),
+                "上下文压缩用于在会话上下文接近满时自动压缩，以节省 tokens 并保持会话连续性。",
                 desc_card,
             )
         )
 
         # auto 选项
-        self.auto_check = CheckBox(tr("compaction.auto_compress"), desc_card)
+        self.auto_check = CheckBox(
+            "自动压缩 (auto) - 当上下文已满时自动压缩会话", desc_card
+        )
         self.auto_check.setChecked(True)
         desc_layout.addWidget(self.auto_check)
 
         # prune 选项
-        self.prune_check = CheckBox(tr("compaction.prune_old_output"), desc_card)
+        self.prune_check = CheckBox(
+            "修剪旧输出 (prune) - 删除旧的工具输出以节省 tokens", desc_card
+        )
         self.prune_check.setChecked(True)
         desc_layout.addWidget(self.prune_check)
 
@@ -15775,12 +15520,14 @@ class MonitorPage(BasePage):
             # 启动对话延迟测试
             self.monitor_toggle_btn.setText(tr("monitor.stop_monitoring"))
             self.monitor_toggle_btn.setIcon(FIF.PAUSE)
-            self.monitor_toggle_btn.setToolTip(tr("monitor.stop_tooltip"))
+            self.monitor_toggle_btn.setToolTip(
+                "停止对话延迟自动检测（Ping 检测不受影响）"
+            )
         else:
             # 停止对话延迟测试
             self.monitor_toggle_btn.setText(tr("monitor.start_monitoring"))
             self.monitor_toggle_btn.setIcon(FIF.PLAY)
-            self.monitor_toggle_btn.setToolTip(tr("monitor.start_tooltip"))
+            self.monitor_toggle_btn.setToolTip(tr("dialog.tooltip_auto_detect"))
         # 立即执行一次检测以反映状态变化
         self._do_poll()
 
@@ -15921,7 +15668,7 @@ class MonitorPage(BasePage):
         self.detail_table.setHorizontalHeaderLabels(
             [
                 tr("monitor.model_provider"),
-                tr("monitor.status"),
+                "状态",
                 tr("monitor.availability_rate"),
                 tr("monitor.chat_latency"),
                 tr("monitor.ping_latency"),
@@ -16328,7 +16075,7 @@ class MonitorPage(BasePage):
             block.setFixedSize(6, 10)
             block.setStyleSheet(f"background: {color}; border-radius: 1px;")
             block.setToolTip(
-                f"{tr(STATUS_LABELS.get(item.status, 'monitor.status_error'))}: {item.checked_at.strftime('%H:%M:%S')}"
+                f"{STATUS_LABELS.get(item.status, '未知')}: {item.checked_at.strftime('%H:%M:%S')}"
             )
             layout.addWidget(block)
 
@@ -16367,7 +16114,7 @@ class MonitorPage(BasePage):
     ) -> None:
         """填充表格行"""
         if pending:
-            status_item = QTableWidgetItem(f"● {tr('monitor.checking')}")
+            status_item = QTableWidgetItem("● 检测中")
             status_item.setForeground(QColor("#9AA4B2"))
             self.detail_table.setItem(row, 1, status_item)
             self.detail_table.setItem(row, 2, QTableWidgetItem("—"))
@@ -16381,7 +16128,7 @@ class MonitorPage(BasePage):
         if history:
             latest = history[-1]
             # 状态
-            status_label = tr(STATUS_LABELS.get(latest.status, "monitor.status_error"))
+            status_label = STATUS_LABELS.get(latest.status, "未知")
             status_item = QTableWidgetItem(f"● {status_label}")
             status_item.setForeground(
                 QColor(STATUS_COLORS.get(latest.status, "#9AA4B2"))
@@ -17964,9 +17711,7 @@ class CLIBackupRestoreDialog(QDialog):
         # 备份列表
         self.backup_table = TableWidget(self)
         self.backup_table.setColumnCount(3)
-        self.backup_table.setHorizontalHeaderLabels(
-            [tr("backup.cli_type"), tr("backup.backup_time"), tr("backup.file")]
-        )
+        self.backup_table.setHorizontalHeaderLabels(["CLI 类型", "备份时间", "文件"])
         header = self.backup_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
         header.setSectionResizeMode(1, QHeaderView.Fixed)
@@ -17986,7 +17731,7 @@ class CLIBackupRestoreDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        restore_btn = PrimaryPushButton(tr("backup.restore"), self)
+        restore_btn = PrimaryPushButton("恢复", self)
         restore_btn.clicked.connect(self._on_restore)
         btn_layout.addWidget(restore_btn)
 
@@ -18124,16 +17869,14 @@ class ImportPage(BasePage):
 
     def _setup_ui(self):
         # 检测到的配置卡片
-        detect_card = self.add_card(tr("cli_export.detected_configs"))
+        detect_card = self.add_card("检测到的外部配置")
         detect_card.setStyleSheet(
             "SimpleCardWidget { background-color: transparent; border: none; }"
         )
         detect_layout = detect_card.layout()
 
         # 刷新按钮
-        refresh_btn = PrimaryPushButton(
-            FIF.SYNC, tr("cli_export.refresh_detection"), detect_card
-        )
+        refresh_btn = PrimaryPushButton(FIF.SYNC, "刷新检测", detect_card)
         refresh_btn.clicked.connect(self._refresh_scan)
         detect_layout.addWidget(refresh_btn)
 
@@ -18180,13 +17923,9 @@ class ImportPage(BasePage):
         detect_layout.addWidget(self.config_table)
 
         # 预览卡片
-        preview_card = self.add_card(tr("import.preview_card_title"))
+        preview_card = self.add_card("配置预览与转换结果")
         preview_card.setStyleSheet(
             "SimpleCardWidget { background-color: transparent; border: none; }"
-        )
-        preview_layout = preview_card.layout()
-        preview_layout.addWidget(
-            BodyLabel(tr("import.preview_card_description"), preview_card)
         )
         preview_layout = preview_card.layout()
         preview_layout.addWidget(
@@ -18237,10 +17976,8 @@ class ImportPage(BasePage):
         if not source:
             return
 
-        file_filter = tr("import.config_files")
-        path, _ = QFileDialog.getOpenFileName(
-            self, tr("import.select_config_file"), "", file_filter
-        )
+        file_filter = "配置文件 (*.json *.jsonc *.toml);;所有文件 (*.*)"
+        path, _ = QFileDialog.getOpenFileName(self, "选择配置文件", "", file_filter)
         if not path:
             return
 
@@ -18270,7 +18007,7 @@ class ImportPage(BasePage):
         """预览转换结果"""
         row = self.config_table.currentRow()
         if row < 0:
-            self.show_warning(tr("common.info"), tr("import.select_config_to_convert"))
+            self.show_warning(tr("common.info"), "请先选择要转换的配置")
             return
 
         source = self.config_table.item(row, 0).text()
@@ -18282,9 +18019,7 @@ class ImportPage(BasePage):
                 source_type, results[source]["data"]
             )
             if not converted:
-                self.show_warning(
-                    self.tr("common.info"), self.tr("common.cannot_convert_format")
-                )
+                self.show_warning("提示", "无法转换此配置格式")
                 return
 
             import json
@@ -18348,9 +18083,7 @@ class ImportPage(BasePage):
 
             dialog.exec_()
         else:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.config_not_exist_or_empty")
-            )
+            self.show_warning("提示", "所选配置不存在或为空")
 
     def _import_selected(self):
         """导入选中的配置"""
@@ -18363,9 +18096,7 @@ class ImportPage(BasePage):
         results = self.import_service.scan_external_configs()
 
         if source not in results or not results[source]["data"]:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.config_not_exist_or_empty")
-            )
+            self.show_warning("提示", "所选配置不存在或为空")
             return
 
         source_type = results[source].get("type", "")
@@ -18374,9 +18105,7 @@ class ImportPage(BasePage):
         )
 
         if not converted:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.cannot_convert_format")
-            )
+            self.show_warning("提示", "无法转换此配置格式")
             return
 
         # 打开确认映射对话框
@@ -18385,9 +18114,7 @@ class ImportPage(BasePage):
             return
         confirmed = dialog.get_confirmed_config()
         if not confirmed:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.no_valid_import_config")
-            )
+            self.show_warning("提示", "未确认任何有效的导入配置")
             return
 
         self._apply_import(source, confirmed)
@@ -18426,10 +18153,7 @@ class ImportPage(BasePage):
 
         # 保存
         if self.main_window.save_opencode_config():
-            self.show_success(
-                self.tr("common.success"),
-                self.tr("import.config_imported", source=source),
-            )
+            self.show_success("成功", f"已导入 {source} 的配置")
 
     def _confirm_mapping(self):
         """手动确认映射"""
@@ -18443,9 +18167,7 @@ class ImportPage(BasePage):
             return
         confirmed = dialog.get_confirmed_config()
         if not confirmed:
-            self.show_warning(
-                self.tr("common.info"), self.tr("common.no_valid_import_config")
-            )
+            self.show_warning("提示", "未确认任何有效的导入配置")
             return
         self._apply_import("手动确认", confirmed)
 
@@ -18578,7 +18300,7 @@ class BackupDialog(BaseDialog):
         self.main_window = main_window
         self.backup_manager = main_window.backup_manager
 
-        self.setWindowTitle(tr("backup.title"))
+        self.setWindowTitle("备份管理")
         self.setMinimumSize(600, 400)
         self._setup_ui()
         self._load_backups()
@@ -18590,44 +18312,37 @@ class BackupDialog(BaseDialog):
         # 工具栏
         toolbar = QHBoxLayout()
 
-        backup_opencode_btn = PrimaryPushButton(
-            FIF.SAVE, tr("backup.backup_opencode"), self
-        )
+        backup_opencode_btn = PrimaryPushButton(FIF.SAVE, "备份 OpenCode", self)
         backup_opencode_btn.clicked.connect(self._backup_opencode)
         toolbar.addWidget(backup_opencode_btn)
 
-        backup_ohmy_btn = PushButton(FIF.SAVE, tr("backup.backup_ohmyopencode"), self)
+        backup_ohmy_btn = PushButton(FIF.SAVE, "备份 Oh My OpenCode", self)
         backup_ohmy_btn.clicked.connect(self._backup_ohmyopencode)
         toolbar.addWidget(backup_ohmy_btn)
 
         toolbar.addStretch()
 
-        refresh_btn = PushButton(FIF.SYNC, tr("backup.refresh"), self)
+        refresh_btn = PushButton(FIF.SYNC, "刷新", self)
         refresh_btn.clicked.connect(self._load_backups)
         toolbar.addWidget(refresh_btn)
 
-        open_dir_btn = PushButton(FIF.FOLDER, tr("backup.open_backup_dir"), self)
+        open_dir_btn = PushButton(FIF.FOLDER, "打开备份目录", self)
         open_dir_btn.clicked.connect(self._open_backup_dir)
         toolbar.addWidget(open_dir_btn)
 
-        preview_btn = PushButton(FIF.VIEW, tr("backup.preview_content"), self)
+        preview_btn = PushButton(FIF.VIEW, "预览内容", self)
         preview_btn.clicked.connect(self._preview_backup)
         toolbar.addWidget(preview_btn)
 
         layout.addLayout(toolbar)
 
         # 备份列表
-        layout.addWidget(SubtitleLabel(tr("backup.backup_list"), self))
+        layout.addWidget(SubtitleLabel("备份列表", self))
 
         self.backup_table = TableWidget(self)
         self.backup_table.setColumnCount(4)
         self.backup_table.setHorizontalHeaderLabels(
-            [
-                tr("backup.config_file"),
-                tr("backup.time"),
-                tr("backup.tag"),
-                tr("backup.path"),
-            ]
+            ["配置文件", "时间", "标签", "路径"]
         )
         # 设置列宽：配置文件和标签固定，时间和路径自适应
         header = self.backup_table.horizontalHeader()
@@ -18646,17 +18361,17 @@ class BackupDialog(BaseDialog):
         # 操作按钮
         btn_layout = QHBoxLayout()
 
-        restore_btn = PrimaryPushButton(tr("backup.restore_selected"), self)
+        restore_btn = PrimaryPushButton("恢复选中备份", self)
         restore_btn.clicked.connect(self._restore_backup)
         btn_layout.addWidget(restore_btn)
 
-        delete_btn = PushButton(FIF.DELETE, tr("backup.delete_backup"), self)
+        delete_btn = PushButton(FIF.DELETE, "删除备份", self)
         delete_btn.clicked.connect(self._delete_backup)
         btn_layout.addWidget(delete_btn)
 
         btn_layout.addStretch()
 
-        close_btn = PushButton(tr("backup.close"), self)
+        close_btn = PushButton("关闭", self)
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
 
@@ -18683,9 +18398,7 @@ class BackupDialog(BaseDialog):
             ConfigPaths.get_opencode_config(), tag="manual"
         )
         if path:
-            InfoBar.success(
-                tr("common.success"), tr("backup.backed_up_to", path=path), parent=self
-            )
+            InfoBar.success("成功", f"已备份到: {path}", parent=self)
             self._load_backups()
         else:
             InfoBar.error(tr("common.error"), tr("dialog.backup_failed"), parent=self)
@@ -18696,9 +18409,7 @@ class BackupDialog(BaseDialog):
             ConfigPaths.get_ohmyopencode_config(), tag="manual"
         )
         if path:
-            InfoBar.success(
-                tr("common.success"), tr("backup.backed_up_to", path=path), parent=self
-            )
+            InfoBar.success("成功", f"已备份到: {path}", parent=self)
             self._load_backups()
         else:
             InfoBar.error(tr("common.error"), tr("dialog.backup_failed"), parent=self)
@@ -18834,18 +18545,10 @@ def main():
     setTheme(Theme.DARK)
     setThemeColor("#2979FF")
 
-    # 设置全局字体 - 使用优化后的字体栈
+    # 设置全局字体
     font = QFont()
     font.setFamilies(
-        [
-            "-apple-system",
-            "BlinkMacSystemFont",
-            "Segoe UI",
-            "Roboto",
-            "Microsoft YaHei UI",
-            "微软雅黑",
-            "PingFang SC",
-        ]
+        [UIConfig.FONT_FAMILY, "Consolas", "Monaco", "Courier New", "monospace"]
     )
     font.setPointSize(10)
     app.setFont(font)

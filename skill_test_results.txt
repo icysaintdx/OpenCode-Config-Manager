@@ -1,0 +1,184 @@
+FEATURED_SKILLS 测试结果
+================================================================================
+
+总计: 26 个 skills
+成功: 19 个
+失败: 7 个
+
+详细结果:
+--------------------------------------------------------------------------------
+
+名称: ui-ux-pro-max
+仓库: nextlevelbuilder/ui-ux-pro-max-skill
+分支: main
+状态: FAIL
+原因: ✗ 未找到 SKILL.md 或 SKILL.txt
+
+名称: canvas-design
+仓库: anthropics/skills
+子目录: skills/canvas-design
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: theme-factory
+仓库: anthropics/skills
+子目录: skills/theme-factory
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: web-artifacts-builder
+仓库: anthropics/skills
+子目录: skills/web-artifacts-builder
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: mcp-builder
+仓库: anthropics/skills
+子目录: skills/mcp-builder
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: webapp-testing
+仓库: anthropics/skills
+子目录: skills/webapp-testing
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: skill-creator
+仓库: anthropics/skills
+子目录: skills/skill-creator
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: changelog-generator
+仓库: ComposioHQ/awesome-claude-skills
+子目录: changelog-generator
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: algorithmic-art
+仓库: anthropics/skills
+子目录: skills/algorithmic-art
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: slack-gif-creator
+仓库: anthropics/skills
+子目录: skills/slack-gif-creator
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: image-enhancer
+仓库: ComposioHQ/awesome-claude-skills
+子目录: image-enhancer
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: video-downloader
+仓库: ComposioHQ/awesome-claude-skills
+子目录: video-downloader
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: doc-coauthoring
+仓库: anthropics/skills
+子目录: skills/doc-coauthoring
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: brand-guidelines
+仓库: anthropics/skills
+子目录: skills/brand-guidelines
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: internal-comms
+仓库: anthropics/skills
+子目录: skills/internal-comms
+分支: main
+状态: OK
+原因: 所有检查通过
+
+名称: content-research-writer
+仓库: ComposioHQ/awesome-claude-skills
+子目录: content-research-writer
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: meeting-insights-analyzer
+仓库: ComposioHQ/awesome-claude-skills
+子目录: meeting-insights-analyzer
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: twitter-algorithm-optimizer
+仓库: ComposioHQ/awesome-claude-skills
+子目录: twitter-algorithm-optimizer
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: competitive-ads-extractor
+仓库: ComposioHQ/awesome-claude-skills
+子目录: competitive-ads-extractor
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: domain-name-brainstormer
+仓库: ComposioHQ/awesome-claude-skills
+子目录: domain-name-brainstormer
+分支: master
+状态: OK
+原因: 所有检查通过
+
+名称: lead-research-assistant
+仓库: ComposioHQ/awesome-claude-skills
+子目录: lead-research-assistant
+状态: FAIL
+原因: ✗ API错误: 403
+
+名称: email-assistant
+仓库: ComposioHQ/awesome-claude-skills
+子目录: email-assistant
+状态: FAIL
+原因: ✗ API错误: 403
+
+名称: calendar-scheduler
+仓库: ComposioHQ/awesome-claude-skills
+子目录: calendar-scheduler
+状态: FAIL
+原因: ✗ API错误: 403
+
+名称: task-manager
+仓库: ComposioHQ/awesome-claude-skills
+子目录: task-manager
+状态: FAIL
+原因: ✗ API错误: 403
+
+名称: resume-builder
+仓库: ComposioHQ/awesome-claude-skills
+子目录: resume-builder
+状态: FAIL
+原因: ✗ API错误: 403
+
+名称: connect-apps
+仓库: ComposioHQ/connect-apps
+状态: FAIL
+原因: ✗ API错误: 403
+
