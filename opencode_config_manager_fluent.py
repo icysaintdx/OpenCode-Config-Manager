@@ -11674,89 +11674,29 @@ class MainWindow(FluentWindow):
         # 1. 更新窗口标题
         self.setWindowTitle(f"OCCM - OpenCode Config Manager v{APP_VERSION}")
 
-        # 2. 保存当前选中的页面
-        current_interface = self.stackedWidget.currentWidget()
+        # 2. 保存当前选中的页面索引
+        current_index = self.stackedWidget.currentIndex()
 
-        # 3. 重建导航栏
-        # 由于 QFluentWidgets 的 NavigationInterface 不支持直接更新文本
-        # 我们需要移除所有项并重新添加
+        # 3. 由于 QFluentWidgets 的 NavigationInterface 不支持直接更新文本
+        # 我们采用最简单的方案：重新初始化导航栏
+        # 这会清空所有导航项，然后重新添加
 
-        # 获取所有导航项的 routeKey
-        items_to_remove = []
-        for item in self.navigationInterface.items.values():
-            if hasattr(item, "routeKey"):
-                items_to_remove.append(item.routeKey())
+        # 创建新的导航接口（这会清空旧的）
+        old_nav = self.navigationInterface
+        self.navigationInterface = old_nav.__class__(self, True, True)
 
-        # 移除所有导航项（除了分隔符）
-        for route_key in items_to_remove:
-            try:
-                widget = self.navigationInterface.widget(route_key)
-                if widget:
-                    self.navigationInterface.removeWidget(route_key)
-            except:
-                pass
+        # 替换布局中的导航栏
+        self.hBoxLayout.replaceWidget(old_nav, self.navigationInterface)
+        old_nav.deleteLater()
 
-        # 重新添加所有页面（使用新的翻译文本）
-        # ===== 顶部工具栏区域 =====
-        self.addSubInterface(self.home_page, FIF.HOME, tr("menu.home"))
+        # 重新初始化导航栏
+        self._init_navigation()
 
-        # ===== OpenCode 配置分组 =====
-        self.addSubInterface(self.provider_page, FIF.PEOPLE, tr("menu.provider"))
-        self.addSubInterface(
-            self.native_provider_page, FIF.GLOBE, tr("menu.native_provider")
-        )
-        self.addSubInterface(self.model_page, FIF.ROBOT, tr("menu.model"))
-        self.addSubInterface(self.mcp_page, FIF.CLOUD, tr("menu.mcp"))
-        self.addSubInterface(
-            self.opencode_agent_page, FIF.COMMAND_PROMPT, tr("menu.agent")
-        )
-        self.addSubInterface(
-            self.permission_page, FIF.CERTIFICATE, tr("menu.permission")
-        )
-        self.addSubInterface(self.skill_page, FIF.BOOK_SHELF, tr("menu.skill"))
-        self.addSubInterface(self.rules_page, FIF.DOCUMENT, tr("menu.rules"))
-        self.addSubInterface(
-            self.compaction_page, FIF.ZIP_FOLDER, tr("menu.compaction")
-        )
+        # 4. 恢复之前选中的页面
+        if current_index >= 0:
+            self.stackedWidget.setCurrentIndex(current_index)
 
-        # ===== Oh My OpenCode 配置分组 =====
-        self.addSubInterface(
-            self.ohmy_agent_page, FIF.EMOJI_TAB_SYMBOLS, tr("menu.ohmyagent")
-        )
-        self.addSubInterface(self.category_page, FIF.TAG, tr("menu.category"))
-
-        # ===== 工具分组 =====
-        self.addSubInterface(self.import_page, FIF.DOWNLOAD, tr("menu.import"))
-        self.addSubInterface(self.cli_export_page, FIF.SEND, tr("menu.export"))
-        self.addSubInterface(self.monitor_page, FIF.SPEED_HIGH, tr("menu.monitor"))
-
-        # ===== 工具菜单 =====
-        self.navigationInterface.addSeparator()
-        self.navigationInterface.addItem(
-            routeKey="theme",
-            icon=FIF.CONSTRACT,
-            text=tr("menu.theme"),
-            onClick=self._toggle_theme,
-        )
-        self.navigationInterface.addItem(
-            routeKey="backup",
-            icon=FIF.HISTORY,
-            text=tr("menu.backup"),
-            onClick=self._show_backup_dialog,
-        )
-        self.addSubInterface(self.help_page, FIF.HELP, tr("menu.help"))
-        self.navigationInterface.addItem(
-            routeKey="language",
-            icon=FIF.GLOBE,
-            text=tr("menu.language"),
-            onClick=self._on_language_switch,
-        )
-
-        # 恢复之前选中的页面
-        if current_interface:
-            self.stackedWidget.setCurrentWidget(current_interface)
-
-        # 4. 通知所有页面刷新文本
+        # 5. 通知所有页面刷新文本
         for page in [
             self.home_page,
             self.provider_page,
