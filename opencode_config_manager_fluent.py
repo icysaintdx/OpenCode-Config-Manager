@@ -11674,16 +11674,27 @@ class MainWindow(FluentWindow):
         # 1. 更新窗口标题
         self.setWindowTitle(f"OCCM - OpenCode Config Manager v{APP_VERSION}")
 
-        # 2. 更新导航栏菜单项文本
-        # 注意：FluentWindow 的导航栏不支持直接更新文本，需要重建导航栏
-        # 但这会导致当前选中的页面丢失，所以我们采用另一种方案：
-        # 保存当前页面，清空导航栏，重新添加所有页面
-
-        # 保存当前选中的页面
+        # 2. 保存当前选中的页面
         current_interface = self.stackedWidget.currentWidget()
 
-        # 清空导航栏（保留页面实例）
-        self.navigationInterface.clear()
+        # 3. 重建导航栏
+        # 由于 QFluentWidgets 的 NavigationInterface 不支持直接更新文本
+        # 我们需要移除所有项并重新添加
+
+        # 获取所有导航项的 routeKey
+        items_to_remove = []
+        for item in self.navigationInterface.items.values():
+            if hasattr(item, "routeKey"):
+                items_to_remove.append(item.routeKey())
+
+        # 移除所有导航项（除了分隔符）
+        for route_key in items_to_remove:
+            try:
+                widget = self.navigationInterface.widget(route_key)
+                if widget:
+                    self.navigationInterface.removeWidget(route_key)
+            except:
+                pass
 
         # 重新添加所有页面（使用新的翻译文本）
         # ===== 顶部工具栏区域 =====
@@ -11745,7 +11756,7 @@ class MainWindow(FluentWindow):
         if current_interface:
             self.stackedWidget.setCurrentWidget(current_interface)
 
-        # 3. 通知所有页面刷新文本
+        # 4. 通知所有页面刷新文本
         for page in [
             self.home_page,
             self.provider_page,
