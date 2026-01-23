@@ -481,7 +481,7 @@
     "scan_security": "Security Scan",
     "refresh": "Refresh",
     "select_to_view": "Select a Skill to view details",
-    "search_paths": "Search Paths:\n• ~/.config/opencode/skills/\n• ~/.claude/skills/\n• .opencode/skills/\n• .claude/skills/",
+    "search_paths": "Search Paths",
     "content_preview": "Content Preview",
     "discovered_skills": "Discovered Skills",
     "skill_details": "Skill Details",
@@ -653,15 +653,12 @@
     "scan_description": "All Skills discovered by scanning OpenCode and Claude compatible paths",
     "skill_market": "Skill Market",
     "check_updates": "Check Updates",
-    "refresh": "Refresh",
-    "search_paths": "Search Paths",
     "no_skill_selected": "No Skill Selected",
     "select_skill_hint": "Please select a Skill from the left list to view details",
     "description": "Description",
     "license": "License",
     "compatibility": "Compatibility",
     "path": "Path",
-    "content_preview": "Content Preview",
     "edit_skill": "Edit Skill",
     "delete_skill": "Delete Skill",
     "open_directory": "Open Directory",
@@ -671,7 +668,6 @@
     "permission_config": "Permission Configuration",
     "global_permission": "Global Permission",
     "pattern": "Pattern",
-    "permission": "Permission",
     "add_permission": "Add Permission",
     "skill_saved": "Skill saved",
     "skill_deleted": "Skill deleted",
@@ -718,7 +714,10 @@
     "tab_options": "Options/Variants",
     "priority_title": "Configuration Priority Order (High to Low)",
     "usage_title": "OpenCode Config Manager Usage Guide",
-    "options_title": "Options vs Variants Explanation"
+    "options_title": "Options vs Variants Explanation",
+    "priority_content": "1. Remote Configuration\n   Configuration obtained through API or remote server\n   Highest priority, overrides all local configurations\n\n2. Global Configuration\n   Location: ~/.config/opencode/opencode.json\n   Default configuration affecting all projects\n\n3. Custom Configuration\n   Configuration file specified via --config parameter\n   Used for specific scenario configuration overrides\n\n4. Project Configuration\n   Location: <project root>/opencode.json\n   Project-level configuration, affects current project only\n\n5. .opencode Directory Configuration\n   Location: <project root>/.opencode/config.json\n   Hidden configuration directory within project\n\n6. Inline Configuration\n   Configuration specified directly via command line parameters\n   Lowest priority, but most flexible\n\nConfiguration Merge Rules:\n- Higher priority configurations override lower priority ones with the same name\n- Unspecified configuration items inherit values from lower priorities\n- Provider and Model configurations are deeply merged",
+    "usage_content": "1. Provider Management\n   Add custom API providers\n   Configure API addresses and keys\n   Support multiple SDKs: @ai-sdk/anthropic, @ai-sdk/openai, etc.\n\n2. Model Management\n   Add models under Provider\n   Support quick selection of preset common models\n   Configure model parameters (context limits, output limits, etc.)\n\n3. Agent Management (Oh My OpenCode)\n   Configure Agents for different purposes\n   Bind configured Provider/Model\n   Support preset Agent templates\n\n4. Category Management (Oh My OpenCode)\n   Configure task categories\n   Set Temperature for different categories\n   Bind corresponding models\n\n5. Permission Management\n   Configure tool usage permissions\n   allow: Allow usage\n   ask: Ask each time\n   deny: Deny usage\n\n6. External Import\n   Detect configurations from Claude Code and other tools\n   One-click import of existing configurations\n\nNotes:\n- Please click Save button after modifications\n- Recommend regular backup of configuration files\n- Agent/Category models must be configured Provider/Model",
+    "options_content": "According to OpenCode official documentation:\n\n【Options】Default configuration parameters for models\n- These configurations are used every time the model is called\n- Suitable for common fixed configurations\n- Example: thinking.type, thinking.budgetTokens\n\n【Variants】Switchable variant configurations\n- Users can switch via variant_cycle shortcut\n- Suitable for different scenario configuration combinations\n- Example: high/medium/low different budgetTokens\n\n═══════════════════════════════════════════════════════════════\nThinking Mode Configuration Examples\n═══════════════════════════════════════════════════════════════\n\n【Claude】\n  options:\n    thinking:\n      type: \"enabled\"\n      budgetTokens: 16000\n  variants:\n    high:\n      thinking:\n        budgetTokens: 32000\n    max:\n      thinking:\n        budgetTokens: 64000\n\n【OpenAI】\n  options:\n    reasoningEffort: \"high\"\n  variants:\n    medium:\n      reasoningEffort: \"medium\"\n    low:\n      reasoningEffort: \"low\"\n\n【Gemini】\n  options:\n    thinkingConfig:\n      thinkingBudget: 8000\n  variants:\n    high:\n      thinkingConfig:\n        thinkingBudget: 16000"
   },
   "permission": {
     "title": "Permission Management",
@@ -777,6 +776,8 @@
     "check": "Check",
     "start": "Start",
     "toggle_tooltip": "Start/Stop automatic chat latency detection",
+    "start_tooltip": "Start automatic chat latency detection (Ping detection is not affected)",
+    "stop_tooltip": "Stop automatic chat latency detection (Ping detection is not affected)",
     "model_provider": "Model/Provider",
     "ping_latency": "Ping Latency",
     "status_operational": "Operational",
@@ -854,7 +855,9 @@
     "category_saved": "Category saved",
     "category_deleted": "Category deleted",
     "delete_confirm_msg": "Are you sure you want to delete Category \"{name}\"?",
-    "preset_dialog_title": "Add Category from Preset"
+    "category_added": "Category added",
+    "preset_category_added": "Preset Category added",
+    "category_updated": "Category updated"
   },
   "ohmyagent": {
     "title": "Oh My Agent",
@@ -883,25 +886,6 @@
       "subtitle": "Configure Agent Information",
       "model_label": "Bind Model:"
     }
-  },
-  "category": {
-    "title": "Category Management",
-    "add_category": "Add Category",
-    "edit_category": "Edit Category",
-    "delete_category": "Delete Category",
-    "category_name": "Category Name",
-    "bind_model": "Bind Model:",
-    "temperature": "Temperature",
-    "models": "Model List",
-    "select_models": "Select Models",
-    "select_preset_category": "Select Preset Category",
-    "category_exists": "Category \"{name}\" already exists",
-    "category_saved": "Category saved",
-    "category_deleted": "Category deleted",
-    "delete_confirm_msg": "Are you sure you want to delete Category \"{name}\"?",
-    "category_added": "Category added",
-    "preset_category_added": "Preset Category added",
-    "category_updated": "Category updated"
   },
   "rules": {
     "title": "Rules Management",

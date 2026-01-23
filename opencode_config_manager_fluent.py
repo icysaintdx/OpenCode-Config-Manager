@@ -1069,8 +1069,14 @@ def tr(key: str, **kwargs) -> str:
 class UIConfig:
     """全局 UI 配置"""
 
-    # 字体配置 - 使用系统默认字体，更清晰
-    FONT_FAMILY = "Microsoft YaHei UI, Segoe UI, PingFang SC, Helvetica Neue, Arial"
+    # 字体配置 - 参考 Any-code 项目，优先使用系统原生字体
+    # Sans-serif 字体栈：优先系统字体，中文字体作为 fallback
+    FONT_FAMILY_SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'Microsoft YaHei UI', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', 'SimSun', '宋体', 'Arial Unicode MS', sans-serif"
+
+    # Monospace 字体栈：用于代码和等宽文本
+    FONT_FAMILY_MONO = "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'Microsoft YaHei Mono', '微软雅黑', monospace"
+
+    # 字体大小配置
     FONT_SIZE_TITLE = 16
     FONT_SIZE_BODY = 14
     FONT_SIZE_SMALL = 12
@@ -1093,14 +1099,18 @@ class UIConfig:
 
     @staticmethod
     def get_stylesheet() -> str:
-        """获取全局 QSS 样式表 - 只设置字体，颜色由主题控制"""
+        """获取全局 QSS 样式表 - 优化字体渲染，解决英文显示和遮挡问题"""
+        # 字体栈定义
+        font_sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'Microsoft YaHei UI', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', 'SimSun', '宋体', 'Arial Unicode MS', sans-serif"
+        font_mono = "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'Microsoft YaHei Mono', '微软雅黑', monospace"
+
         return f"""
             /* ==================== 全局字体 ==================== */
             * {{
-                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", "Monaco", "Courier New", monospace;
+                font-family: {font_sans};
             }}
             QWidget {{
-                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", "Monaco", "Courier New", monospace;
+                font-family: {font_sans};
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
             }}
 
@@ -1108,44 +1118,78 @@ class UIConfig:
             TitleLabel {{
                 font-size: 18px;
                 font-weight: bold;
+                font-family: {font_sans};
             }}
             SubtitleLabel {{
                 font-size: {UIConfig.FONT_SIZE_TITLE}px;
                 font-weight: bold;
+                font-family: {font_sans};
             }}
             BodyLabel {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
             }}
             CaptionLabel {{
                 font-size: {UIConfig.FONT_SIZE_SMALL}px;
+                font-family: {font_sans};
             }}
             StrongBodyLabel {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
                 font-weight: bold;
+                font-family: {font_sans};
             }}
 
             /* ==================== 按钮字体 ==================== */
             QPushButton, PushButton, PrimaryPushButton, TransparentPushButton, ToolButton {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
+                padding: 6px 16px;
+                min-height: 32px;
             }}
 
             /* ==================== 输入框字体 ==================== */
-            QLineEdit, LineEdit, QTextEdit, TextEdit, QPlainTextEdit, PlainTextEdit {{
+            QLineEdit, LineEdit {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
+                padding: 6px 12px;
+                min-height: 32px;
+            }}
+            
+            QTextEdit, TextEdit, QPlainTextEdit, PlainTextEdit {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_mono};
+                line-height: 1.6;
             }}
 
             /* ==================== 下拉框字体 ==================== */
             QComboBox, ComboBox {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
+                padding: 6px 12px;
+                min-height: 32px;
+            }}
+            
+            QComboBox::drop-down {{
+                width: 30px;
+            }}
+            
+            QComboBox QAbstractItemView {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
+                padding: 4px;
             }}
 
             /* ==================== 表格字体 ==================== */
             QTableWidget, TableWidget {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
             }}
             QHeaderView::section {{
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
+                font-family: {font_sans};
+                padding: 8px 12px;
+                min-height: 36px;
             }}
             
             /* ==================== 修复表格左上角单元格白色问题 ==================== */
@@ -1157,6 +1201,24 @@ class UIConfig:
             /* ==================== 列表字体 ==================== */
             QListWidget, ListWidget {{
                 font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
+            }}
+            
+            QListWidget::item {{
+                padding: 8px 12px;
+                min-height: 36px;
+            }}
+
+            /* ==================== 菜单字体 ==================== */
+            QMenu {{
+                font-size: {UIConfig.FONT_SIZE_BODY}px;
+                font-family: {font_sans};
+                padding: 4px;
+            }}
+            
+            QMenu::item {{
+                padding: 8px 24px 8px 12px;
+                min-height: 32px;
             }}
 
             /* ==================== 滚动条样式 ==================== */
@@ -1169,6 +1231,14 @@ class UIConfig:
 
             /* ==================== 工具提示字体 ==================== */
             QToolTip {{
+                font-size: {UIConfig.FONT_SIZE_SMALL}px;
+                font-family: {font_sans};
+                padding: 6px 10px;
+            }}
+            
+            /* ==================== 代码/等宽文本 ==================== */
+            code, pre, .monospace {{
+                font-family: {font_mono};
                 font-size: {UIConfig.FONT_SIZE_SMALL}px;
             }}
         """
@@ -8183,12 +8253,6 @@ class ModelPage(BasePage):
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
-        self.bulk_model_label = BodyLabel(tr("model.bulk_model"), self)
-        toolbar.addWidget(self.bulk_model_label)
-        self.bulk_model_combo = ComboBox(self)
-        self.bulk_model_combo.setMinimumWidth(220)
-        toolbar.addWidget(self.bulk_model_combo)
-
         toolbar.addStretch()
         self._layout.addLayout(toolbar)
 
@@ -9762,6 +9826,9 @@ class MCPDialog(BaseDialog):
             self._load_mcp_data()
         self._update_preview()
 
+        # 监听语言切换事件
+        _lang_manager.language_changed.connect(self._on_language_changed)
+
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
@@ -10224,6 +10291,32 @@ class MCPDialog(BaseDialog):
     def _on_format_preview(self) -> None:
         self._update_preview()
         self.preview_edit.moveCursor(QTextCursor.Start)
+
+    def _on_language_changed(self, lang_code: str) -> None:
+        """处理语言切换事件"""
+        # 更新窗口标题
+        if self.is_edit:
+            self.setWindowTitle(tr("mcp.dialog.edit_title"))
+        else:
+            title = (
+                tr("mcp.dialog.add_local_title")
+                if self.mcp_type == "local"
+                else tr("mcp.dialog.add_remote_title")
+            )
+            self.setWindowTitle(title)
+
+        # 更新 QGroupBox 标题
+        self.extra_group.setTitle(tr("mcp.additional_info"))
+        self.preview_group.setTitle(tr("mcp.full_json_preview"))
+
+        # 更新 CheckBox 文本
+        self.preview_wrap_check.setText(tr("mcp.include_wrapper"))
+        self.enabled_check.setText(tr("mcp.dialog.enable_checkbox"))
+
+        # 更新按钮文本
+        self.cancel_btn.setText(tr("common.cancel"))
+        self.save_btn.setText(tr("common.save"))
+        self.format_btn.setText(tr("cli_export.format_json"))
 
 
 # ==================== OpenCode Agent 页面 ====================
@@ -11086,36 +11179,7 @@ class HelpPage(BasePage):
         priority_layout.addWidget(
             SubtitleLabel(tr("help.priority_title"), priority_widget)
         )
-        priority_content = """
-1. 远程配置 (Remote)
-   通过 API 或远程服务器获取的配置
-   优先级最高，会覆盖所有本地配置
-
-2. 全局配置 (Global)
-   位置: ~/.config/opencode/opencode.json
-   影响所有项目的默认配置
-
-3. 自定义配置 (Custom)
-   通过 --config 参数指定的配置文件
-   用于特定场景的配置覆盖
-
-4. 项目配置 (Project)
-   位置: <项目根目录>/opencode.json
-   项目级别的配置，仅影响当前项目
-
-5. .opencode 目录配置
-   位置: <项目根目录>/.opencode/config.json
-   项目内的隐藏配置目录
-
-6. 内联配置 (Inline)
-   通过命令行参数直接指定的配置
-   优先级最低，但最灵活
-
-配置合并规则:
-- 高优先级配置会覆盖低优先级的同名配置项
-- 未指定的配置项会继承低优先级的值
-- Provider 和 Model 配置会进行深度合并
-"""
+        priority_content = tr("help.priority_content")
         priority_text = PlainTextEdit(priority_widget)
         priority_text.setPlainText(priority_content.strip())
         priority_text.setReadOnly(True)
@@ -11127,42 +11191,7 @@ class HelpPage(BasePage):
         usage_widget = QWidget()
         usage_layout = QVBoxLayout(usage_widget)
         usage_layout.addWidget(SubtitleLabel(tr("help.usage_title"), usage_widget))
-        usage_content = """
-一、Provider 管理
-   添加自定义 API 提供商
-   配置 API 地址和密钥
-   支持多种 SDK: @ai-sdk/anthropic, @ai-sdk/openai 等
-
-二、Model 管理
-   在 Provider 下添加模型
-   支持预设常用模型快速选择
-   配置模型参数（上下文限制、输出限制等）
-
-三、Agent 管理 (Oh My OpenCode)
-   配置不同用途的 Agent
-   绑定已配置的 Provider/Model
-   支持预设 Agent 模板
-
-四、Category 管理 (Oh My OpenCode)
-   配置任务分类
-   设置不同分类的 Temperature
-   绑定对应的模型
-
-五、权限管理
-   配置工具的使用权限
-   allow: 允许使用
-   ask: 每次询问
-   deny: 禁止使用
-
-六、外部导入
-   检测 Claude Code 等工具的配置
-   一键导入已有配置
-
-注意事项:
-- 修改后请点击保存按钮
-- 建议定期备份配置文件
-- Agent/Category 的模型必须是已配置的 Provider/Model
-"""
+        usage_content = tr("help.usage_content")
         usage_text = PlainTextEdit(usage_widget)
         usage_text.setPlainText(usage_content.strip())
         usage_text.setReadOnly(True)
@@ -11176,54 +11205,7 @@ class HelpPage(BasePage):
         options_layout.addWidget(
             SubtitleLabel(tr("help.options_title"), options_widget)
         )
-        options_content = """
-根据 OpenCode 官方文档:
-
-【Options】模型的默认配置参数
-- 每次调用模型时都会使用这些配置
-- 适合放置常用的固定配置
-- 例如: thinking.type, thinking.budgetTokens
-
-【Variants】可切换的变体配置
-- 用户可通过 variant_cycle 快捷键切换
-- 适合放置不同场景的配置组合
-- 例如: high/medium/low 不同的 budgetTokens
-
-═══════════════════════════════════════════════════════════════
-Thinking 模式配置示例
-═══════════════════════════════════════════════════════════════
-
-【Claude】
-  options:
-    thinking:
-      type: "enabled"
-      budgetTokens: 16000
-  variants:
-    high:
-      thinking:
-        budgetTokens: 32000
-    max:
-      thinking:
-        budgetTokens: 64000
-
-【OpenAI】
-  options:
-    reasoningEffort: "high"
-  variants:
-    medium:
-      reasoningEffort: "medium"
-    low:
-      reasoningEffort: "low"
-
-【Gemini】
-  options:
-    thinkingConfig:
-      thinkingBudget: 8000
-  variants:
-    high:
-      thinkingConfig:
-        thinkingBudget: 16000
-"""
+        options_content = tr("help.options_content")
         options_text = PlainTextEdit(options_widget)
         options_text.setPlainText(options_content.strip())
         options_text.setReadOnly(True)
@@ -11392,7 +11374,7 @@ class MainWindow(FluentWindow):
                 font-weight: 900;
             }}
             NavigationTreeWidget {{
-                font-family: "{UIConfig.FONT_FAMILY}", "Consolas", monospace;
+                font-family: {UIConfig.FONT_FAMILY_SANS};
                 font-size: {font_size}px;
                 font-weight: 900;
             }}
@@ -15618,14 +15600,12 @@ class MonitorPage(BasePage):
             # 启动对话延迟测试
             self.monitor_toggle_btn.setText(tr("monitor.stop_monitoring"))
             self.monitor_toggle_btn.setIcon(FIF.PAUSE)
-            self.monitor_toggle_btn.setToolTip(
-                "停止对话延迟自动检测（Ping 检测不受影响）"
-            )
+            self.monitor_toggle_btn.setToolTip(tr("monitor.stop_tooltip"))
         else:
             # 停止对话延迟测试
             self.monitor_toggle_btn.setText(tr("monitor.start_monitoring"))
             self.monitor_toggle_btn.setIcon(FIF.PLAY)
-            self.monitor_toggle_btn.setToolTip(tr("dialog.tooltip_auto_detect"))
+            self.monitor_toggle_btn.setToolTip(tr("monitor.start_tooltip"))
         # 立即执行一次检测以反映状态变化
         self._do_poll()
 
@@ -15766,7 +15746,7 @@ class MonitorPage(BasePage):
         self.detail_table.setHorizontalHeaderLabels(
             [
                 tr("monitor.model_provider"),
-                "状态",
+                tr("monitor.status"),
                 tr("monitor.availability_rate"),
                 tr("monitor.chat_latency"),
                 tr("monitor.ping_latency"),
@@ -16212,7 +16192,7 @@ class MonitorPage(BasePage):
     ) -> None:
         """填充表格行"""
         if pending:
-            status_item = QTableWidgetItem("● 检测中")
+            status_item = QTableWidgetItem(f"● {tr('monitor.checking')}")
             status_item.setForeground(QColor("#9AA4B2"))
             self.detail_table.setItem(row, 1, status_item)
             self.detail_table.setItem(row, 2, QTableWidgetItem("—"))
@@ -18679,10 +18659,18 @@ def main():
     setTheme(Theme.DARK)
     setThemeColor("#2979FF")
 
-    # 设置全局字体
+    # 设置全局字体 - 使用优化后的字体栈
     font = QFont()
     font.setFamilies(
-        [UIConfig.FONT_FAMILY, "Consolas", "Monaco", "Courier New", "monospace"]
+        [
+            "-apple-system",
+            "BlinkMacSystemFont",
+            "Segoe UI",
+            "Roboto",
+            "Microsoft YaHei UI",
+            "微软雅黑",
+            "PingFang SC",
+        ]
     )
     font.setPointSize(10)
     app.setFont(font)
