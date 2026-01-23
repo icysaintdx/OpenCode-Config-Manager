@@ -13467,9 +13467,9 @@ class SkillMarketDialog(MessageBoxBase):
         browse_more_layout = QHBoxLayout()
         browse_more_layout.addStretch()
 
-        browse_more_label = HyperlinkLabel(
-            "https://skillsmp.com/", tr("skill.market_dialog.browse_more"), self.widget
-        )
+        browse_more_label = HyperlinkLabel(self.widget)
+        browse_more_label.setUrl("https://skillsmp.com/")
+        browse_more_label.setText(tr("skill.market_dialog.browse_more"))
         browse_more_label.setToolTip("访问 SkillsMP.com 浏览更多社区技能")
         browse_more_layout.addWidget(browse_more_label)
 
