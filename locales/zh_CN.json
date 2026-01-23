@@ -527,7 +527,8 @@
       "repo_label": "仓库",
       "install_button": "安装选中",
       "close_button": "关闭",
-      "no_selection": "请先选择要安装的 Skill"
+      "no_selection": "请先选择要安装的 Skill",
+      "browse_more": "🌐 浏览更多社区技能 (SkillsMP.com)"
     },
     "categories": {
       "dev_tools": "开发工具",

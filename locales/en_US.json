@@ -527,7 +527,8 @@
       "repo_label": "Repository",
       "install_button": "Install Selected",
       "close_button": "Close",
-      "no_selection": "Please select Skill(s) to install first"
+      "no_selection": "Please select Skill(s) to install first",
+      "browse_more": "🌐 Browse More Community Skills (SkillsMP.com)"
     },
     "categories": {
       "dev_tools": "Development Tools",
