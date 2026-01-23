@@ -894,7 +894,14 @@
     "load_template": "加载模板",
     "permission_deleted": "权限 \"{pattern}\" 已删除",
     "permission_saved": "权限 \"{pattern}\" 已保存",
-    "agent_permission_added": "Agent \"{agent}\" 权限 \"{pattern}\" 已添加"
+    "agent_permission_added": "Agent \"{agent}\" 权限 \"{pattern}\" 已添加",
+    "instructions_config": "Instructions 配置",
+    "instructions_description": "配置额外的指令文件，这些文件会与 AGENTS.md 合并加载。",
+    "file_path_placeholder": "文件路径，如: CONTRIBUTING.md, docs/*.md",
+    "agents_md_edit": "AGENTS.md 编辑",
+    "reload": "重新加载",
+    "use_template": "使用模板",
+    "agents_md_not_exist": "# AGENTS.md 文件不存在\n# 点击\"使用模板\"创建新文件"
   },
   "compaction": {
     "title": "上下文压缩",

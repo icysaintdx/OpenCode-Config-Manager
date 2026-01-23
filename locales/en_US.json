@@ -874,7 +874,14 @@
     "load_template": "Load Template",
     "permission_deleted": "Permission \"{pattern}\" deleted",
     "permission_saved": "Permission \"{pattern}\" saved",
-    "agent_permission_added": "Agent \"{agent}\" permission \"{pattern}\" added"
+    "agent_permission_added": "Agent \"{agent}\" permission \"{pattern}\" added",
+    "instructions_config": "Instructions Configuration",
+    "instructions_description": "Configure additional instruction files that will be merged with AGENTS.md.",
+    "file_path_placeholder": "File path, e.g.: CONTRIBUTING.md, docs/*.md",
+    "agents_md_edit": "AGENTS.md Editor",
+    "reload": "Reload",
+    "use_template": "Use Template",
+    "agents_md_not_exist": "# AGENTS.md file does not exist\n# Click \"Use Template\" to create a new file"
   },
   "backup": {
     "title": "Backup Management",

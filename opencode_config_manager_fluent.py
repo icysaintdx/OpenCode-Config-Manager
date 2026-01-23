@@ -15238,14 +15238,12 @@ class RulesPage(BasePage):
 
     def _setup_ui(self):
         # Instructions 配置卡片
-        inst_card = self.add_card("Instructions 配置")
+        inst_card = self.add_card(self.tr("rules.instructions_config"))
         inst_layout = inst_card.layout()
         inst_layout.setSpacing(12)
 
         inst_layout.addWidget(
-            BodyLabel(
-                "配置额外的指令文件，这些文件会与 AGENTS.md 合并加载。", inst_card
-            )
+            BodyLabel(self.tr("rules.instructions_description"), inst_card)
         )
 
         # Instructions 列表
@@ -15257,9 +15255,7 @@ class RulesPage(BasePage):
         add_layout = QHBoxLayout()
         add_layout.setSpacing(8)
         self.inst_path_edit = LineEdit(inst_card)
-        self.inst_path_edit.setPlaceholderText(
-            "文件路径，如: CONTRIBUTING.md, docs/*.md"
-        )
+        self.inst_path_edit.setPlaceholderText(self.tr("rules.file_path_placeholder"))
         self.inst_path_edit.setFixedHeight(36)
         add_layout.addWidget(self.inst_path_edit)
 
@@ -15294,7 +15290,7 @@ class RulesPage(BasePage):
         inst_layout.addWidget(save_inst_btn)
 
         # AGENTS.md 编辑卡片
-        agents_card = self.add_card("AGENTS.md 编辑")
+        agents_card = self.add_card(self.tr("rules.agents_md_edit"))
         agents_layout = agents_card.layout()
         agents_layout.setSpacing(12)
 
@@ -15329,12 +15325,12 @@ class RulesPage(BasePage):
         save_btn.clicked.connect(self._on_save_agents_md)
         btn_layout.addWidget(save_btn)
 
-        reload_btn = PushButton("重新加载", agents_card)
+        reload_btn = PushButton(self.tr("rules.reload"), agents_card)
         reload_btn.setFixedHeight(36)
         reload_btn.clicked.connect(self._load_agents_md)
         btn_layout.addWidget(reload_btn)
 
-        template_btn = PushButton("使用模板", agents_card)
+        template_btn = PushButton(self.tr("rules.use_template"), agents_card)
         template_btn.setFixedHeight(36)
         template_btn.clicked.connect(self._use_template)
         btn_layout.addWidget(template_btn)
@@ -15414,9 +15410,7 @@ class RulesPage(BasePage):
             except Exception as e:
                 self.agents_edit.setPlainText(f"# 读取失败: {e}")
         else:
-            self.agents_edit.setPlainText(
-                '# AGENTS.md 文件不存在\n# 点击"使用模板"创建新文件'
-            )
+            self.agents_edit.setPlainText(self.tr("rules.agents_md_not_exist"))
 
     def _on_save_agents_md(self):
         path = self._get_agents_path()
