@@ -11562,12 +11562,10 @@ class MainWindow(FluentWindow):
         self.lang_button.clicked.connect(self._on_language_switch)
 
         # 添加到标题栏右侧（在最小化按钮之前）
-        # 获取标题栏布局中的控件数量，插入到倒数第4个位置（最小化、最大化、关闭按钮之前）
-        layout = self.titleBar.hBoxLayout
-        count = layout.count()
-        # 通常标题栏右侧有：最小化、最大化、关闭按钮（3个），所以插入到 count-3 位置
-        insert_pos = max(0, count - 3)
-        layout.insertWidget(insert_pos, self.lang_button)
+        # FluentWindow 标题栏布局：[图标][标题][Stretch][自定义按钮区][最小化][最大化][关闭]
+        # 我们需要在 Stretch 之后、最小化之前插入
+        # 通过 addWidget 添加到布局末尾，然后标题栏会自动将窗口控制按钮放在最后
+        self.titleBar.hBoxLayout.addWidget(self.lang_button, 0, Qt.AlignRight)
 
     def _on_language_switch(self):
         """切换语言（优化版 - 无闪烁过渡）"""
@@ -18656,14 +18654,14 @@ class BackupDialog(BaseDialog):
                 tr("backup.path"),
             ]
         )
-        # 设置列宽：配置文件和标签固定，时间和路径自适应
+        # 设置列宽：配置文件固定，时间固定，标签增大，路径自适应
         header = self.backup_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
-        header.resizeSection(0, 120)
+        header.resizeSection(0, 150)  # 配置文件列 120 → 150
         header.setSectionResizeMode(1, QHeaderView.Fixed)
-        header.resizeSection(1, 150)
+        header.resizeSection(1, 160)  # 时间列 150 → 160
         header.setSectionResizeMode(2, QHeaderView.Fixed)
-        header.resizeSection(2, 80)
+        header.resizeSection(2, 120)  # 标签列 80 → 120（增大以完整显示）
         header.setSectionResizeMode(3, QHeaderView.Stretch)  # 路径列自适应
         self.backup_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.backup_table.setSelectionMode(QAbstractItemView.SingleSelection)
