@@ -55,6 +55,7 @@ jobs:
             --windowed `
             --noconsole `
             --add-data "assets;assets" `
+            --add-data "locales;locales" `
             --hidden-import qfluentwidgets `
             --hidden-import qfluentwidgets.widgets `
             --hidden-import qfluentwidgets.components `
@@ -140,6 +141,7 @@ jobs:
             --windowed \
             --noconsole \
             --add-data "assets:assets" \
+            --add-data "locales:locales" \
             --icon "assets/icon.icns" \
             --hidden-import=qfluentwidgets \
             --hidden-import=qfluentwidgets.widgets \
@@ -328,6 +330,7 @@ jobs:
             --noconfirm \
             --strip \
             --add-data "assets:assets" \
+            --add-data "locales:locales" \
             opencode_config_manager_fluent.py
         shell: /bin/bash -e {0}
 

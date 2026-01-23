@@ -1246,7 +1246,7 @@ class UIConfig:
 
     # 布局
     WINDOW_WIDTH = 1200
-    WINDOW_HEIGHT = 820
+    WINDOW_HEIGHT = 870
 
     @staticmethod
     def get_stylesheet() -> str:
@@ -9575,6 +9575,10 @@ class MCPPage(BasePage):
             mcps = {}
 
         for name, data in mcps.items():
+            # 跳过非字典类型的值
+            if not isinstance(data, dict):
+                continue
+
             row = self.table.rowCount()
             self.table.insertRow(row)
             self.table.setItem(row, 0, QTableWidgetItem(name))
@@ -10593,6 +10597,10 @@ class OpenCodeAgentPage(BasePage):
             agents = {}
 
         for name, data in agents.items():
+            # 跳过非字典类型的值
+            if not isinstance(data, dict):
+                continue
+
             row = self.table.rowCount()
             self.table.insertRow(row)
             self.table.setItem(row, 0, QTableWidgetItem(name))
@@ -11553,9 +11561,6 @@ class MainWindow(FluentWindow):
             else:
                 self.setWindowIcon(FIF.CODE.icon())
 
-        # 设置标题栏图标大小（与语言切换按钮一致）
-        self.titleBar.iconLabel.setFixedSize(18, 18)
-
         # 设置导航栏可折叠，自适应窗口大小
         self.navigationInterface.setExpandWidth(220)  # 增加宽度以适应英文菜单
         self.navigationInterface.setCollapsible(True)  # 允许折叠
@@ -11568,7 +11573,7 @@ class MainWindow(FluentWindow):
         # 导航栏样式 - 紧凑布局
         self._update_nav_style()
 
-        # 添加语言切换按钮到标题栏
+        # 添加语言切换按钮到导航栏底部
         self._add_language_switcher()
 
     def _update_nav_style(self):
@@ -11643,23 +11648,9 @@ class MainWindow(FluentWindow):
             self.monitor_page._apply_stat_card_theme()
 
     def _add_language_switcher(self):
-        """添加语言切换按钮"""
-        # 创建语言切换按钮 - 使用 TransparentToolButton 以居中显示图标
-        self.lang_button = TransparentToolButton(FIF.GLOBE, self)
-        self.lang_button.setFixedSize(40, 36)
-        self.lang_button.setIconSize(QSize(18, 18))
-        self.lang_button.setText("")  # 不显示文本，只显示图标
-        self.lang_button.setToolTip(tr("settings.language"))
-        self.lang_button.clicked.connect(self._on_language_switch)
-
-        # 添加到标题栏右侧，在最小化按钮的左侧
-        # FluentWindow 标题栏布局：[图标][标题][Stretch][自定义按钮区][最小化][最大化][关闭]
-        # 窗口控制按钮（最小化、最大化、关闭）通常在最后3个位置
-        # 我们需要插入到倒数第3个位置（最小化按钮之前）
-        layout = self.titleBar.hBoxLayout
-        count = layout.count()
-        insert_pos = max(0, count - 3)  # 在最小化按钮之前插入
-        layout.insertWidget(insert_pos, self.lang_button)
+        """添加语言切换按钮到导航栏底部"""
+        # 语言切换按钮已在 _init_navigation 中添加到导航栏底部
+        pass
 
     def _on_language_switch(self):
         """切换语言（优化版 - 无闪烁过渡）"""
@@ -11784,6 +11775,14 @@ class MainWindow(FluentWindow):
         # Help 页面
         self.help_page = HelpPage(self)
         self.addSubInterface(self.help_page, FIF.HELP, tr("menu.help"))
+
+        # 语言切换按钮
+        self.navigationInterface.addItem(
+            routeKey="language",
+            icon=FIF.GLOBE,
+            text=tr("menu.language"),
+            onClick=self._on_language_switch,
+        )
 
     def _show_backup_dialog(self):
         """显示备份管理对话框"""
@@ -12297,6 +12296,10 @@ class OhMyAgentPage(BasePage):
         self._refresh_bulk_model_combo(models)
 
         for name, data in agents.items():
+            # 跳过非字典类型的值
+            if not isinstance(data, dict):
+                continue
+
             row = self.table.rowCount()
             self.table.insertRow(row)
             self.table.setItem(row, 0, QTableWidgetItem(name))
@@ -12714,6 +12717,10 @@ class CategoryPage(BasePage):
         self._refresh_bulk_model_combo(models)
 
         for name, data in categories.items():
+            # 跳过非字典类型的值
+            if not isinstance(data, dict):
+                continue
+
             row = self.table.rowCount()
             self.table.insertRow(row)
             self.table.setItem(row, 0, QTableWidgetItem(name))

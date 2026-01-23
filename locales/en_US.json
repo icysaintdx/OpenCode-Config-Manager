@@ -22,7 +22,8 @@
     "monitor": "Monitor",
     "theme": "Toggle Theme",
     "help": "Help",
-    "settings": "Settings"
+    "settings": "Settings",
+    "language": "Language"
   },
   "common": {
     "add": "Add",

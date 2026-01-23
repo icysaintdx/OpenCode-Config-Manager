@@ -22,7 +22,8 @@
     "monitor": "监控",
     "theme": "切换主题",
     "help": "帮助说明",
-    "settings": "设置"
+    "settings": "设置",
+    "language": "语言切换"
   },
   "common": {
     "add": "添加",
