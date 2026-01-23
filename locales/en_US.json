@@ -540,7 +540,10 @@
       "ui_ux": "UI/UX",
       "devops": "DevOps",
       "performance": "Performance Optimization",
-      "creative": "Creative Design"
+      "creative": "Creative Design",
+      "media": "Media Processing",
+      "career": "Career Development",
+      "integration": "App Integration"
     },
     "market_skills": {
       "mcp_builder_desc": "Create high-quality MCP (Model Context Protocol) servers",
@@ -554,7 +557,22 @@
       "doc_coauthoring_desc": "Collaborative document writing and editing",
       "brand_guidelines_desc": "Create and maintain brand design guidelines",
       "internal_comms_desc": "Internal communication and team collaboration tools",
-      "slack_gif_creator_desc": "Create animated GIFs for Slack"
+      "slack_gif_creator_desc": "Create animated GIFs for Slack",
+      "ui_ux_pro_max_desc": "UI/UX design expert - 50 styles, 21 palettes, 50 font pairings",
+      "changelog_generator_desc": "Automatically generate user-friendly changelogs from Git commits",
+      "image_enhancer_desc": "Enhance image and screenshot quality, resolution, and clarity",
+      "video_downloader_desc": "Download videos from YouTube and other platforms",
+      "content_research_writer_desc": "Research and write high-quality content",
+      "meeting_insights_analyzer_desc": "Analyze meeting transcripts for behavioral patterns and insights",
+      "twitter_algorithm_optimizer_desc": "Optimize tweets for maximum engagement and visibility",
+      "competitive_ads_extractor_desc": "Extract and analyze competitors' ads",
+      "domain_name_brainstormer_desc": "Generate creative domain names and check availability",
+      "lead_research_assistant_desc": "Identify and qualify high-quality leads",
+      "file_organizer_desc": "Intelligently organize files and folders",
+      "invoice_organizer_desc": "Automatically organize invoices and receipts",
+      "raffle_winner_picker_desc": "Randomly select raffle winners",
+      "tailored_resume_generator_desc": "Generate tailored resumes based on job descriptions",
+      "connect_apps_desc": "Connect Claude to 500+ apps for automated actions"
     },
     "install_dialog": {
       "title": "Install Skill",

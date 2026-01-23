@@ -2879,9 +2879,28 @@ class ConfigManager:
                 if backup_manager:
                     backup_manager.backup(path, tag="jsonc-auto")
 
+            # 如果是 oh-my-opencode 配置文件，自动添加 $schema 字段
+            if "oh-my-opencode" in str(path):
+                # 创建新的数据副本，避免修改原始数据
+                data_to_save = data.copy()
+                # 添加 $schema 字段到最前面
+                schema_url = "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json"
+                # 使用 OrderedDict 确保 $schema 在最前面
+                from collections import OrderedDict
+
+                ordered_data = OrderedDict()
+                ordered_data["$schema"] = schema_url
+                # 添加其他字段
+                for key, value in data_to_save.items():
+                    if key != "$schema":  # 避免重复
+                        ordered_data[key] = value
+                data_to_save = ordered_data
+            else:
+                data_to_save = data
+
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+                json.dump(data_to_save, f, indent=2, ensure_ascii=False)
             return True, jsonc_warning
         except Exception as e:
             print(f"Save failed {path}: {e}")
@@ -8378,6 +8397,16 @@ class ModelPage(BasePage):
                     del models[model_id]
                     self.main_window.save_opencode_config()
                     self._load_models(provider)
+
+                    # 修复焦点问题：删除后自动选中下一行或上一行
+                    new_row_count = self.table.rowCount()
+                    if new_row_count > 0:
+                        # 如果删除的不是最后一行，选中原位置的行（现在是下一行）
+                        # 如果删除的是最后一行，选中新的最后一行
+                        new_row = min(row, new_row_count - 1)
+                        self.table.selectRow(new_row)
+                        self.table.setCurrentCell(new_row, 0)
+
                     self.show_success(
                         tr("common.success"), tr("model.deleted_success", name=model_id)
                     )
@@ -13053,23 +13082,15 @@ class SkillDiscovery:
 class SkillMarket:
     """Skill 市场 - 内置常用 Skills 列表"""
 
-    # 内置 Skill 列表（全部来自 Anthropic 官方仓库）
+    # 内置 Skill 列表（综合版 - Anthropic官方 + ComposioHQ + 社区）
     FEATURED_SKILLS = [
+        # UI/UX 和设计类
         {
-            "name": "mcp-builder",
-            "repo": "anthropics/skills",
-            "description": "mcp_builder_desc",
-            "category": "dev_tools",
-            "tags": ["mcp", "server", "protocol"],
-            "path": "skills/mcp-builder",
-        },
-        {
-            "name": "web-artifacts-builder",
-            "repo": "anthropics/skills",
-            "description": "web_artifacts_builder_desc",
+            "name": "ui-ux-pro-max",
+            "repo": "nextlevelbuilder/ui-ux-pro-max-skill",
+            "description": "ui_ux_pro_max_desc",
             "category": "ui_ux",
-            "tags": ["web", "react", "frontend"],
-            "path": "skills/web-artifacts-builder",
+            "tags": ["ui", "ux", "design", "frontend"],
         },
         {
             "name": "canvas-design",
@@ -13088,20 +13109,21 @@ class SkillMarket:
             "path": "skills/theme-factory",
         },
         {
-            "name": "algorithmic-art",
+            "name": "web-artifacts-builder",
             "repo": "anthropics/skills",
-            "description": "algorithmic_art_desc",
-            "category": "creative",
-            "tags": ["art", "generative", "creative"],
-            "path": "skills/algorithmic-art",
-        },
-        {
-            "name": "frontend-design",
-            "repo": "anthropics/skills",
-            "description": "frontend_design_desc",
+            "description": "web_artifacts_builder_desc",
             "category": "ui_ux",
-            "tags": ["frontend", "design", "ui"],
-            "path": "skills/frontend-design",
+            "tags": ["web", "react", "frontend"],
+            "path": "skills/web-artifacts-builder",
+        },
+        # 开发工具类
+        {
+            "name": "mcp-builder",
+            "repo": "anthropics/skills",
+            "description": "mcp_builder_desc",
+            "category": "dev_tools",
+            "tags": ["mcp", "server", "protocol"],
+            "path": "skills/mcp-builder",
         },
         {
             "name": "webapp-testing",
@@ -13119,6 +13141,48 @@ class SkillMarket:
             "tags": ["skill", "creator", "development"],
             "path": "skills/skill-creator",
         },
+        {
+            "name": "changelog-generator",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "changelog_generator_desc",
+            "category": "dev_tools",
+            "tags": ["changelog", "git", "automation"],
+            "path": "changelog-generator",
+        },
+        # 创意和媒体类
+        {
+            "name": "algorithmic-art",
+            "repo": "anthropics/skills",
+            "description": "algorithmic_art_desc",
+            "category": "creative",
+            "tags": ["art", "generative", "creative"],
+            "path": "skills/algorithmic-art",
+        },
+        {
+            "name": "slack-gif-creator",
+            "repo": "anthropics/skills",
+            "description": "slack_gif_creator_desc",
+            "category": "creative",
+            "tags": ["slack", "gif", "creative"],
+            "path": "skills/slack-gif-creator",
+        },
+        {
+            "name": "image-enhancer",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "image_enhancer_desc",
+            "category": "media",
+            "tags": ["image", "enhancement", "quality"],
+            "path": "image-enhancer",
+        },
+        {
+            "name": "video-downloader",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "video_downloader_desc",
+            "category": "media",
+            "tags": ["video", "download", "youtube"],
+            "path": "video-downloader",
+        },
+        # 文档和沟通类
         {
             "name": "doc-coauthoring",
             "repo": "anthropics/skills",
@@ -13144,12 +13208,96 @@ class SkillMarket:
             "path": "skills/internal-comms",
         },
         {
-            "name": "slack-gif-creator",
-            "repo": "anthropics/skills",
-            "description": "slack_gif_creator_desc",
-            "category": "creative",
-            "tags": ["slack", "gif", "creative"],
-            "path": "skills/slack-gif-creator",
+            "name": "content-research-writer",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "content_research_writer_desc",
+            "category": "communication",
+            "tags": ["content", "research", "writing"],
+            "path": "content-research-writer",
+        },
+        {
+            "name": "meeting-insights-analyzer",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "meeting_insights_analyzer_desc",
+            "category": "communication",
+            "tags": ["meeting", "insights", "analysis"],
+            "path": "meeting-insights-analyzer",
+        },
+        {
+            "name": "twitter-algorithm-optimizer",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "twitter_algorithm_optimizer_desc",
+            "category": "communication",
+            "tags": ["twitter", "social", "optimization"],
+            "path": "twitter-algorithm-optimizer",
+        },
+        # 商业和营销类
+        {
+            "name": "competitive-ads-extractor",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "competitive_ads_extractor_desc",
+            "category": "business",
+            "tags": ["competitive", "ads", "marketing"],
+            "path": "competitive-ads-extractor",
+        },
+        {
+            "name": "domain-name-brainstormer",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "domain_name_brainstormer_desc",
+            "category": "business",
+            "tags": ["domain", "naming", "brainstorm"],
+            "path": "domain-name-brainstormer",
+        },
+        {
+            "name": "lead-research-assistant",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "lead_research_assistant_desc",
+            "category": "business",
+            "tags": ["lead", "research", "sales"],
+            "path": "lead-research-assistant",
+        },
+        # 生产力和组织类
+        {
+            "name": "file-organizer",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "file_organizer_desc",
+            "category": "productivity",
+            "tags": ["file", "organization", "management"],
+            "path": "file-organizer",
+        },
+        {
+            "name": "invoice-organizer",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "invoice_organizer_desc",
+            "category": "productivity",
+            "tags": ["invoice", "finance", "organization"],
+            "path": "invoice-organizer",
+        },
+        {
+            "name": "raffle-winner-picker",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "raffle_winner_picker_desc",
+            "category": "productivity",
+            "tags": ["raffle", "random", "picker"],
+            "path": "raffle-winner-picker",
+        },
+        # 职业发展类
+        {
+            "name": "tailored-resume-generator",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "tailored_resume_generator_desc",
+            "category": "career",
+            "tags": ["resume", "career", "job"],
+            "path": "tailored-resume-generator",
+        },
+        # 集成和连接类
+        {
+            "name": "connect-apps",
+            "repo": "ComposioHQ/awesome-claude-skills",
+            "description": "connect_apps_desc",
+            "category": "integration",
+            "tags": ["integration", "apps", "automation"],
+            "path": "connect-apps",
         },
     ]
 
@@ -13550,6 +13698,44 @@ class SkillInstaller:
     """Skill 安装器 - 支持从 GitHub 和本地安装"""
 
     @staticmethod
+    def detect_default_branch(owner: str, repo: str) -> str:
+        """检测GitHub仓库的默认分支
+
+        Args:
+            owner: GitHub 用户名
+            repo: 仓库名
+
+        Returns:
+            默认分支名（main 或 master），如果检测失败返回 "main"
+        """
+        import requests
+
+        try:
+            # 尝试通过 GitHub API 获取仓库信息
+            api_url = f"https://api.github.com/repos/{owner}/{repo}"
+            response = requests.get(api_url, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("default_branch", "main")
+        except Exception:
+            pass
+
+        # API 失败时，尝试检测 main 和 master 分支
+        for branch in ["main", "master"]:
+            try:
+                test_url = (
+                    f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
+                )
+                response = requests.head(test_url, timeout=5)
+                if response.status_code == 200:
+                    return branch
+            except Exception:
+                continue
+
+        # 默认返回 main
+        return "main"
+
+    @staticmethod
     def parse_source(source: str) -> Tuple[str, Dict[str, str]]:
         """解析安装源
 
@@ -13626,6 +13812,19 @@ class SkillInstaller:
                 f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
             )
             response = requests.get(zip_url, stream=True, timeout=30)
+
+            # 如果404，尝试检测并使用正确的分支
+            if response.status_code == 404:
+                if progress_callback:
+                    progress_callback("检测分支...")
+                detected_branch = SkillInstaller.detect_default_branch(owner, repo)
+                if detected_branch != branch:
+                    if progress_callback:
+                        progress_callback(f"使用分支: {detected_branch}")
+                    branch = detected_branch
+                    zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
+                    response = requests.get(zip_url, stream=True, timeout=30)
+
             response.raise_for_status()
 
             # 2. 解压到临时目录

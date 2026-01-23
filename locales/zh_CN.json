@@ -540,7 +540,10 @@
       "ui_ux": "UI/UX",
       "devops": "DevOps",
       "performance": "性能优化",
-      "creative": "创意设计"
+      "creative": "创意设计",
+      "media": "媒体处理",
+      "career": "职业发展",
+      "integration": "应用集成"
     },
     "market_skills": {
       "mcp_builder_desc": "创建高质量的 MCP (Model Context Protocol) 服务器",
@@ -554,7 +557,22 @@
       "doc_coauthoring_desc": "协作编写和编辑文档",
       "brand_guidelines_desc": "创建和维护品牌设计规范",
       "internal_comms_desc": "内部沟通和团队协作工具",
-      "slack_gif_creator_desc": "为 Slack 创建动画 GIF"
+      "slack_gif_creator_desc": "为 Slack 创建动画 GIF",
+      "ui_ux_pro_max_desc": "UI/UX 设计专家 - 50种样式、21种配色、50种字体组合",
+      "changelog_generator_desc": "从 Git 提交自动生成用户友好的更新日志",
+      "image_enhancer_desc": "提升图片和截图质量，增强分辨率和清晰度",
+      "video_downloader_desc": "从 YouTube 等平台下载视频",
+      "content_research_writer_desc": "研究和撰写高质量内容",
+      "meeting_insights_analyzer_desc": "分析会议记录，提取行为模式和洞察",
+      "twitter_algorithm_optimizer_desc": "优化推文以提高参与度和可见性",
+      "competitive_ads_extractor_desc": "提取和分析竞争对手的广告",
+      "domain_name_brainstormer_desc": "生成创意域名并检查可用性",
+      "lead_research_assistant_desc": "识别和筛选高质量潜在客户",
+      "file_organizer_desc": "智能整理文件和文件夹",
+      "invoice_organizer_desc": "自动整理发票和收据",
+      "raffle_winner_picker_desc": "随机选择抽奖获胜者",
+      "tailored_resume_generator_desc": "根据职位描述生成定制简历",
+      "connect_apps_desc": "连接 Claude 到 500+ 应用，实现自动化操作"
     },
     "install_dialog": {
       "title": "安装 Skill",
