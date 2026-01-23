@@ -11554,13 +11554,12 @@ class MainWindow(FluentWindow):
                 self.setWindowIcon(FIF.CODE.icon())
 
         # 设置导航栏可折叠，自适应窗口大小
-        self.navigationInterface.setExpandWidth(180)
+        self.navigationInterface.setExpandWidth(220)  # 增加宽度以适应英文菜单
         self.navigationInterface.setCollapsible(True)  # 允许折叠
 
-        # 设置导航栏字体加粗
+        # 设置导航栏字体（正常粗细）
         nav_font = QFont()
-        nav_font.setBold(True)
-        nav_font.setWeight(QFont.Black)  # 最粗的字体
+        nav_font.setWeight(QFont.Normal)  # 正常粗细
         self.navigationInterface.setFont(nav_font)
 
         # 导航栏样式 - 紧凑布局
@@ -11578,12 +11577,12 @@ class MainWindow(FluentWindow):
 
         self.navigationInterface.setStyleSheet(f"""
             * {{
-                font-weight: 900;
+                font-weight: normal;
             }}
             NavigationTreeWidget {{
                 font-family: {UIConfig.FONT_FAMILY_SANS};
                 font-size: {font_size}px;
-                font-weight: 900;
+                font-weight: normal;
             }}
             NavigationTreeWidget::item {{
                 height: {item_height}px;
@@ -11646,6 +11645,7 @@ class MainWindow(FluentWindow):
         self.lang_button = TransparentToolButton(FIF.GLOBE, self)
         self.lang_button.setFixedSize(40, 36)
         self.lang_button.setIconSize(QSize(18, 18))
+        self.lang_button.setText("")  # 不显示文本，只显示图标
         self.lang_button.setToolTip(tr("settings.language"))
         self.lang_button.clicked.connect(self._on_language_switch)
 
@@ -18755,12 +18755,6 @@ class BackupDialog(BaseDialog):
         header.resizeSection(2, 120)  # 标签列 80 → 120（增大以完整显示）
         header.setSectionResizeMode(3, QHeaderView.Stretch)  # 路径列自适应
 
-        # 设置表格文本换行，以便路径可以完整显示
-        self.backup_table.setWordWrap(True)
-        self.backup_table.verticalHeader().setSectionResizeMode(
-            QHeaderView.ResizeToContents
-        )
-
         self.backup_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.backup_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.backup_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -18802,9 +18796,6 @@ class BackupDialog(BaseDialog):
             path_item = QTableWidgetItem(path_str)
             path_item.setToolTip(path_str)  # 鼠标悬停显示完整路径
             self.backup_table.setItem(row, 3, path_item)
-
-        # 设置表格自动调整行高以适应内容
-        self.backup_table.resizeRowsToContents()
 
     def _backup_opencode(self):
         """备份 OpenCode 配置"""
