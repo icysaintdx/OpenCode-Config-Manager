@@ -11553,6 +11553,9 @@ class MainWindow(FluentWindow):
             else:
                 self.setWindowIcon(FIF.CODE.icon())
 
+        # 设置标题栏图标大小（与语言切换按钮一致）
+        self.titleBar.iconLabel.setFixedSize(18, 18)
+
         # 设置导航栏可折叠，自适应窗口大小
         self.navigationInterface.setExpandWidth(220)  # 增加宽度以适应英文菜单
         self.navigationInterface.setCollapsible(True)  # 允许折叠

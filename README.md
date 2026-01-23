@@ -42,12 +42,29 @@
 
 ---
 
-## 🎯 v1.4.1 最新版本
+## 🎯 v1.5.0 最新版本
+
+### 🆕 新增功能
+- **国内AI平台支持** ⭐
+  - 在原生Provider页面新增5个国内平台
+  - 智谱 GLM、千问 Qwen、Kimi (月之暗面)、零一万物 Yi、MiniMax
+  - 所有平台使用 OpenAI 兼容 SDK
+  - 支持环境变量自动检测
 
 ### 🐛 Bug 修复
-- **修复 Skill 市场依赖缺失** - 修复用户点击 Skill 市场时报错 `No module named 'requests'` 的问题，已在 `requirements.txt` 中添加 `requests>=2.25.0` 依赖
+- **修复软件版本号显示错误** - 版本号从 1.4.0 更新到 1.5.0
+- **修复 GitHub API 速率限制** - 添加冷却机制（默认1小时），403错误时延长到6小时
+- **修复多语言图标显示** - 改用 TransparentToolButton，图标居中显示
+- **修复备份管理对话框** - 优化列宽，路径列完整显示
+- **修复 Skill 市场** - 移除无法安装的 ComposioHQ Skills，保留12个可用 Skills
 
-### 📝 v1.4.0 功能回顾
+### 🎨 UI 优化
+- **优化菜单字体** - 减少字体粗度（font-weight: 900 → normal）
+- **增加导航栏宽度** - 从 180px 增加到 220px，适应英文菜单
+- **统一标题栏图标** - 窗口图标和语言切换图标统一为 18x18
+- **优化 Skill 市场表格** - 调整列宽，描述列获得更多空间
+
+### 📝 v1.4.1 功能回顾
 
 ### 🆕 新增功能
 #### **Skill 市场功能** ⭐
@@ -254,9 +271,13 @@ python opencode_config_manager_fluent.py
 
 ### 最新版本
 
+**[v1.5.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.5.0)** - 2026-01-24
+- 🌏 国内AI平台支持 - 新增智谱GLM、千问Qwen、Kimi、零一万物Yi、MiniMax
+- 🐛 Bug修复 - 版本号显示、GitHub API速率限制、多语言图标、备份对话框
+- 🎨 UI优化 - 菜单字体、导航宽度、图标统一、Skill市场表格
+
 **[v1.4.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.4.0)** - 2026-01-20
-**[v1.4.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.4.0)** - 2026-01-20
-- ⭐ Skill 市场功能 - 内置 20 个精选 Skills，分类浏览 + 搜索
+- ⭐ Skill 市场功能 - 内置 12 个精选 Skills，分类浏览 + 搜索
 - 🛡️ 安全扫描功能 - 检测 9 种危险代码模式，安全评分系统
 - 🎨 UI 改进 - 新增市场按钮和安全扫描按钮
 
