@@ -11568,7 +11568,7 @@ class MainWindow(FluentWindow):
                 self.setWindowIcon(FIF.CODE.icon())
 
         # 设置导航栏可折叠，自适应窗口大小
-        self.navigationInterface.setExpandWidth(220)  # 增加宽度以适应英文菜单
+        self.navigationInterface.setExpandWidth(200)  # 设置宽度为 200
         self.navigationInterface.setCollapsible(True)  # 允许折叠
 
         # 设置导航栏字体（正常粗细）
@@ -11674,8 +11674,9 @@ class MainWindow(FluentWindow):
         # 1. 更新窗口标题
         self.setWindowTitle(f"OCCM - OpenCode Config Manager v{APP_VERSION}")
 
-        # 2. 保存当前选中的页面索引
+        # 2. 保存当前选中的页面索引和导航栏展开状态
         current_index = self.stackedWidget.currentIndex()
+        was_expanded = not self.navigationInterface.isCompact  # 保存展开状态
 
         # 3. 由于 QFluentWidgets 的 NavigationInterface 不支持直接更新文本
         # 我们采用最简单的方案：重新初始化导航栏
@@ -11689,14 +11690,36 @@ class MainWindow(FluentWindow):
         self.hBoxLayout.replaceWidget(old_nav, self.navigationInterface)
         old_nav.deleteLater()
 
-        # 重新初始化导航栏
+        # 重新初始化导航栏（包括设置宽度、字体等）
+        # 设置导航栏可折叠，自适应窗口大小
+        self.navigationInterface.setExpandWidth(200)  # 设置宽度为 200
+        self.navigationInterface.setCollapsible(True)  # 允许折叠
+
+        # 设置导航栏字体（正常粗细）
+        nav_font = QFont()
+        nav_font.setWeight(QFont.Normal)  # 正常粗细
+        self.navigationInterface.setFont(nav_font)
+
+        # 导航栏样式 - 紧凑布局
+        self._update_nav_style()
+
+        # 重新添加所有导航项
         self._init_navigation()
 
         # 4. 恢复之前选中的页面
         if current_index >= 0:
             self.stackedWidget.setCurrentIndex(current_index)
+            # 强制刷新当前页面
+            current_widget = self.stackedWidget.currentWidget()
+            if current_widget and hasattr(current_widget, "_refresh_ui_texts"):
+                current_widget._refresh_ui_texts()
 
-        # 5. 通知所有页面刷新文本
+        # 5. 恢复导航栏展开状态
+        if was_expanded:
+            # 如果之前是展开的，保持展开
+            self.navigationInterface.expand(useAni=False)
+
+        # 6. 通知所有页面刷新文本
         for page in [
             self.home_page,
             self.provider_page,
