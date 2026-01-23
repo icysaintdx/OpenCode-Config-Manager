@@ -243,7 +243,9 @@
     "test_connection": "测试连接",
     "connection_success": "连接成功",
     "connection_failed": "连接失败",
-    "response_time": "响应时间"
+    "response_time": "响应时间",
+    "enter_name": "请输入 Provider 名称",
+    "provider_exists": "Provider \"{name}\" 已存在"
   },
   "model": {
     "title": "Model 管理",
@@ -958,7 +960,9 @@
     "agents_md_edit": "AGENTS.md 编辑",
     "reload": "重新加载",
     "use_template": "使用模板",
-    "agents_md_not_exist": "# AGENTS.md 文件不存在\n# 点击\"使用模板\"创建新文件"
+    "agents_md_not_exist": "# AGENTS.md 文件不存在\n# 点击\"使用模板\"创建新文件",
+    "path_label": "路径",
+    "read_failed": "读取失败"
   },
   "compaction": {
     "title": "上下文压缩",

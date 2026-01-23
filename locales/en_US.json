@@ -241,7 +241,9 @@
     "test_connection": "Test Connection",
     "connection_success": "Connection Successful",
     "connection_failed": "Connection Failed",
-    "response_time": "Response Time"
+    "response_time": "Response Time",
+    "enter_name": "Please enter Provider name",
+    "provider_exists": "Provider \"{name}\" already exists"
   },
   "model": {
     "title": "Model Management",
@@ -511,6 +513,11 @@
     "market_search": "Search Skills...",
     "market_category": "All Categories",
     "market_install": "Install Selected",
+    "source_opencode_global": "🌐 OpenCode Global",
+    "source_opencode_project": "📁 OpenCode Project",
+    "source_claude_global": "🌐 Claude Global",
+    "source_claude_project": "📁 Claude Project",
+    "source_unknown": "❓ Unknown",
     "market_dialog": {
       "title": "Skill Market",
       "subtitle": "Curated Skills Collection",
@@ -846,7 +853,8 @@
     "category_exists": "Category \"{name}\" already exists",
     "category_saved": "Category saved",
     "category_deleted": "Category deleted",
-    "delete_confirm_msg": "Are you sure you want to delete Category \"{name}\"?"
+    "delete_confirm_msg": "Are you sure you want to delete Category \"{name}\"?",
+    "preset_dialog_title": "Add Category from Preset"
   },
   "ohmyagent": {
     "title": "Oh My Agent",
@@ -863,7 +871,18 @@
     "delete_confirm_msg": "Are you sure you want to delete Agent \"{name}\"?",
     "agent_added": "Agent added",
     "preset_agent_added": "Preset Agent added",
-    "agent_updated": "Agent updated"
+    "agent_updated": "Agent updated",
+    "preset_dialog": {
+      "title": "Add Agent from Preset",
+      "subtitle": "Select Preset Agent",
+      "select_preset": "Please select a preset Agent",
+      "agent_exists": "Agent \"{name}\" already exists"
+    },
+    "dialog": {
+      "title": "Add/Edit Agent",
+      "subtitle": "Configure Agent Information",
+      "model_label": "Bind Model:"
+    }
   },
   "category": {
     "title": "Category Management",
@@ -908,7 +927,9 @@
     "agents_md_edit": "AGENTS.md Editor",
     "reload": "Reload",
     "use_template": "Use Template",
-    "agents_md_not_exist": "# AGENTS.md file does not exist\n# Click \"Use Template\" to create a new file"
+    "agents_md_not_exist": "# AGENTS.md file does not exist\n# Click \"Use Template\" to create a new file",
+    "path_label": "Path",
+    "read_failed": "Read failed"
   },
   "backup": {
     "title": "Backup Management",

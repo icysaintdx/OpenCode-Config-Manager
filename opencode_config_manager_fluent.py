@@ -7844,7 +7844,7 @@ class ProviderDialog(BaseDialog):
     def _on_save(self):
         name = self.name_edit.text().strip()
         if not name:
-            InfoBar.error("错误", "请输入 Provider 名称", parent=self)
+            InfoBar.error(tr("common.error"), tr("provider.enter_name"), parent=self)
             return
 
         config = self.main_window.opencode_config
@@ -7856,7 +7856,11 @@ class ProviderDialog(BaseDialog):
             config["provider"] = {}
 
         if not self.is_edit and name in config["provider"]:
-            InfoBar.error("错误", f'Provider "{name}" 已存在', parent=self)
+            InfoBar.error(
+                tr("common.error"),
+                tr("provider.provider_exists", name=name),
+                parent=self,
+            )
             return
 
         provider_data = config["provider"].get(name, {"models": {}})
@@ -14164,13 +14168,13 @@ class SkillPage(BasePage):
     6. 禁用 skill 工具 - 支持 agent.tools.skill: false 配置
     """
 
-    # 来源显示名称映射
+    # 来源显示名称映射 - 使用翻译键
     SOURCE_LABELS = {
-        "opencode-global": "🌐 OpenCode 全局",
-        "opencode-project": "📁 OpenCode 项目",
-        "claude-global": "🌐 Claude 全局",
-        "claude-project": "📁 Claude 项目",
-        "unknown": "❓ 未知",
+        "opencode-global": "skill.source_opencode_global",
+        "opencode-project": "skill.source_opencode_project",
+        "claude-global": "skill.source_claude_global",
+        "claude-project": "skill.source_claude_project",
+        "unknown": "skill.source_unknown",
     }
 
     def __init__(self, main_window, parent=None):
@@ -14224,7 +14228,10 @@ class SkillPage(BasePage):
             self.skill_list.clear()
             skills = SkillDiscovery.discover_all()
             for skill in skills:
-                source_label = self.SOURCE_LABELS.get(skill.source, skill.source)
+                source_key = self.SOURCE_LABELS.get(
+                    skill.source, "skill.source_unknown"
+                )
+                source_label = tr(source_key)
                 item = QListWidgetItem(f"{skill.name} ({source_label})")
                 item.setData(Qt.UserRole, skill)
                 self.skill_list.addItem(item)
@@ -14397,16 +14404,17 @@ class SkillPage(BasePage):
         self._current_skill = skill
         self.detail_name.setText(skill.name)
         self.detail_desc.setText(skill.description)
-        self.detail_source.setText(
-            f"来源: {self.SOURCE_LABELS.get(skill.source, skill.source)}"
-        )
+        source_key = self.SOURCE_LABELS.get(skill.source, "skill.source_unknown")
+        self.detail_source.setText(f"{tr('skill.skill_source')}: {tr(source_key)}")
         self.detail_license.setText(
-            f"许可: {skill.license_info}" if skill.license_info else ""
+            f"{tr('skill.skill_license')}: {skill.license_info}"
+            if skill.license_info
+            else ""
         )
         self.detail_compat.setText(
             f"兼容: {skill.compatibility}" if skill.compatibility else ""
         )
-        self.detail_path.setText(f"路径: {skill.path}")
+        self.detail_path.setText(f"{tr('skill.skill_path')}: {skill.path}")
         self.detail_content.setText(skill.content)
 
         # 启用操作按钮
@@ -14453,8 +14461,8 @@ class SkillPage(BasePage):
             return
 
         w = FluentMessageBox(
-            "确认删除",
-            f'确定要删除 Skill "{self._current_skill.name}" 吗？\n路径: {self._current_skill.path}',
+            tr("common.confirm_delete_title"),
+            f"{tr('skill.delete_confirm', name=self._current_skill.name)}\n{tr('skill.skill_path')}: {self._current_skill.path}",
             self,
         )
         if w.exec_():
@@ -15422,7 +15430,7 @@ class RulesPage(BasePage):
 
     def _load_agents_md(self):
         path = self._get_agents_path()
-        self.path_label.setText(f"路径: {path}")
+        self.path_label.setText(f"{tr('rules.path_label')}: {path}")
 
         if path.exists():
             try:
@@ -15430,7 +15438,7 @@ class RulesPage(BasePage):
                     content = f.read()
                 self.agents_edit.setPlainText(content)
             except Exception as e:
-                self.agents_edit.setPlainText(f"# 读取失败: {e}")
+                self.agents_edit.setPlainText(f"# {tr('rules.read_failed')}: {e}")
         else:
             self.agents_edit.setPlainText(self.tr("rules.agents_md_not_exist"))
 
