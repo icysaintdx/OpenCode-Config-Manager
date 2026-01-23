@@ -4,7 +4,7 @@
 
 ---
 
-## [v1.5.0] - 2026-01-21 23:55
+## [v1.5.0] - 2026-01-24 00:52
 **版本代号**: 多语言支持版
 
 ### 🌐 新增功能
@@ -13,11 +13,11 @@
   - 简体中文（zh_CN）
   - English（en_US）
   - 自动识别系统语言
-  - 支持实时语言切换
+  - **动态语言切换**：点击即切换，无需重启软件
 
 - **翻译覆盖范围**：
-  - 15 个主要页面（12个完整翻译）
-  - 17 个对话框（全部完整翻译）
+  - 15 个主要页面（完整翻译）
+  - 17 个对话框（完整翻译）
   - 400+ 处 tr() 函数调用
   - 900+ 个翻译键值对
 
@@ -28,6 +28,148 @@
   - ✅ CompactionPage（上下文压缩）
   - ✅ ProviderPage（Provider 管理）
   - ✅ ModelPage（Model 管理）
+  - ✅ MCPPage（MCP 服务器）
+  - ✅ OpenCodeAgentPage（Agent 配置）
+  - ✅ CategoryPage（Category 管理）
+  - ✅ OhMyAgentPage（Oh My Agent）
+  - ✅ RulesPage（Rules 管理）
+  - ✅ ImportPage（外部导入）
+  - ✅ MonitorPage（监控页面）
+  - ✅ CLIExportPage（CLI 导出）
+  - ✅ SkillPage（Skill 管理）
+
+#### **国内AI平台支持** ⭐
+- **新增 5 个国内平台**：
+  - 智谱 GLM（glm-4-plus、glm-4-flash 等）
+  - 千问 Qwen（qwen-max、qwen-turbo 等）
+  - Kimi（月之暗面）（moonshot-v1-8k、moonshot-v1-32k 等）
+  - 零一万物 Yi（yi-lightning、yi-large 等）
+  - MiniMax（abab6.5s-chat、abab6.5g-chat 等）
+- **技术实现**：
+  - 所有平台使用 OpenAI 兼容 SDK
+  - 支持环境变量自动检测
+  - 预设常用模型快速选择
+
+### 🐛 Bug 修复
+- **修复 Win10 启动报错** - `'bool' object has no attribute 'get'`
+  - 在所有页面添加配置类型检查
+  - 防止配置文件格式错误导致崩溃
+- **修复软件版本号显示错误** - 版本号从 1.4.0 更新到 1.5.0
+- **修复 GitHub API 速率限制** - 添加冷却机制（默认1小时），403错误时延长到6小时
+- **修复多语言图标显示** - 改用 TransparentToolButton，图标居中显示
+- **修复备份管理对话框** - 优化列宽，路径列完整显示
+- **修复 Skill 市场** - 移除无法安装的 ComposioHQ Skills，保留12个可用 Skills
+- **修复语言切换页面错位** - 移除强制重绘逻辑，避免布局错乱
+
+### 🎨 UI 优化
+- **优化菜单字体** - 减少字体粗度（font-weight: 900 → normal）
+- **调整导航栏宽度** - 设置为 200px，适应中英文菜单
+- **统一标题栏图标** - 窗口图标统一为 18x18
+- **优化 Skill 市场表格** - 调整列宽，描述列获得更多空间
+- **语言切换按钮** - 移到导航栏底部，符合设计规范
+- **启动时菜单展开** - 默认展开状态，无需手动点击
+- **窗口高度增加** - 从 820px 增加到 870px
+
+### 🔧 技术实现
+- **LanguageManager**：单例模式的翻译管理器
+- **tr() 函数**：全局翻译函数，支持参数格式化
+- **语言文件**：JSON 格式，支持嵌套键值对
+- **自动识别**：启动时自动识别系统语言
+- **动态切换**：运行时切换语言，无需重启
+
+### 📁 文件变更
+- 更新：`opencode_config_manager_fluent.py`
+- 新增：`locales/zh_CN.json`
+- 新增：`locales/en_US.json`
+- 更新：`.github/workflows/build.yml` - 添加 locales 到构建配置
+
+---
+
+## [v1.4.5] - 2026-01-23
+**版本代号**: 单语言最终版
+
+### 📝 说明
+- 这是最后一个单语言（仅中文）版本
+- 后续版本开始支持多语言
+
+---
+
+## [v1.4.4] - 2026-01-22
+**版本代号**: CLI 工具增强版
+
+### 🆕 新增功能
+#### **CLI 工具导出增强** ⭐
+- **支持导出到多个 CLI 工具**：
+  - Claude Code（支持 4 个模型字段）
+  - Codex（auth.json + config.toml）
+  - Gemini（.env + settings.json）
+- **Base URL 临时修改** - 可临时修改用于导出，不影响原始配置
+- **模型自定义输入** - 支持手动输入自定义模型名称
+- **语法高亮与格式化** - JSON/TOML/ENV 格式语法高亮 + 格式化按钮
+- **通用配置功能** - 写入通用配置复选框 + 编辑通用配置对话框
+- **双文件预览** - Codex/Gemini 双文件标签页预览
+
+### 🎨 UI 优化
+- **导航菜单字体加粗** - 提升菜单可读性和视觉层次
+- **CLI 导出页面标签页布局** - 采用主标签页设计更清晰直观
+- **监控页面启动/停止切换** - 默认不启动，需手动点击启动按钮
+
+### 🐛 Bug 修复
+- 模型留空处理优化
+- 外部导入功能修复
+
+---
+
+## [v1.4.3] - 2026-01-21
+**版本代号**: Oh My MCP 支持版
+
+### 🆕 新增功能
+#### **Oh My MCP 管理功能** ⭐
+- **可视化管理 Oh My OpenCode 自带的 MCP 服务器**：
+  - websearch（网页搜索）
+  - context7（编程库文档检索）
+  - grep_app（代码搜索）
+- **功能特性**：
+  - 在 MCP 服务器页面新增 "Oh My MCP" 按钮
+  - 支持启用/禁用操作
+  - 配置自动保存到 `oh-my-opencode.json`
+  - 独立于 OpenCode 配置管理
+
+---
+
+## [v1.4.2] - 2026-01-21
+**版本代号**: Skill 市场扩展版
+
+### 🆕 新增功能
+#### **Skill 市场扩展** ⭐
+- **新增 12 个精选 Skills**：
+  - 开发工具类：git-release、sequential-thinking
+  - 代码质量类：code-review、linting
+  - 测试类：test-generation
+  - 文档类：documentation
+  - 安全类：security-scan
+  - API 类：api-testing
+  - 数据库类：database-query
+  - 等等...
+- **远程市场链接** - 添加外部 Skill 商场链接（SkillsMP.com）
+- **分类浏览** - 按功能分类展示 Skills
+- **搜索功能** - 快速查找需要的 Skills
+
+#### **安全扫描功能** ⭐
+- **代码安全扫描**：
+  - 检测 9 种危险代码模式
+  - 安全评分系统（0-100 分）
+  - 风险等级可视化（安全/低/中/高/严重）
+  - 详细问题列表（行号、风险等级、描述、代码）
+
+### 🐛 Bug 修复
+- **修复 Skill 市场 404 错误** - 替换为 Anthropic 官方 Skills
+- **修复 Skill 发现错误处理** - 添加调试脚本
+- **修复已发现的 Skill 列表缺少滚动条**
+- **修复 Skill 市场安装** - 自动检测分支（main/master）
+- **修复 HyperlinkLabel 构造函数参数错误**
+
+---
   - ✅ MCPPage（MCP 服务器）
   - ✅ OpenCodeAgentPage（Agent 配置）
   - ✅ CategoryPage（Category 管理）
