@@ -9015,7 +9015,14 @@ class ModelDialog(BaseDialog):
         self.variants_table.setHorizontalHeaderLabels(
             [tr("model.variant_name"), tr("model.config")]
         )
-        self.variants_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # 设置列宽：变体名称固定宽度，配置列自动拉伸
+        self.variants_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.Fixed
+        )
+        self.variants_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.Stretch
+        )
+        self.variants_table.setColumnWidth(0, 150)  # 变体名称列宽度
         self.variants_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.variants_table.setMinimumHeight(120)
         self.variants_table.verticalHeader().setDefaultSectionSize(36)
