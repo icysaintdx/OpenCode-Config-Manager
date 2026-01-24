@@ -9002,8 +9002,8 @@ class ModelDialog(BaseDialog):
     def _setup_variants_tab(self, parent):
         """设置 Variants Tab"""
         layout = QVBoxLayout(parent)
-        layout.setSpacing(8)
-        layout.setContentsMargins(4, 8, 4, 8)
+        layout.setSpacing(6)
+        layout.setContentsMargins(4, 6, 4, 6)
 
         variants_label = BodyLabel(tr("model.variants_config_label"), parent)
         variants_label.setToolTip(get_tooltip("model_variants"))
@@ -9022,23 +9022,26 @@ class ModelDialog(BaseDialog):
         self.variants_table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.Stretch
         )
-        self.variants_table.setColumnWidth(0, 120)  # 变体名称列宽度
+        self.variants_table.setColumnWidth(0, 100)  # 变体名称列宽度
         self.variants_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.variants_table.setMinimumHeight(100)
+        self.variants_table.setMinimumHeight(80)
+        self.variants_table.setMaximumHeight(120)
         self.variants_table.verticalHeader().setDefaultSectionSize(24)
-        self.variants_table.horizontalHeader().setMinimumHeight(28)
+        self.variants_table.horizontalHeader().setMinimumHeight(26)
+        self.variants_table.setWordWrap(False)  # 禁止自动换行
+        self.variants_table.setTextElideMode(Qt.ElideRight)  # 文本过长时显示省略号
         self.variants_table.itemSelectionChanged.connect(self._on_variant_select)
         layout.addWidget(self.variants_table)
 
         # 变体名称输入
         name_layout = QHBoxLayout()
         name_layout.setSpacing(6)
-        name_label = BodyLabel(tr("model.variant_name_label"), parent)
-        name_label.setFixedWidth(60)
+        name_label = BodyLabel(tr("model.variant_name_label") + ":", parent)
+        name_label.setFixedWidth(70)
         name_layout.addWidget(name_label)
         self.variant_name_edit = LineEdit(parent)
         self.variant_name_edit.setPlaceholderText("high, low, thinking")
-        self.variant_name_edit.setFixedHeight(26)
+        self.variant_name_edit.setFixedHeight(24)
         name_layout.addWidget(self.variant_name_edit)
         layout.addLayout(name_layout)
 
@@ -9057,23 +9060,23 @@ class ModelDialog(BaseDialog):
         layout.addLayout(preset_layout)
 
         # JSON 配置编辑器
-        config_label = BodyLabel(tr("model.config_json_label"), parent)
+        config_label = BodyLabel(tr("model.config_json_label") + ":", parent)
         layout.addWidget(config_label)
         self.variant_config_edit = TextEdit(parent)
         self.variant_config_edit.setPlaceholderText('{"reasoningEffort": "high"}')
-        self.variant_config_edit.setMinimumHeight(60)
-        self.variant_config_edit.setMaximumHeight(80)
+        self.variant_config_edit.setMinimumHeight(50)
+        self.variant_config_edit.setMaximumHeight(70)
         layout.addWidget(self.variant_config_edit)
 
         # 添加/删除按钮
         var_btn_layout = QHBoxLayout()
         var_btn_layout.setSpacing(6)
         add_var_btn = PrimaryPushButton(tr("model.add_variant"), parent)
-        add_var_btn.setFixedHeight(26)
+        add_var_btn.setFixedHeight(24)
         add_var_btn.clicked.connect(self._add_variant)
         var_btn_layout.addWidget(add_var_btn)
         del_var_btn = PushButton(tr("model.delete_variant"), parent)
-        del_var_btn.setFixedHeight(26)
+        del_var_btn.setFixedHeight(24)
         del_var_btn.clicked.connect(self._delete_variant)
         var_btn_layout.addWidget(del_var_btn)
         var_btn_layout.addStretch()
@@ -9205,11 +9208,22 @@ class ModelDialog(BaseDialog):
         for name, config in variants.items():
             row = self.variants_table.rowCount()
             self.variants_table.insertRow(row)
-            self.variants_table.setItem(row, 0, QTableWidgetItem(name))
+
+            # 变体名称
+            name_item = QTableWidgetItem(name)
+            name_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.variants_table.setItem(row, 0, name_item)
+
+            # 配置内容（单行显示，不换行）
             config_str = json.dumps(config, ensure_ascii=False)
-            if len(config_str) > 50:
-                config_str = config_str[:50] + "..."
-            self.variants_table.setItem(row, 1, QTableWidgetItem(config_str))
+            if len(config_str) > 80:
+                config_str = config_str[:80] + "..."
+            config_item = QTableWidgetItem(config_str)
+            config_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.variants_table.setItem(row, 1, config_item)
+
+            # 设置行高
+            self.variants_table.setRowHeight(row, 24)
 
     def _load_model_data(self):
         """加载模型数据"""
