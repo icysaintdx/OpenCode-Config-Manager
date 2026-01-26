@@ -4018,6 +4018,7 @@ class ConfigValidator:
     VALID_NPM_PACKAGES = [
         "@ai-sdk/anthropic",
         "@ai-sdk/openai",
+        "@ai-sdk/openai-compatible",
         "@ai-sdk/google",
         "@ai-sdk/azure",
         "@ai-sdk/amazon-bedrock",
