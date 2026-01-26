@@ -13618,10 +13618,11 @@ class SkillMarketDialog(MessageBoxBase):
         selected = self.table.selectedItems()
         if selected:
             row = selected[0].row()
-            repo = self.table.item(row, 3).text()
-            # 从市场列表中找到对应的 skill
+            # 获取选中行的skill名称（第0列）
+            skill_name = self.table.item(row, 0).text()
+            # 从市场列表中找到对应的 skill（通过name匹配，而不是repo）
             for skill in SkillMarket.get_all_skills():
-                if skill["repo"] == repo:
+                if skill["name"] == skill_name:
                     self.selected_skill = skill
                     break
             self.yesButton.setEnabled(True)
