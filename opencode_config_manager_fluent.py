@@ -6627,7 +6627,7 @@ class ProviderPage(BasePage):
             [
                 tr("common.name"),
                 tr("provider.display_name"),
-                "SDK",
+                tr("provider.sdk_type"),
                 tr("provider.api_address"),
                 tr("provider.model_count"),
             ]
@@ -7472,7 +7472,9 @@ class NativeProviderPage(BasePage):
         self.config_btn.clicked.connect(self._on_config)
         toolbar.addWidget(self.config_btn)
 
-        self.detect_btn = PushButton(FIF.SEARCH, "检测已配置", self)
+        self.detect_btn = PushButton(
+            FIF.SEARCH, tr("native_provider.detect_configured"), self
+        )
         self.detect_btn.clicked.connect(self._on_detect_configured)
         toolbar.addWidget(self.detect_btn)
 
@@ -7502,8 +7504,8 @@ class NativeProviderPage(BasePage):
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
             [
-                "Provider",
-                "SDK",
+                tr("native_provider.provider_name"),
+                tr("provider.sdk_type"),
                 tr("native_provider.status"),
                 tr("native_provider.env_vars"),
             ]
@@ -15842,8 +15844,8 @@ class SkillPage(BasePage):
                 self.main_window.save_opencode_config()
                 self._load_permission_data()
                 self.show_success(
-                    self.tr("common.success"),
-                    self.tr("rules.permission_deleted", pattern=pattern),
+                    tr("common.success"),
+                    tr("rules.permission_deleted", pattern=pattern),
                 )
 
     def _on_perm_selected(self):
@@ -15882,8 +15884,8 @@ class SkillPage(BasePage):
         self.main_window.save_opencode_config()
         self._load_permission_data()
         self.show_success(
-            self.tr("common.success"),
-            self.tr("rules.permission_saved", pattern=pattern),
+            tr("common.success"),
+            tr("rules.permission_saved", pattern=pattern),
         )
 
     def _on_agent_changed(self, agent_name: str):
@@ -15964,8 +15966,8 @@ class SkillPage(BasePage):
         self.main_window.save_opencode_config()
         self._load_agent_skill_config(agent_name)
         self.show_success(
-            self.tr("common.success"),
-            self.tr("rules.agent_permission_added", agent=agent_name, pattern=pattern),
+            tr("common.success"),
+            tr("rules.agent_permission_added", agent=agent_name, pattern=pattern),
         )
 
     def _on_delete_agent_permission(self):
@@ -15994,8 +15996,8 @@ class SkillPage(BasePage):
             self.main_window.save_opencode_config()
             self._load_agent_skill_config(agent_name)
             self.show_success(
-                self.tr("common.success"),
-                self.tr("rules.permission_deleted", pattern=pattern),
+                tr("common.success"),
+                tr("rules.permission_deleted", pattern=pattern),
             )
 
     def _on_open_market(self):
@@ -16227,12 +16229,12 @@ class RulesPage(BasePage):
 
     def _setup_ui(self):
         # Instructions 配置卡片
-        inst_card = self.add_card(self.tr("rules.instructions_config"))
+        inst_card = self.add_card(tr("rules.instructions_config"))
         inst_layout = inst_card.layout()
         inst_layout.setSpacing(12)
 
         inst_layout.addWidget(
-            BodyLabel(self.tr("rules.instructions_description"), inst_card)
+            BodyLabel(tr("rules.instructions_description"), inst_card)
         )
 
         # Instructions 列表
@@ -16244,7 +16246,7 @@ class RulesPage(BasePage):
         add_layout = QHBoxLayout()
         add_layout.setSpacing(8)
         self.inst_path_edit = LineEdit(inst_card)
-        self.inst_path_edit.setPlaceholderText(self.tr("rules.file_path_placeholder"))
+        self.inst_path_edit.setPlaceholderText(tr("rules.file_path_placeholder"))
         self.inst_path_edit.setFixedHeight(36)
         add_layout.addWidget(self.inst_path_edit)
 
@@ -16279,7 +16281,7 @@ class RulesPage(BasePage):
         inst_layout.addWidget(save_inst_btn)
 
         # AGENTS.md 编辑卡片
-        agents_card = self.add_card(self.tr("rules.agents_md_edit"))
+        agents_card = self.add_card(tr("rules.agents_md_edit"))
         agents_layout = agents_card.layout()
         agents_layout.setSpacing(12)
 
@@ -16314,12 +16316,12 @@ class RulesPage(BasePage):
         save_btn.clicked.connect(self._on_save_agents_md)
         btn_layout.addWidget(save_btn)
 
-        reload_btn = PushButton(self.tr("rules.reload"), agents_card)
+        reload_btn = PushButton(tr("rules.reload"), agents_card)
         reload_btn.setFixedHeight(36)
         reload_btn.clicked.connect(self._load_agents_md)
         btn_layout.addWidget(reload_btn)
 
-        template_btn = PushButton(self.tr("rules.use_template"), agents_card)
+        template_btn = PushButton(tr("rules.use_template"), agents_card)
         template_btn.setFixedHeight(36)
         template_btn.clicked.connect(self._use_template)
         btn_layout.addWidget(template_btn)
@@ -16377,9 +16379,7 @@ class RulesPage(BasePage):
 
     def _on_save_instructions(self):
         self.main_window.save_opencode_config()
-        self.show_success(
-            self.tr("common.success"), self.tr("rules.instructions_saved")
-        )
+        self.show_success(tr("common.success"), tr("rules.instructions_saved"))
 
     def _get_agents_path(self) -> Path:
         if self.global_radio.isChecked():
@@ -16399,7 +16399,7 @@ class RulesPage(BasePage):
             except Exception as e:
                 self.agents_edit.setPlainText(f"# {tr('rules.read_failed')}: {e}")
         else:
-            self.agents_edit.setPlainText(self.tr("rules.agents_md_not_exist"))
+            self.agents_edit.setPlainText(tr("rules.agents_md_not_exist"))
 
     def _on_save_agents_md(self):
         path = self._get_agents_path()
@@ -16410,11 +16410,11 @@ class RulesPage(BasePage):
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
             self.show_success(
-                self.tr("common.success"),
-                self.tr("rules.agents_md_saved", path=str(path)),
+                tr("common.success"),
+                tr("rules.agents_md_saved", path=str(path)),
             )
         except Exception as e:
-            self.show_error("错误", f"保存失败: {e}")
+            self.show_error(tr("common.error"), tr("rules.save_failed", error=str(e)))
 
     def _use_template(self):
         template = """# Project Rules
@@ -19925,6 +19925,16 @@ class PluginPage(BasePage):
         status_row.addWidget(self.ohmy_status_label)
         status_row.addStretch()
 
+        # 启用/禁用按钮
+        self.ohmy_enable_btn = PushButton("启用插件", widget)
+        self.ohmy_enable_btn.clicked.connect(self._on_toggle_ohmy_enable)
+        status_row.addWidget(self.ohmy_enable_btn)
+
+        # 刷新按钮
+        self.ohmy_refresh_btn = PushButton(FIF.SYNC, "刷新状态", widget)
+        self.ohmy_refresh_btn.clicked.connect(self._on_refresh_ohmy_status)
+        status_row.addWidget(self.ohmy_refresh_btn)
+
         # 配置按钮
         self.ohmy_config_btn = PushButton("打开配置文件", widget)
         self.ohmy_config_btn.clicked.connect(self._on_config_ohmy)
@@ -19953,7 +19963,81 @@ class PluginPage(BasePage):
 
         layout.addWidget(self.ohmy_stack, 1)
 
+        # 初始化状态
+        self._ohmy_installed = False
+        self._ohmy_enabled = False
+
         return widget
+
+    def _on_toggle_ohmy_enable(self):
+        """切换Oh My OpenCode启用状态"""
+        config = self.main_window.opencode_config
+        if config is None:
+            config = {}
+            self.main_window.opencode_config = config
+
+        # 检测使用的是 plugin 还是 plugins 字段
+        if "plugin" in config:
+            field_name = "plugin"
+        else:
+            field_name = "plugins"
+
+        plugins = config.get(field_name) or []
+        if not isinstance(plugins, list):
+            plugins = []
+
+        if self._ohmy_enabled:
+            # 禁用：从plugins中移除oh-my-opencode
+            new_plugins = []
+            for plugin in plugins:
+                if isinstance(plugin, str):
+                    # 去掉连字符后比较
+                    plugin_normalized = plugin.lower().replace("-", "")
+                    if "ohmyopencode" not in plugin_normalized:
+                        new_plugins.append(plugin)
+                elif isinstance(plugin, dict):
+                    plugin_name = plugin.get("name", "") or plugin.get("package", "")
+                    plugin_normalized = plugin_name.lower().replace("-", "")
+                    if "ohmyopencode" not in plugin_normalized:
+                        new_plugins.append(plugin)
+                else:
+                    new_plugins.append(plugin)
+            config[field_name] = new_plugins
+            self.main_window.save_opencode_config()
+            self.show_success("成功", "Oh My OpenCode 已禁用")
+        elif self._ohmy_installed:
+            # 已安装但未启用：添加到plugins
+            plugins.append("oh-my-opencode")
+            config[field_name] = plugins
+            self.main_window.save_opencode_config()
+            self.show_success("成功", "Oh My OpenCode 已启用")
+        else:
+            # 未安装：提示安装
+            self.show_warning(
+                "提示",
+                "请先通过npm安装oh-my-opencode插件:\nnpm install -g oh-my-opencode",
+            )
+
+        # 刷新状态
+        self._load_ohmy_data()
+
+    def _on_refresh_ohmy_status(self):
+        """刷新Oh My OpenCode状态"""
+        # 重新加载opencode配置
+        from pathlib import Path
+
+        opencode_path = ConfigPaths.get_opencode_config()
+        if opencode_path.exists():
+            self.main_window.opencode_config = ConfigManager.load_json(opencode_path)
+
+        # 重新加载ohmyopencode配置
+        ohmy_path = ConfigPaths.get_ohmyopencode_config()
+        if ohmy_path.exists():
+            self.main_window.ohmyopencode_config = ConfigManager.load_json(ohmy_path)
+
+        # 刷新显示
+        self._load_ohmy_data()
+        self.show_success("成功", "状态已刷新")
 
     def _on_ohmy_tab_changed(self, route_key: str):
         """切换Oh My OpenCode标签页"""
@@ -20094,37 +20178,56 @@ class PluginPage(BasePage):
 
     def _load_ohmy_data(self):
         """加载Oh My OpenCode数据"""
-        # 检测oh-my-opencode是否安装 - 多种方式检测
-        ohmy_installed = False
-
-        # 方式1: 检查oh-my-opencode.json配置文件是否存在
+        # 检测oh-my-opencode安装状态和启用状态
         config_path = ConfigPaths.get_ohmyopencode_config()
-        if config_path.exists():
-            ohmy_installed = True
+        ohmy_installed = config_path.exists()  # 配置文件存在 = 已安装
 
-        # 方式2: 检查plugins数组中是否有oh-my-opencode
-        if not ohmy_installed:
-            config = self.main_window.opencode_config or {}
-            plugins = config.get("plugins", [])
-            if isinstance(plugins, list):
-                for plugin in plugins:
-                    if isinstance(plugin, str) and "oh-my-opencode" in plugin.lower():
-                        ohmy_installed = True
+        # 检测启用状态：plugins数组中是否有oh-my-opencode
+        # 注意：需要同时检测 "oh-my-opencode" 和 "ohmyopencode" 两种写法
+        # 注意：字段名可能是 "plugins"（复数）或 "plugin"（单数）
+        ohmy_enabled = False
+        config = self.main_window.opencode_config or {}
+        plugins = config.get("plugins") or config.get("plugin") or []
+        if isinstance(plugins, list):
+            for plugin in plugins:
+                if isinstance(plugin, str):
+                    # 去掉连字符后比较，兼容两种写法
+                    plugin_normalized = plugin.lower().replace("-", "")
+                    if "ohmyopencode" in plugin_normalized:
+                        ohmy_enabled = True
                         break
-                    elif isinstance(plugin, dict):
-                        plugin_name = plugin.get("name", "") or plugin.get(
-                            "package", ""
-                        )
-                        if "oh-my-opencode" in plugin_name.lower():
-                            ohmy_installed = True
-                            break
+                elif isinstance(plugin, dict):
+                    plugin_name = plugin.get("name", "") or plugin.get("package", "")
+                    plugin_normalized = plugin_name.lower().replace("-", "")
+                    if "ohmyopencode" in plugin_normalized:
+                        ohmy_enabled = True
+                        break
 
-        if ohmy_installed:
-            self.ohmy_status_label.setText("✅ Oh My OpenCode 已安装")
+        # 根据安装和启用状态显示不同提示
+        if ohmy_installed and ohmy_enabled:
+            self.ohmy_status_label.setText("✅ 已安装且已启用")
             self.ohmy_status_label.setStyleSheet("color: #4CAF50;")
-        else:
-            self.ohmy_status_label.setText("⚠️ 未检测到 Oh My OpenCode 配置文件")
+            self.ohmy_enable_btn.setText("禁用插件")
+            self.ohmy_enable_btn.setEnabled(True)
+        elif ohmy_installed and not ohmy_enabled:
+            self.ohmy_status_label.setText("⚠️ 已安装但未启用")
             self.ohmy_status_label.setStyleSheet("color: #ff9800;")
+            self.ohmy_enable_btn.setText("启用插件")
+            self.ohmy_enable_btn.setEnabled(True)
+        elif not ohmy_installed and ohmy_enabled:
+            self.ohmy_status_label.setText("❌ 配置异常：已启用但配置文件不存在")
+            self.ohmy_status_label.setStyleSheet("color: #f44336;")
+            self.ohmy_enable_btn.setText("禁用插件")
+            self.ohmy_enable_btn.setEnabled(True)
+        else:
+            self.ohmy_status_label.setText("❌ 未安装")
+            self.ohmy_status_label.setStyleSheet("color: #f44336;")
+            self.ohmy_enable_btn.setText("安装插件")
+            self.ohmy_enable_btn.setEnabled(True)
+
+        # 保存状态供按钮使用
+        self._ohmy_installed = ohmy_installed
+        self._ohmy_enabled = ohmy_enabled
 
         # 加载Agent数据
         self._load_ohmy_agents()

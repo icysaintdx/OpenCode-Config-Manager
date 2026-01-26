@@ -87,7 +87,9 @@
     "please_enter_file_path": "请输入文件路径",
     "cannot_convert_format": "无法转换此配置格式",
     "config_not_exist_or_empty": "所选配置不存在或为空",
-    "no_valid_import_config": "未确认任何有效的导入配置"
+    "no_valid_import_config": "未确认任何有效的导入配置",
+    "sdk": "SDK",
+    "provider": "Provider"
   },
   "home": {
     "title": "首页",
@@ -358,6 +360,13 @@
     "deleted_success": "MCP \"{name}\" 已删除",
     "ohmy_updated_success": "Oh My MCP 配置已更新",
     "select_first": "请先选择一个 MCP 服务器",
+    "additional_info": "附加信息（点击标题展开/收起）",
+    "tags": "标签",
+    "homepage_link": "主页链接",
+    "docs_link": "文档链接",
+    "full_json_preview": "完整 JSON 预览",
+    "full_mcp_config_preview": "完整 MCP 配置预览",
+    "include_wrapper": "包含 mcpServers 包装",
     "dialog": {
       "edit_title": "编辑 MCP",
       "add_local_title": "添加 Local MCP",
@@ -864,6 +873,7 @@
     "agent_name": "Agent 名称",
     "provider": "Provider",
     "model": "模型",
+    "bulk_model": "批量模型",
     "select_provider": "选择 Provider",
     "select_model": "选择模型",
     "agent_saved": "Agent 已保存",
@@ -960,7 +970,8 @@
     "use_template": "使用模板",
     "agents_md_not_exist": "# AGENTS.md 文件不存在\n# 点击\"使用模板\"创建新文件",
     "path_label": "路径",
-    "read_failed": "读取失败"
+    "read_failed": "读取失败",
+    "save_failed": "保存失败: {error}"
   },
   "compaction": {
     "title": "上下文压缩",
@@ -1010,7 +1021,9 @@
     "detected_env_vars": "检测到环境变量",
     "auth_config": "认证配置",
     "import_env_var": "导入 {env_var}",
-    "provider_options": "Provider 选项"
+    "provider_options": "Provider 选项",
+    "provider_name": "Provider",
+    "detect_configured": "检测已配置"
   },
   "dialog": {
     "select_at_least_one_model": "请选择至少一个模型",

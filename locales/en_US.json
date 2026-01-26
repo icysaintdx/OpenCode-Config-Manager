@@ -87,7 +87,9 @@
     "please_enter_file_path": "Please enter file path",
     "cannot_convert_format": "Cannot convert this configuration format",
     "config_not_exist_or_empty": "Selected configuration does not exist or is empty",
-    "no_valid_import_config": "No valid import configuration confirmed"
+    "no_valid_import_config": "No valid import configuration confirmed",
+    "sdk": "SDK",
+    "provider": "Provider"
   },
   "home": {
     "title": "Home",
@@ -358,6 +360,13 @@
     "deleted_success": "MCP \"{name}\" deleted",
     "ohmy_updated_success": "Oh My MCP config updated",
     "select_first": "Please select an MCP server first",
+    "additional_info": "Additional Information (Click to Expand/Collapse)",
+    "tags": "Tags",
+    "homepage_link": "Homepage Link",
+    "docs_link": "Documentation Link",
+    "full_json_preview": "Full JSON Preview",
+    "full_mcp_config_preview": "Full MCP Configuration Preview",
+    "include_wrapper": "Include mcpServers Wrapper",
     "dialog": {
       "edit_title": "Edit MCP",
       "add_local_title": "Add Local MCP",
@@ -880,6 +889,7 @@
     "agent_name": "Agent Name",
     "provider": "Provider",
     "model": "Model",
+    "bulk_model": "Bulk Model",
     "select_provider": "Select Provider",
     "select_model": "Select Model",
     "agent_saved": "Agent saved",
@@ -926,7 +936,8 @@
     "use_template": "Use Template",
     "agents_md_not_exist": "# AGENTS.md file does not exist\n# Click \"Use Template\" to create a new file",
     "path_label": "Path",
-    "read_failed": "Read failed"
+    "read_failed": "Read failed",
+    "save_failed": "Save failed: {error}"
   },
   "backup": {
     "title": "Backup Management",
@@ -1009,7 +1020,9 @@
     "detected_env_vars": "Detected environment variables",
     "auth_config": "Authentication Configuration",
     "import_env_var": "Import {env_var}",
-    "provider_options": "Provider Options"
+    "provider_options": "Provider Options",
+    "provider_name": "Provider",
+    "detect_configured": "Detect Configured"
   },
   "dialog": {
     "select_at_least_one_model": "Please select at least one model",
