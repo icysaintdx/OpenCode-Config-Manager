@@ -7008,6 +7008,10 @@ class NativeProviderPage(BasePage):
         self.config_btn.clicked.connect(self._on_config)
         toolbar.addWidget(self.config_btn)
 
+        self.detect_btn = PushButton(FIF.SEARCH, "检测已配置", self)
+        self.detect_btn.clicked.connect(self._on_detect_configured)
+        toolbar.addWidget(self.detect_btn)
+
         self.test_btn = PushButton(
             FIF.WIFI, tr("native_provider.test_connection"), self
         )
@@ -7256,6 +7260,40 @@ class NativeProviderPage(BasePage):
 
         self.show_success("删除成功", f"{provider.name} 配置已删除")
         self._load_data()
+
+    def _on_detect_configured(self):
+        """检测已配置的原生Provider"""
+        # 读取auth.json
+        auth_data = {}
+        try:
+            auth_data = self.auth_manager.read_auth()
+        except Exception as e:
+            self.show_warning("检测失败", f"无法读取auth.json: {str(e)}")
+            return
+
+        if not auth_data:
+            InfoBar.info("检测结果", "未检测到已配置的原生Provider", parent=self)
+            return
+
+        # 统计已配置的Provider
+        configured_providers = []
+        for provider in NATIVE_PROVIDERS:
+            if provider.id in auth_data and auth_data[provider.id]:
+                configured_providers.append(provider.name)
+
+        if configured_providers:
+            message = f"检测到 {len(configured_providers)} 个已配置的Provider:\n\n"
+            message += "\n".join([f"✓ {name}" for name in configured_providers])
+            message += "\n\n这些Provider的认证信息已保存在auth.json中"
+
+            # 显示结果对话框
+            w = FluentMessageBox("检测结果", message, self)
+            w.exec_()
+
+            # 刷新列表
+            self._load_data()
+        else:
+            InfoBar.info("检测结果", "未检测到已配置的原生Provider", parent=self)
 
     def _on_query_balance(self):
         """查询余额"""
