@@ -19913,70 +19913,99 @@ class PluginPage(BasePage):
         return widget
 
     def _create_ohmy_widget(self) -> QWidget:
-        """创建Oh My OpenCode管理部件"""
+        """创建Oh My OpenCode管理部件 - 使用标签页切换Agent和Category"""
         widget = QWidget(self)
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 8, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
 
-        # 检测状态卡片
-        status_card = SimpleCardWidget(widget)
-        status_layout = QVBoxLayout(status_card)
-        status_layout.setContentsMargins(16, 12, 16, 12)
-
-        status_title = StrongBodyLabel("Oh My OpenCode 状态", status_card)
-        status_layout.addWidget(status_title)
-
-        # 状态行
+        # 顶部状态栏
         status_row = QHBoxLayout()
-        self.ohmy_status_label = BodyLabel("检测中...", status_card)
+        self.ohmy_status_label = BodyLabel("检测中...", widget)
         status_row.addWidget(self.ohmy_status_label)
         status_row.addStretch()
 
         # 配置按钮
-        self.ohmy_config_btn = PushButton("配置 Oh My OpenCode", status_card)
+        self.ohmy_config_btn = PushButton("打开配置文件", widget)
         self.ohmy_config_btn.clicked.connect(self._on_config_ohmy)
         status_row.addWidget(self.ohmy_config_btn)
 
-        status_layout.addLayout(status_row)
-        layout.addWidget(status_card)
+        layout.addLayout(status_row)
 
-        # Agent 管理卡片
-        agent_card = SimpleCardWidget(widget)
-        agent_layout = QVBoxLayout(agent_card)
-        agent_layout.setContentsMargins(16, 12, 16, 12)
+        # Agent/Category 标签页切换
+        self.ohmy_pivot = Pivot(widget)
+        self.ohmy_pivot.addItem(routeKey="agent", text=tr("ohmyagent.title"))
+        self.ohmy_pivot.addItem(routeKey="category", text=tr("category.title"))
+        self.ohmy_pivot.setCurrentItem("agent")
+        self.ohmy_pivot.currentItemChanged.connect(self._on_ohmy_tab_changed)
+        layout.addWidget(self.ohmy_pivot)
 
-        agent_title = StrongBodyLabel(tr("ohmyagent.title"), agent_card)
-        agent_layout.addWidget(agent_title)
+        # 堆叠窗口
+        self.ohmy_stack = QStackedWidget(widget)
+
+        # Agent 管理页面
+        self.ohmy_agent_widget = self._create_ohmy_agent_widget(widget)
+        self.ohmy_stack.addWidget(self.ohmy_agent_widget)
+
+        # Category 管理页面
+        self.ohmy_category_widget = self._create_ohmy_category_widget(widget)
+        self.ohmy_stack.addWidget(self.ohmy_category_widget)
+
+        layout.addWidget(self.ohmy_stack, 1)
+
+        return widget
+
+    def _on_ohmy_tab_changed(self, route_key: str):
+        """切换Oh My OpenCode标签页"""
+        if route_key == "agent":
+            self.ohmy_stack.setCurrentIndex(0)
+        else:
+            self.ohmy_stack.setCurrentIndex(1)
+
+    def _create_ohmy_agent_widget(self, parent) -> QWidget:
+        """创建Agent管理部件"""
+        widget = QWidget(parent)
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setSpacing(8)
 
         # Agent 工具栏
         agent_toolbar = QHBoxLayout()
 
         self.ohmy_add_agent_btn = PrimaryPushButton(
-            FIF.ADD, tr("ohmyagent.add_agent"), agent_card
+            FIF.ADD, tr("ohmyagent.add_agent"), widget
         )
         self.ohmy_add_agent_btn.clicked.connect(self._on_add_ohmy_agent)
         agent_toolbar.addWidget(self.ohmy_add_agent_btn)
 
         self.ohmy_preset_btn = PushButton(
-            FIF.LIBRARY, tr("common.add_from_preset"), agent_card
+            FIF.LIBRARY, tr("common.add_from_preset"), widget
         )
         self.ohmy_preset_btn.clicked.connect(self._on_add_ohmy_preset)
         agent_toolbar.addWidget(self.ohmy_preset_btn)
 
-        self.ohmy_edit_btn = PushButton(FIF.EDIT, tr("common.edit"), agent_card)
+        self.ohmy_edit_btn = PushButton(FIF.EDIT, tr("common.edit"), widget)
         self.ohmy_edit_btn.clicked.connect(self._on_edit_ohmy_agent)
         agent_toolbar.addWidget(self.ohmy_edit_btn)
 
-        self.ohmy_delete_btn = PushButton(FIF.DELETE, tr("common.delete"), agent_card)
+        self.ohmy_delete_btn = PushButton(FIF.DELETE, tr("common.delete"), widget)
         self.ohmy_delete_btn.clicked.connect(self._on_delete_ohmy_agent)
         agent_toolbar.addWidget(self.ohmy_delete_btn)
 
+        # 批量绑定模型
+        agent_toolbar.addWidget(BodyLabel(tr("ohmyagent.bulk_model"), widget))
+        self.ohmy_bulk_model_combo = ComboBox(widget)
+        self.ohmy_bulk_model_combo.setMinimumWidth(220)
+        self.ohmy_bulk_model_combo.currentIndexChanged.connect(
+            self._on_ohmy_bulk_model_changed
+        )
+        agent_toolbar.addWidget(self.ohmy_bulk_model_combo)
+
         agent_toolbar.addStretch()
-        agent_layout.addLayout(agent_toolbar)
+        layout.addLayout(agent_toolbar)
 
         # Agent 列表
-        self.ohmy_agent_table = TableWidget(agent_card)
+        self.ohmy_agent_table = TableWidget(widget)
         self.ohmy_agent_table.setColumnCount(3)
         self.ohmy_agent_table.setHorizontalHeaderLabels(
             [tr("common.name"), tr("ohmyagent.model"), tr("common.description")]
@@ -19988,100 +20017,158 @@ class PluginPage(BasePage):
         self.ohmy_agent_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.ohmy_agent_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.ohmy_agent_table.doubleClicked.connect(self._on_edit_ohmy_agent)
-        self.ohmy_agent_table.setMaximumHeight(200)
-        agent_layout.addWidget(self.ohmy_agent_table)
+        layout.addWidget(self.ohmy_agent_table, 1)
 
-        layout.addWidget(agent_card)
+        return widget
 
-        # Category 管理卡片
-        category_card = SimpleCardWidget(widget)
-        category_layout = QVBoxLayout(category_card)
-        category_layout.setContentsMargins(16, 12, 16, 12)
-
-        category_title = StrongBodyLabel(tr("category.title"), category_card)
-        category_layout.addWidget(category_title)
+    def _create_ohmy_category_widget(self, parent) -> QWidget:
+        """创建Category管理部件"""
+        widget = QWidget(parent)
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setSpacing(8)
 
         # Category 工具栏
         category_toolbar = QHBoxLayout()
 
         self.ohmy_add_category_btn = PrimaryPushButton(
-            FIF.ADD, tr("category.add_category"), category_card
+            FIF.ADD, tr("category.add_category"), widget
         )
         self.ohmy_add_category_btn.clicked.connect(self._on_add_ohmy_category)
         category_toolbar.addWidget(self.ohmy_add_category_btn)
 
         self.ohmy_category_preset_btn = PushButton(
-            FIF.LIBRARY, tr("common.add_from_preset"), category_card
+            FIF.LIBRARY, tr("common.add_from_preset"), widget
         )
         self.ohmy_category_preset_btn.clicked.connect(self._on_add_ohmy_category_preset)
         category_toolbar.addWidget(self.ohmy_category_preset_btn)
 
-        self.ohmy_category_edit_btn = PushButton(
-            FIF.EDIT, tr("common.edit"), category_card
-        )
+        self.ohmy_category_edit_btn = PushButton(FIF.EDIT, tr("common.edit"), widget)
         self.ohmy_category_edit_btn.clicked.connect(self._on_edit_ohmy_category)
         category_toolbar.addWidget(self.ohmy_category_edit_btn)
 
         self.ohmy_category_delete_btn = PushButton(
-            FIF.DELETE, tr("common.delete"), category_card
+            FIF.DELETE, tr("common.delete"), widget
         )
         self.ohmy_category_delete_btn.clicked.connect(self._on_delete_ohmy_category)
         category_toolbar.addWidget(self.ohmy_category_delete_btn)
 
+        # 批量绑定模型
+        category_toolbar.addWidget(BodyLabel(tr("ohmyagent.bulk_model"), widget))
+        self.ohmy_category_bulk_model_combo = ComboBox(widget)
+        self.ohmy_category_bulk_model_combo.setMinimumWidth(220)
+        self.ohmy_category_bulk_model_combo.currentIndexChanged.connect(
+            self._on_ohmy_category_bulk_model_changed
+        )
+        category_toolbar.addWidget(self.ohmy_category_bulk_model_combo)
+
         category_toolbar.addStretch()
-        category_layout.addLayout(category_toolbar)
+        layout.addLayout(category_toolbar)
 
         # Category 列表
-        self.ohmy_category_table = TableWidget(category_card)
-        self.ohmy_category_table.setColumnCount(3)
+        self.ohmy_category_table = TableWidget(widget)
+        self.ohmy_category_table.setColumnCount(4)
         self.ohmy_category_table.setHorizontalHeaderLabels(
-            [tr("common.name"), "Temperature", tr("common.description")]
+            [
+                tr("common.name"),
+                tr("ohmyagent.model"),
+                "Temperature",
+                tr("common.description"),
+            ]
         )
-        self.ohmy_category_table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.Stretch
-        )
+        # 调整列宽
+        header = self.ohmy_category_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.resizeSection(0, 160)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Fixed)
+        header.resizeSection(2, 100)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
         self.ohmy_category_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ohmy_category_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.ohmy_category_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.ohmy_category_table.doubleClicked.connect(self._on_edit_ohmy_category)
-        self.ohmy_category_table.setMaximumHeight(200)
-        category_layout.addWidget(self.ohmy_category_table)
-
-        layout.addWidget(category_card)
-
-        layout.addStretch()
+        layout.addWidget(self.ohmy_category_table, 1)
 
         return widget
 
     def _load_ohmy_data(self):
         """加载Oh My OpenCode数据"""
-        # 检测oh-my-opencode是否安装
-        config = self.main_window.opencode_config or {}
-        plugins = config.get("plugins", [])
+        # 检测oh-my-opencode是否安装 - 多种方式检测
         ohmy_installed = False
 
-        if isinstance(plugins, list):
-            for plugin in plugins:
-                if isinstance(plugin, str) and "oh-my-opencode" in plugin:
-                    ohmy_installed = True
-                    break
-                elif isinstance(plugin, dict) and "oh-my-opencode" in plugin.get(
-                    "name", ""
-                ):
-                    ohmy_installed = True
-                    break
+        # 方式1: 检查oh-my-opencode.json配置文件是否存在
+        config_path = ConfigPaths.get_ohmyopencode_config()
+        if config_path.exists():
+            ohmy_installed = True
+
+        # 方式2: 检查plugins数组中是否有oh-my-opencode
+        if not ohmy_installed:
+            config = self.main_window.opencode_config or {}
+            plugins = config.get("plugins", [])
+            if isinstance(plugins, list):
+                for plugin in plugins:
+                    if isinstance(plugin, str) and "oh-my-opencode" in plugin.lower():
+                        ohmy_installed = True
+                        break
+                    elif isinstance(plugin, dict):
+                        plugin_name = plugin.get("name", "") or plugin.get(
+                            "package", ""
+                        )
+                        if "oh-my-opencode" in plugin_name.lower():
+                            ohmy_installed = True
+                            break
 
         if ohmy_installed:
             self.ohmy_status_label.setText("✅ Oh My OpenCode 已安装")
             self.ohmy_status_label.setStyleSheet("color: #4CAF50;")
         else:
-            self.ohmy_status_label.setText("❌ Oh My OpenCode 未安装")
-            self.ohmy_status_label.setStyleSheet("color: #f44336;")
+            self.ohmy_status_label.setText("⚠️ 未检测到 Oh My OpenCode 配置文件")
+            self.ohmy_status_label.setStyleSheet("color: #ff9800;")
 
         # 加载Agent数据
         self._load_ohmy_agents()
 
         # 加载Category数据
+        self._load_ohmy_categories()
+
+    def _get_ohmy_available_models(self) -> List[str]:
+        """获取可用的模型列表"""
+        registry = ModelRegistry(self.main_window.opencode_config)
+        return registry.get_all_models()
+
+    def _on_ohmy_bulk_model_changed(self):
+        """批量修改Agent模型"""
+        model = self.ohmy_bulk_model_combo.currentText()
+        if model == tr("common.keep_all"):
+            return
+        config = self.main_window.ohmyopencode_config
+        if config is None:
+            config = {}
+            self.main_window.ohmyopencode_config = config
+        agents = config.setdefault("agents", {})
+        if not agents:
+            return
+        for name in agents.keys():
+            agents[name]["model"] = model
+        self.main_window.save_ohmyopencode_config()
+        self._load_ohmy_agents()
+
+    def _on_ohmy_category_bulk_model_changed(self):
+        """批量修改Category模型"""
+        model = self.ohmy_category_bulk_model_combo.currentText()
+        if model == tr("common.keep_all"):
+            return
+        config = self.main_window.ohmyopencode_config
+        if config is None:
+            config = {}
+            self.main_window.ohmyopencode_config = config
+        categories = config.setdefault("categories", {})
+        if not categories:
+            return
+        for name in categories.keys():
+            categories[name]["model"] = model
+        self.main_window.save_ohmyopencode_config()
         self._load_ohmy_categories()
 
     def _load_ohmy_agents(self):
@@ -20093,6 +20180,17 @@ class PluginPage(BasePage):
         if not isinstance(agents, dict):
             agents = {}
 
+        # 刷新批量模型下拉框
+        models = self._get_ohmy_available_models()
+        current = self.ohmy_bulk_model_combo.currentText()
+        self.ohmy_bulk_model_combo.blockSignals(True)
+        self.ohmy_bulk_model_combo.clear()
+        self.ohmy_bulk_model_combo.addItem(tr("common.keep_all"))
+        self.ohmy_bulk_model_combo.addItems(models)
+        if current:
+            self.ohmy_bulk_model_combo.setCurrentText(current)
+        self.ohmy_bulk_model_combo.blockSignals(False)
+
         for name, data in agents.items():
             if not isinstance(data, dict):
                 continue
@@ -20100,9 +20198,17 @@ class PluginPage(BasePage):
             row = self.ohmy_agent_table.rowCount()
             self.ohmy_agent_table.insertRow(row)
             self.ohmy_agent_table.setItem(row, 0, QTableWidgetItem(name))
-            self.ohmy_agent_table.setItem(
-                row, 1, QTableWidgetItem(data.get("model", ""))
+
+            # 模型下拉框
+            model_combo = ComboBox(self.ohmy_agent_table)
+            model_combo.addItems(models)
+            current_model = data.get("model", "")
+            if current_model:
+                model_combo.setCurrentText(current_model)
+            model_combo.currentIndexChanged.connect(
+                partial(self._on_ohmy_agent_model_changed, name, model_combo)
             )
+            self.ohmy_agent_table.setCellWidget(row, 1, model_combo)
 
             desc = data.get("description", "")
             if not desc:
@@ -20110,6 +20216,18 @@ class PluginPage(BasePage):
             desc_item = QTableWidgetItem(desc[:50] + "..." if len(desc) > 50 else desc)
             desc_item.setToolTip(desc)
             self.ohmy_agent_table.setItem(row, 2, desc_item)
+
+    def _on_ohmy_agent_model_changed(self, agent_name: str, combo: ComboBox):
+        """Agent模型变更"""
+        config = self.main_window.ohmyopencode_config
+        if config is None:
+            config = {}
+            self.main_window.ohmyopencode_config = config
+        agents = config.setdefault("agents", {})
+        if agent_name not in agents:
+            return
+        agents[agent_name]["model"] = combo.currentText()
+        self.main_window.save_ohmyopencode_config()
 
     def _load_ohmy_categories(self):
         """加载Oh My Category数据"""
@@ -20120,6 +20238,17 @@ class PluginPage(BasePage):
         if not isinstance(categories, dict):
             categories = {}
 
+        # 刷新批量模型下拉框
+        models = self._get_ohmy_available_models()
+        current = self.ohmy_category_bulk_model_combo.currentText()
+        self.ohmy_category_bulk_model_combo.blockSignals(True)
+        self.ohmy_category_bulk_model_combo.clear()
+        self.ohmy_category_bulk_model_combo.addItem(tr("common.keep_all"))
+        self.ohmy_category_bulk_model_combo.addItems(models)
+        if current:
+            self.ohmy_category_bulk_model_combo.setCurrentText(current)
+        self.ohmy_category_bulk_model_combo.blockSignals(False)
+
         for name, data in categories.items():
             if not isinstance(data, dict):
                 continue
@@ -20127,8 +20256,20 @@ class PluginPage(BasePage):
             row = self.ohmy_category_table.rowCount()
             self.ohmy_category_table.insertRow(row)
             self.ohmy_category_table.setItem(row, 0, QTableWidgetItem(name))
+
+            # 模型下拉框
+            model_combo = ComboBox(self.ohmy_category_table)
+            model_combo.addItems(models)
+            current_model = data.get("model", "")
+            if current_model:
+                model_combo.setCurrentText(current_model)
+            model_combo.currentIndexChanged.connect(
+                partial(self._on_ohmy_category_model_changed, name, model_combo)
+            )
+            self.ohmy_category_table.setCellWidget(row, 1, model_combo)
+
             self.ohmy_category_table.setItem(
-                row, 1, QTableWidgetItem(str(data.get("temperature", 0.7)))
+                row, 2, QTableWidgetItem(str(data.get("temperature", 0.7)))
             )
 
             desc = data.get("description", "")
@@ -20136,7 +20277,19 @@ class PluginPage(BasePage):
                 desc = PRESET_CATEGORIES.get(name, {}).get("description", "")
             desc_item = QTableWidgetItem(desc[:30] + "..." if len(desc) > 30 else desc)
             desc_item.setToolTip(desc)
-            self.ohmy_category_table.setItem(row, 2, desc_item)
+            self.ohmy_category_table.setItem(row, 3, desc_item)
+
+    def _on_ohmy_category_model_changed(self, category_name: str, combo: ComboBox):
+        """Category模型变更"""
+        config = self.main_window.ohmyopencode_config
+        if config is None:
+            config = {}
+            self.main_window.ohmyopencode_config = config
+        categories = config.setdefault("categories", {})
+        if category_name not in categories:
+            return
+        categories[category_name]["model"] = combo.currentText()
+        self.main_window.save_ohmyopencode_config()
 
     def _on_config_ohmy(self):
         """配置Oh My OpenCode"""
