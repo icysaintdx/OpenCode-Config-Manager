@@ -2864,11 +2864,12 @@ class ConfigPaths:
 
 # ==================== JSON语法高亮器 ====================
 class JsonSyntaxHighlighter(QSyntaxHighlighter):
-    """JSON语法高亮器 - 支持彩色括号、关键字高亮"""
+    """JSON语法高亮器 - 支持彩色括号、关键字高亮、括号匹配"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._setup_formats()
+        self._bracket_level = 0  # 跨行括号层级追踪
 
     def _setup_formats(self):
         """设置高亮格式"""
@@ -2888,35 +2889,51 @@ class JsonSyntaxHighlighter(QSyntaxHighlighter):
         self.keyword_format = QTextCharFormat()
         self.keyword_format.setForeground(QColor("#569CD6"))  # 蓝紫色
 
-        # 括号 - 彩色括号
+        # 括号 - 彩色括号（6种颜色循环）
         self.bracket_colors = [
-            QColor("#FFD700"),  # 金色
-            QColor("#DA70D6"),  # 兰花紫
-            QColor("#87CEEB"),  # 天蓝色
-            QColor("#FF6347"),  # 番茄红
-            QColor("#98FB98"),  # 淡绿色
-            QColor("#DDA0DD"),  # 梅红色
+            QColor("#FFD700"),  # 金色 - 第1层
+            QColor("#DA70D6"),  # 兰花紫 - 第2层
+            QColor("#87CEEB"),  # 天蓝色 - 第3层
+            QColor("#FF6347"),  # 番茄红 - 第4层
+            QColor("#98FB98"),  # 淡绿色 - 第5层
+            QColor("#DDA0DD"),  # 梅红色 - 第6层
         ]
+
+        # 匹配括号高亮格式
+        self.matched_bracket_format = QTextCharFormat()
+        self.matched_bracket_format.setBackground(QColor("#3a3d41"))
+        self.matched_bracket_format.setForeground(QColor("#FFFF00"))
+        self.matched_bracket_format.setFontWeight(QFont.Bold)
 
     def highlightBlock(self, text):
         """高亮当前文本块"""
-        # 高亮键名（"key":）
         import re
 
+        # 获取前一个块的括号层级状态
+        prev_block = self.currentBlock().previous()
+        if prev_block.isValid():
+            prev_state = prev_block.userState()
+            if prev_state >= 0:
+                self._bracket_level = prev_state
+            else:
+                self._bracket_level = 0
+        else:
+            self._bracket_level = 0
+
+        # 高亮键名（"key":）
         for match in re.finditer(r'"([^"\\]|\\.)*"\s*:', text):
             self.setFormat(
                 match.start(), match.end() - match.start() - 1, self.key_format
             )
 
         # 高亮字符串值（不是键名的字符串）
-        in_key = False
         i = 0
         while i < len(text):
             if text[i] == '"':
                 # 找到字符串的结束位置
                 j = i + 1
                 while j < len(text):
-                    if text[j] == '"' and text[j - 1] != "\\":
+                    if text[j] == '"' and (j == i + 1 or text[j - 1] != "\\"):
                         break
                     j += 1
 
@@ -2947,24 +2964,152 @@ class JsonSyntaxHighlighter(QSyntaxHighlighter):
                 match.start(), match.end() - match.start(), self.keyword_format
             )
 
-        # 高亮括号（彩色括号）
-        bracket_stack = []
+        # 高亮括号（彩色括号 - 跨行层级追踪）
         for i, char in enumerate(text):
             if char in "{[":
-                level = len(bracket_stack) % len(self.bracket_colors)
+                level = self._bracket_level % len(self.bracket_colors)
                 bracket_format = QTextCharFormat()
                 bracket_format.setForeground(self.bracket_colors[level])
                 bracket_format.setFontWeight(QFont.Bold)
                 self.setFormat(i, 1, bracket_format)
-                bracket_stack.append(char)
+                self._bracket_level += 1
             elif char in "}]":
-                if bracket_stack:
-                    bracket_stack.pop()
-                level = len(bracket_stack) % len(self.bracket_colors)
+                self._bracket_level = max(0, self._bracket_level - 1)
+                level = self._bracket_level % len(self.bracket_colors)
                 bracket_format = QTextCharFormat()
                 bracket_format.setForeground(self.bracket_colors[level])
                 bracket_format.setFontWeight(QFont.Bold)
                 self.setFormat(i, 1, bracket_format)
+
+        # 保存当前块的括号层级状态
+        self.currentBlock().setUserState(self._bracket_level)
+
+
+class JsonBracketMatcher:
+    """JSON括号匹配器 - 用于高亮匹配的括号对"""
+
+    OPEN_BRACKETS = "{["
+    CLOSE_BRACKETS = "}]"
+    BRACKET_PAIRS = {"{": "}", "[": "]", "}": "{", "]": "["}
+
+    def __init__(self, text_edit: QTextEdit):
+        self.text_edit = text_edit
+        self.extra_selections = []
+
+    def highlight_matching_bracket(self):
+        """高亮当前光标位置的匹配括号"""
+        self.extra_selections = []
+
+        cursor = self.text_edit.textCursor()
+        text = self.text_edit.toPlainText()
+        pos = cursor.position()
+
+        if not text or pos < 0 or pos > len(text):
+            self.text_edit.setExtraSelections([])
+            return
+
+        # 检查光标位置和前一个位置的字符
+        char_at_pos = text[pos] if pos < len(text) else ""
+        char_before = text[pos - 1] if pos > 0 else ""
+
+        bracket_pos = -1
+        bracket_char = ""
+
+        # 优先检查光标前的字符
+        if char_before in self.OPEN_BRACKETS + self.CLOSE_BRACKETS:
+            bracket_pos = pos - 1
+            bracket_char = char_before
+        elif char_at_pos in self.OPEN_BRACKETS + self.CLOSE_BRACKETS:
+            bracket_pos = pos
+            bracket_char = char_at_pos
+
+        if bracket_pos < 0:
+            self.text_edit.setExtraSelections([])
+            return
+
+        # 查找匹配的括号
+        match_pos = self._find_matching_bracket(text, bracket_pos, bracket_char)
+
+        if match_pos >= 0:
+            # 高亮两个括号
+            self._add_bracket_highlight(bracket_pos)
+            self._add_bracket_highlight(match_pos)
+
+        self.text_edit.setExtraSelections(self.extra_selections)
+
+    def _find_matching_bracket(self, text: str, pos: int, bracket: str) -> int:
+        """查找匹配的括号位置"""
+        if bracket in self.OPEN_BRACKETS:
+            # 向前搜索闭括号
+            target = self.BRACKET_PAIRS[bracket]
+            direction = 1
+            start = pos + 1
+            end = len(text)
+        else:
+            # 向后搜索开括号
+            target = self.BRACKET_PAIRS[bracket]
+            direction = -1
+            start = pos - 1
+            end = -1
+
+        depth = 1
+        i = start
+
+        while (direction == 1 and i < end) or (direction == -1 and i > end):
+            char = text[i]
+
+            # 跳过字符串内的括号
+            if char == '"':
+                # 找到字符串的另一端
+                if direction == 1:
+                    i += 1
+                    while i < len(text):
+                        if text[i] == '"' and text[i - 1] != "\\":
+                            break
+                        i += 1
+                else:
+                    i -= 1
+                    while i >= 0:
+                        if text[i] == '"':
+                            # 检查是否是转义的引号
+                            escape_count = 0
+                            j = i - 1
+                            while j >= 0 and text[j] == "\\":
+                                escape_count += 1
+                                j -= 1
+                            if escape_count % 2 == 0:
+                                break
+                        i -= 1
+                i += direction
+                continue
+
+            if char == bracket:
+                depth += 1
+            elif char == target:
+                depth -= 1
+                if depth == 0:
+                    return i
+
+            i += direction
+
+        return -1
+
+    def _add_bracket_highlight(self, pos: int):
+        """添加括号高亮"""
+        selection = QTextEdit.ExtraSelection()
+
+        # 设置高亮格式
+        selection.format.setBackground(QColor("#515a6b"))
+        selection.format.setForeground(QColor("#FFFF00"))
+        selection.format.setFontWeight(QFont.Bold)
+
+        # 设置光标位置
+        cursor = self.text_edit.textCursor()
+        cursor.setPosition(pos)
+        cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor)
+        selection.cursor = cursor
+
+        self.extra_selections.append(selection)
 
 
 class ConfigManager:
@@ -5849,8 +5994,29 @@ class HomePage(BasePage):
             dialog.setWindowTitle(f"查看配置文件 - {config_path.name}")
             dialog.resize(900, 700)
 
+            # 应用对话框主题样式
+            if isDarkTheme():
+                dialog.setStyleSheet("""
+                    QDialog {
+                        background-color: #1e1e1e;
+                    }
+                    QLabel {
+                        color: #d4d4d4;
+                    }
+                """)
+            else:
+                dialog.setStyleSheet("""
+                    QDialog {
+                        background-color: #f5f5f5;
+                    }
+                    QLabel {
+                        color: #333333;
+                    }
+                """)
+
             layout = QVBoxLayout(dialog)
             layout.setSpacing(12)
+            layout.setContentsMargins(16, 16, 16, 16)
 
             # 创建文本编辑器（使用QTextEdit以支持语法高亮）
             text_edit = QTextEdit(dialog)
@@ -5865,6 +6031,14 @@ class HomePage(BasePage):
 
             # 应用JSON语法高亮
             highlighter = JsonSyntaxHighlighter(text_edit.document())
+
+            # 创建括号匹配器
+            bracket_matcher = JsonBracketMatcher(text_edit)
+
+            # 连接光标位置变化信号到括号匹配
+            text_edit.cursorPositionChanged.connect(
+                bracket_matcher.highlight_matching_bracket
+            )
 
             # 设置样式（深色主题）
             if isDarkTheme():
@@ -5896,21 +6070,23 @@ class HomePage(BasePage):
             btn_layout = QHBoxLayout()
             btn_layout.addStretch()
 
-            # 编辑按钮
-            edit_btn = PushButton("编辑", dialog)
-            edit_btn.clicked.connect(
-                lambda: self._enable_edit_mode(
-                    text_edit, edit_btn, save_btn, config_path
-                )
-            )
-            btn_layout.addWidget(edit_btn)
-
-            # 保存按钮（初始禁用）
+            # 保存按钮（初始禁用）- 先创建以便在lambda中引用
             save_btn = PrimaryPushButton("保存", dialog)
             save_btn.setEnabled(False)
             save_btn.clicked.connect(
                 lambda: self._save_config_file(text_edit, config_path, dialog)
             )
+
+            # 编辑按钮
+            edit_btn = PushButton("编辑", dialog)
+
+            # 使用闭包捕获变量
+            def on_edit_clicked():
+                self._enable_edit_mode(text_edit, edit_btn, save_btn, config_path)
+
+            edit_btn.clicked.connect(on_edit_clicked)
+            btn_layout.addWidget(edit_btn)
+
             btn_layout.addWidget(save_btn)
 
             # 关闭按钮
@@ -5935,8 +6111,8 @@ class HomePage(BasePage):
         """启用编辑模式"""
         # 自动备份
         try:
-            self.main_window.backup_manager.backup_file(config_path)
-            InfoBar.success("已备份", f"已自动备份配置文件", parent=self)
+            self.main_window.backup_manager.backup(config_path, tag="before_edit")
+            InfoBar.success("已备份", "已自动备份配置文件", parent=self)
         except Exception as e:
             self.show_warning("备份失败", f"无法备份配置文件: {str(e)}")
             return
