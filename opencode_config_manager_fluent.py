@@ -5488,6 +5488,13 @@ class HomePage(BasePage):
         self.oc_path_label.setToolTip(str(ConfigPaths.get_opencode_config()))
         oc_layout.addWidget(self.oc_path_label, 1)
 
+        oc_view_btn = ToolButton(FIF.VIEW, paths_card)
+        oc_view_btn.setToolTip("查看配置文件")
+        oc_view_btn.clicked.connect(
+            lambda: self._view_config_file(ConfigPaths.get_opencode_config())
+        )
+        oc_layout.addWidget(oc_view_btn)
+
         oc_copy_btn = ToolButton(FIF.COPY, paths_card)
         oc_copy_btn.setToolTip(tr("common.copy"))
         oc_copy_btn.clicked.connect(
@@ -5516,6 +5523,13 @@ class HomePage(BasePage):
         )
         self.ohmy_path_label.setToolTip(str(ConfigPaths.get_ohmyopencode_config()))
         ohmy_layout.addWidget(self.ohmy_path_label, 1)
+
+        ohmy_view_btn = ToolButton(FIF.VIEW, paths_card)
+        ohmy_view_btn.setToolTip("查看配置文件")
+        ohmy_view_btn.clicked.connect(
+            lambda: self._view_config_file(ConfigPaths.get_ohmyopencode_config())
+        )
+        ohmy_layout.addWidget(ohmy_view_btn)
 
         ohmy_copy_btn = ToolButton(FIF.COPY, paths_card)
         ohmy_copy_btn.setToolTip(tr("common.copy"))
@@ -5717,6 +5731,60 @@ class HomePage(BasePage):
             )
 
         self.validation_details.setPlainText(self._format_validation_details(issues))
+
+    def _view_config_file(self, config_path: Path):
+        """查看配置文件（带语法高亮）"""
+        try:
+            # 读取文件内容
+            with open(config_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # 创建对话框
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"查看配置文件 - {config_path.name}")
+            dialog.resize(800, 600)
+
+            layout = QVBoxLayout(dialog)
+            layout.setSpacing(12)
+
+            # 创建文本编辑器
+            text_edit = PlainTextEdit(dialog)
+            text_edit.setReadOnly(True)
+            text_edit.setPlainText(content)
+
+            # 设置等宽字体
+            font = QFont("Consolas", 10)
+            if not font.exactMatch():
+                font = QFont("Courier New", 10)
+            text_edit.setFont(font)
+
+            # 设置样式（深色主题的JSON高亮效果）
+            text_edit.setStyleSheet("""
+                QPlainTextEdit {
+                    background-color: #1e1e1e;
+                    color: #d4d4d4;
+                    border: 1px solid #3e3e3e;
+                    border-radius: 4px;
+                    padding: 8px;
+                }
+            """)
+
+            layout.addWidget(text_edit)
+
+            # 关闭按钮
+            btn_layout = QHBoxLayout()
+            btn_layout.addStretch()
+
+            close_btn = PrimaryPushButton("关闭", dialog)
+            close_btn.clicked.connect(dialog.accept)
+            btn_layout.addWidget(close_btn)
+
+            layout.addLayout(btn_layout)
+
+            dialog.exec_()
+
+        except Exception as e:
+            self.show_error("错误", f"无法读取配置文件: {str(e)}")
 
     def _copy_to_clipboard(self, text: str):
         """复制文本到剪贴板"""
