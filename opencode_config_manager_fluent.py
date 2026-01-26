@@ -13356,7 +13356,7 @@ class SkillMarket:
             "description": "ui_ux_pro_max_desc",
             "category": "ui_ux",
             "tags": ["ui", "ux", "design", "frontend"],
-            "path": ".opencode/skills/ui-ux-pro-max",
+            "subdir": None,  # SKILL.md在根目录
         },
         {
             "name": "canvas-design",
@@ -13364,7 +13364,7 @@ class SkillMarket:
             "description": "canvas_design_desc",
             "category": "ui_ux",
             "tags": ["design", "canvas", "art"],
-            "path": "skills/canvas-design",
+            "subdir": "skills/canvas-design",
         },
         {
             "name": "theme-factory",
@@ -13372,7 +13372,7 @@ class SkillMarket:
             "description": "theme_factory_desc",
             "category": "ui_ux",
             "tags": ["theme", "styling", "design"],
-            "path": "skills/theme-factory",
+            "subdir": "skills/theme-factory",
         },
         {
             "name": "web-artifacts-builder",
@@ -13380,7 +13380,7 @@ class SkillMarket:
             "description": "web_artifacts_builder_desc",
             "category": "ui_ux",
             "tags": ["web", "react", "frontend"],
-            "path": "skills/web-artifacts-builder",
+            "subdir": "skills/web-artifacts-builder",
         },
         # 开发工具类
         {
@@ -13389,7 +13389,7 @@ class SkillMarket:
             "description": "mcp_builder_desc",
             "category": "dev_tools",
             "tags": ["mcp", "server", "protocol"],
-            "path": "skills/mcp-builder",
+            "subdir": "skills/mcp-builder",
         },
         {
             "name": "webapp-testing",
@@ -13397,7 +13397,7 @@ class SkillMarket:
             "description": "webapp_testing_desc",
             "category": "testing",
             "tags": ["testing", "webapp", "automation"],
-            "path": "skills/webapp-testing",
+            "subdir": "skills/webapp-testing",
         },
         {
             "name": "skill-creator",
@@ -13405,7 +13405,7 @@ class SkillMarket:
             "description": "skill_creator_desc",
             "category": "dev_tools",
             "tags": ["skill", "creator", "development"],
-            "path": "skills/skill-creator",
+            "subdir": "skills/skill-creator",
         },
         # 创意和媒体类
         {
@@ -13414,7 +13414,7 @@ class SkillMarket:
             "description": "algorithmic_art_desc",
             "category": "creative",
             "tags": ["art", "generative", "creative"],
-            "path": "skills/algorithmic-art",
+            "subdir": "skills/algorithmic-art",
         },
         {
             "name": "slack-gif-creator",
@@ -13422,7 +13422,7 @@ class SkillMarket:
             "description": "slack_gif_creator_desc",
             "category": "creative",
             "tags": ["slack", "gif", "creative"],
-            "path": "skills/slack-gif-creator",
+            "subdir": "skills/slack-gif-creator",
         },
         # 文档和沟通类
         {
@@ -13431,7 +13431,7 @@ class SkillMarket:
             "description": "doc_coauthoring_desc",
             "category": "documentation",
             "tags": ["documentation", "collaboration", "writing"],
-            "path": "skills/doc-coauthoring",
+            "subdir": "skills/doc-coauthoring",
         },
         {
             "name": "brand-guidelines",
@@ -13439,7 +13439,7 @@ class SkillMarket:
             "description": "brand_guidelines_desc",
             "category": "documentation",
             "tags": ["brand", "guidelines", "design"],
-            "path": "skills/brand-guidelines",
+            "subdir": "skills/brand-guidelines",
         },
         {
             "name": "internal-comms",
@@ -13447,7 +13447,7 @@ class SkillMarket:
             "description": "internal_comms_desc",
             "category": "documentation",
             "tags": ["communication", "internal", "team"],
-            "path": "skills/internal-comms",
+            "subdir": "skills/internal-comms",
         },
     ]
 
@@ -14421,6 +14421,8 @@ class SkillUpdateDialog(MessageBoxBase):
             checkbox = CheckBox()
             checkbox.setChecked(update["has_update"])
             checkbox.setEnabled(update["has_update"])
+            # 确保checkbox可以接收鼠标事件
+            checkbox_widget.setAttribute(Qt.WA_TransparentForMouseEvents, False)
             checkbox_layout.addWidget(checkbox)
             self.checkboxes.append(checkbox)
             self.table.setCellWidget(row, 0, checkbox_widget)
@@ -15410,7 +15412,7 @@ class SkillPage(BasePage):
                         # 从市场安装
                         owner, repo_name = skill["repo"].split("/")
                         # 获取子目录路径（如果有）
-                        subdir = skill.get("path", None)
+                        subdir = skill.get("subdir", None)
 
                         # 自动检测分支 (main 或 master)
                         branch = SkillInstaller.detect_default_branch(owner, repo_name)
@@ -15502,7 +15504,7 @@ class SkillPage(BasePage):
         skills = SkillDiscovery.discover_all()
 
         if not skills:
-            self.show_info("提示", "未发现任何 Skills")
+            self.show_warning("提示", "未发现任何 Skills")
             return
 
         # 显示进度对话框
@@ -15522,7 +15524,7 @@ class SkillPage(BasePage):
                 selected = update_dialog.get_selected_updates()
 
                 if not selected:
-                    self.show_info("提示", "未选择任何 Skills")
+                    self.show_warning("提示", "未选择任何 Skills")
                     return
 
                 # 更新选中的 Skills
