@@ -11743,6 +11743,10 @@ class MainWindow(FluentWindow):
         self.skill_page = SkillPage(self)
         self.addSubInterface(self.skill_page, FIF.BOOK_SHELF, tr("menu.skill"))
 
+        # Plugin 页面
+        self.plugin_page = PluginPage(self)
+        self.addSubInterface(self.plugin_page, FIF.APPLICATION, "Plugin")
+
         # Rules 页面
         self.rules_page = RulesPage(self)
         self.addSubInterface(self.rules_page, FIF.DOCUMENT, tr("menu.rules"))
@@ -18973,6 +18977,595 @@ class BackupDialog(BaseDialog):
                 InfoBar.error(
                     tr("common.error"), tr("dialog.delete_failed"), parent=self
                 )
+
+
+# ==================== Plugin 插件管理 ====================
+@dataclass
+class PluginConfig:
+    """插件配置数据类"""
+
+    name: str  # 插件名称（npm包名或文件名）
+    version: str  # 版本号（npm插件）
+    type: str  # 类型：npm / local
+    source: str  # 来源：npm包名 / 本地文件路径
+    enabled: bool  # 是否启用
+    description: str  # 描述
+    homepage: str  # 主页链接
+    installed_at: str  # 安装时间
+
+
+class PluginManager:
+    """插件管理器"""
+
+    @staticmethod
+    def get_installed_plugins(config: Dict[str, Any]) -> List[PluginConfig]:
+        """获取已安装的插件列表"""
+        plugins: List[PluginConfig] = []
+
+        # 1. 从opencode.json的plugin字段读取npm插件
+        plugin_list = config.get("plugin", [])
+        if isinstance(plugin_list, list):
+            for plugin_entry in plugin_list:
+                if isinstance(plugin_entry, str):
+                    # 解析包名和版本（如opencode-skills@0.1.0）
+                    if "@" in plugin_entry and not plugin_entry.startswith("@"):
+                        # 普通包带版本
+                        parts = plugin_entry.rsplit("@", 1)
+                        name = parts[0]
+                        version = parts[1] if len(parts) > 1 else "latest"
+                    elif plugin_entry.startswith("@") and plugin_entry.count("@") > 1:
+                        # scoped包带版本（如@my-org/plugin@1.0.0）
+                        parts = plugin_entry.rsplit("@", 1)
+                        name = parts[0]
+                        version = parts[1] if len(parts) > 1 else "latest"
+                    else:
+                        # 无版本号
+                        name = plugin_entry
+                        version = "latest"
+
+                    plugins.append(
+                        PluginConfig(
+                            name=name,
+                            version=version,
+                            type="npm",
+                            source=plugin_entry,
+                            enabled=True,
+                            description="",
+                            homepage="",
+                            installed_at="",
+                        )
+                    )
+
+        # 2. 扫描本地插件目录（暂不实现，留待后续）
+        # TODO: 扫描~/.config/opencode/plugins/和.opencode/plugins/
+
+        return plugins
+
+    @staticmethod
+    def install_npm_plugin(
+        config: Dict[str, Any], package_name: str, version: str = ""
+    ) -> bool:
+        """安装npm插件"""
+        try:
+            # 构建完整的包名（带版本）
+            if version and version != "latest":
+                full_name = f"{package_name}@{version}"
+            else:
+                full_name = package_name
+
+            # 读取plugin数组
+            if "plugin" not in config:
+                config["plugin"] = []
+
+            plugin_list = config["plugin"]
+            if not isinstance(plugin_list, list):
+                plugin_list = []
+                config["plugin"] = plugin_list
+
+            # 检查是否已存在（去除版本号比较）
+            base_name = package_name.split("@")[0]
+            for i, existing in enumerate(plugin_list):
+                if isinstance(existing, str):
+                    existing_base = existing.split("@")[0]
+                    if existing_base == base_name:
+                        # 已存在，更新版本
+                        plugin_list[i] = full_name
+                        return True
+
+            # 不存在，添加新插件
+            plugin_list.append(full_name)
+            return True
+
+        except Exception as e:
+            print(f"安装插件失败: {e}")
+            return False
+
+    @staticmethod
+    def uninstall_plugin(config: Dict[str, Any], plugin: PluginConfig) -> bool:
+        """卸载插件"""
+        try:
+            if plugin.type == "npm":
+                # 从plugin数组移除
+                plugin_list = config.get("plugin", [])
+                if isinstance(plugin_list, list):
+                    # 移除匹配的插件（忽略版本号）
+                    base_name = plugin.name.split("@")[0]
+                    config["plugin"] = [
+                        p
+                        for p in plugin_list
+                        if not (isinstance(p, str) and p.split("@")[0] == base_name)
+                    ]
+                    return True
+            elif plugin.type == "local":
+                # TODO: 删除本地文件和元数据
+                pass
+
+            return False
+
+        except Exception as e:
+            print(f"卸载插件失败: {e}")
+            return False
+
+    @staticmethod
+    def check_npm_version(package_name: str) -> str:
+        """检查npm包的最新版本"""
+        try:
+            import requests
+
+            url = f"https://registry.npmjs.org/{package_name}/latest"
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("version", "")
+        except Exception as e:
+            print(f"检查版本失败: {e}")
+
+        return ""
+
+
+# 预设插件市场
+PRESET_PLUGINS = [
+    {
+        "name": "opencode-skills",
+        "display_name": "OpenCode Skills",
+        "description": "自动发现和注册Skills为动态工具，支持Anthropic Agent Skills规范",
+        "npm_package": "opencode-skills",
+        "homepage": "https://github.com/malhashemi/opencode-skills",
+        "category": "工具增强",
+    },
+    {
+        "name": "opencode-sessions",
+        "display_name": "OpenCode Sessions",
+        "description": "多Agent协作和工作流编排，支持回合制讨论和并行探索",
+        "npm_package": "opencode-sessions",
+        "homepage": "https://github.com/malhashemi/opencode-sessions",
+        "category": "协作增强",
+    },
+    {
+        "name": "opencode-helicone-session",
+        "display_name": "Helicone Session",
+        "description": "自动注入Helicone会话ID和名称，用于LLM请求分组和追踪",
+        "npm_package": "opencode-helicone-session",
+        "homepage": "",
+        "category": "监控追踪",
+    },
+    {
+        "name": "opencode-wakatime",
+        "display_name": "WakaTime",
+        "description": "代码时间追踪，自动记录编码时间和项目统计",
+        "npm_package": "opencode-wakatime",
+        "homepage": "",
+        "category": "监控追踪",
+    },
+]
+
+
+class PluginPage(BasePage):
+    """Plugin 插件管理页面"""
+
+    def __init__(self, main_window, parent=None):
+        super().__init__("Plugin 插件管理", parent)
+        self.main_window = main_window
+        self._setup_ui()
+        self._load_plugins()
+
+    def _setup_ui(self):
+        """初始化UI"""
+        # 顶部按钮栏
+        btn_layout = QHBoxLayout()
+
+        # 搜索框
+        self.search_edit = SearchLineEdit(self)
+        self.search_edit.setPlaceholderText("搜索插件...")
+        self.search_edit.setFixedWidth(300)
+        self.search_edit.textChanged.connect(self._on_search)
+        btn_layout.addWidget(self.search_edit)
+
+        btn_layout.addStretch()
+
+        # 安装插件按钮
+        self.install_btn = PrimaryPushButton("➕ 安装插件", self)
+        self.install_btn.clicked.connect(self._on_install)
+        btn_layout.addWidget(self.install_btn)
+
+        # 检查更新按钮
+        self.check_update_btn = PushButton("🔄 检查更新", self)
+        self.check_update_btn.clicked.connect(self._on_check_updates)
+        btn_layout.addWidget(self.check_update_btn)
+
+        # 插件市场按钮
+        self.market_btn = PushButton("🛒 插件市场", self)
+        self.market_btn.clicked.connect(self._on_open_market)
+        btn_layout.addWidget(self.market_btn)
+
+        self._layout.addLayout(btn_layout)
+
+        # 插件列表表格
+        self.table = TableWidget(self)
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(
+            ["插件名称", "版本", "类型", "状态", "描述", "操作"]
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeMode.Stretch
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            5, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self._layout.addWidget(self.table, 1)
+
+    def _load_plugins(self):
+        """加载插件列表"""
+        self.table.setRowCount(0)
+        config = self.main_window.opencode_config or {}
+        plugins = PluginManager.get_installed_plugins(config)
+
+        for plugin in plugins:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            # 插件名称
+            self.table.setItem(row, 0, QTableWidgetItem(plugin.name))
+
+            # 版本
+            self.table.setItem(row, 1, QTableWidgetItem(plugin.version))
+
+            # 类型
+            type_text = "npm" if plugin.type == "npm" else "本地"
+            self.table.setItem(row, 2, QTableWidgetItem(type_text))
+
+            # 状态
+            status_text = "✅ 已启用" if plugin.enabled else "❌ 已禁用"
+            self.table.setItem(row, 3, QTableWidgetItem(status_text))
+
+            # 描述
+            self.table.setItem(row, 4, QTableWidgetItem(plugin.description))
+
+            # 操作按钮
+            btn_widget = QWidget()
+            btn_layout = QHBoxLayout(btn_widget)
+            btn_layout.setContentsMargins(4, 4, 4, 4)
+            btn_layout.setSpacing(4)
+
+            # 卸载按钮
+            uninstall_btn = PushButton("🗑️", btn_widget)
+            uninstall_btn.setFixedSize(32, 28)
+            uninstall_btn.setToolTip("卸载插件")
+            uninstall_btn.clicked.connect(
+                lambda checked, p=plugin: self._on_uninstall(p)
+            )
+            btn_layout.addWidget(uninstall_btn)
+
+            self.table.setCellWidget(row, 5, btn_widget)
+
+    def _on_search(self, text: str):
+        """搜索插件"""
+        text = text.lower()
+        for row in range(self.table.rowCount()):
+            name = self.table.item(row, 0).text().lower()
+            desc = self.table.item(row, 4).text().lower()
+            should_show = text in name or text in desc
+            self.table.setRowHidden(row, not should_show)
+
+    def _on_install(self):
+        """安装插件"""
+        dialog = PluginInstallDialog(self.main_window, self)
+        if dialog.exec():
+            self._load_plugins()
+
+    def _on_uninstall(self, plugin: PluginConfig):
+        """卸载插件"""
+        w = FluentMessageBox(
+            "确认卸载",
+            f"确定要卸载插件 {plugin.name} 吗？\n\n注意：OpenCode需要重启后才会生效。",
+            self,
+        )
+        if w.exec_():
+            config = self.main_window.opencode_config or {}
+            if PluginManager.uninstall_plugin(config, plugin):
+                self.main_window.save_opencode_config()
+                InfoBar.success("成功", f"插件 {plugin.name} 已卸载", parent=self)
+                self._load_plugins()
+            else:
+                InfoBar.error("失败", "卸载插件失败", parent=self)
+
+    def _on_check_updates(self):
+        """检查更新"""
+        InfoBar.info("提示", "正在检查更新...", parent=self)
+        # TODO: 实现更新检测逻辑
+        pass
+
+    def _on_open_market(self):
+        """打开插件市场"""
+        dialog = PluginMarketDialog(self.main_window, self)
+        if dialog.exec():
+            self._load_plugins()
+
+
+class PluginInstallDialog(BaseDialog):
+    """插件安装对话框"""
+
+    def __init__(self, main_window, parent=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.setWindowTitle("安装插件")
+        self.setFixedWidth(500)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        """初始化UI"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(16)
+
+        # 安装方式选择
+        method_label = BodyLabel("安装方式:", self)
+        layout.addWidget(method_label)
+
+        self.npm_radio = RadioButton("从npm安装", self)
+        self.npm_radio.setChecked(True)
+        self.npm_radio.toggled.connect(self._on_method_changed)
+        layout.addWidget(self.npm_radio)
+
+        self.local_radio = RadioButton("从本地文件安装", self)
+        self.local_radio.toggled.connect(self._on_method_changed)
+        layout.addWidget(self.local_radio)
+
+        # npm安装区域
+        self.npm_widget = QWidget(self)
+        npm_layout = QVBoxLayout(self.npm_widget)
+        npm_layout.setContentsMargins(0, 0, 0, 0)
+
+        npm_label = BodyLabel("npm包名:", self)
+        npm_layout.addWidget(npm_label)
+
+        self.npm_edit = LineEdit(self)
+        self.npm_edit.setPlaceholderText(
+            "例如: opencode-skills 或 opencode-skills@0.1.0"
+        )
+        npm_layout.addWidget(self.npm_edit)
+
+        hint_label = CaptionLabel("支持普通包和scoped包（如@my-org/plugin）", self)
+        hint_label.setTextColor(QColor(150, 150, 150), QColor(150, 150, 150))
+        npm_layout.addWidget(hint_label)
+
+        layout.addWidget(self.npm_widget)
+
+        # 本地文件安装区域
+        self.local_widget = QWidget(self)
+        local_layout = QVBoxLayout(self.local_widget)
+        local_layout.setContentsMargins(0, 0, 0, 0)
+
+        local_label = BodyLabel("本地文件:", self)
+        local_layout.addWidget(local_label)
+
+        file_layout = QHBoxLayout()
+        self.file_edit = LineEdit(self)
+        self.file_edit.setPlaceholderText("选择.js或.ts文件")
+        self.file_edit.setReadOnly(True)
+        file_layout.addWidget(self.file_edit)
+
+        self.browse_btn = PushButton("浏览...", self)
+        self.browse_btn.clicked.connect(self._on_browse_file)
+        file_layout.addWidget(self.browse_btn)
+
+        local_layout.addLayout(file_layout)
+        layout.addWidget(self.local_widget)
+
+        self.local_widget.hide()
+
+        # 按钮
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(self.cancel_btn)
+
+        self.install_btn = PrimaryPushButton("安装", self)
+        self.install_btn.clicked.connect(self._on_install)
+        btn_layout.addWidget(self.install_btn)
+
+        layout.addLayout(btn_layout)
+
+    def _on_method_changed(self):
+        """安装方式改变"""
+        if self.npm_radio.isChecked():
+            self.npm_widget.show()
+            self.local_widget.hide()
+        else:
+            self.npm_widget.hide()
+            self.local_widget.show()
+
+    def _on_browse_file(self):
+        """浏览文件"""
+        from PyQt5.QtWidgets import QFileDialog
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "选择插件文件", "", "JavaScript/TypeScript Files (*.js *.ts)"
+        )
+        if file_path:
+            self.file_edit.setText(file_path)
+
+    def _on_install(self):
+        """安装插件"""
+        if self.npm_radio.isChecked():
+            # npm安装
+            package_name = self.npm_edit.text().strip()
+            if not package_name:
+                InfoBar.error("错误", "请输入npm包名", parent=self)
+                return
+
+            # 解析包名和版本
+            if "@" in package_name and not package_name.startswith("@"):
+                # 普通包带版本
+                parts = package_name.rsplit("@", 1)
+                name = parts[0]
+                version = parts[1] if len(parts) > 1 else ""
+            elif package_name.startswith("@") and package_name.count("@") > 1:
+                # scoped包带版本
+                parts = package_name.rsplit("@", 1)
+                name = parts[0]
+                version = parts[1] if len(parts) > 1 else ""
+            else:
+                name = package_name
+                version = ""
+
+            config = self.main_window.opencode_config or {}
+            if PluginManager.install_npm_plugin(config, name, version):
+                self.main_window.save_opencode_config()
+                InfoBar.success(
+                    "成功",
+                    f"插件 {package_name} 已添加到配置\n\nOpenCode将在下次启动时自动安装",
+                    parent=self,
+                )
+                self.accept()
+            else:
+                InfoBar.error("失败", "安装插件失败", parent=self)
+
+        else:
+            # 本地文件安装
+            file_path = self.file_edit.text().strip()
+            if not file_path:
+                InfoBar.error("错误", "请选择插件文件", parent=self)
+                return
+
+            InfoBar.info("提示", "本地插件安装功能暂未实现", parent=self)
+
+
+class PluginMarketDialog(BaseDialog):
+    """插件市场对话框"""
+
+    def __init__(self, main_window, parent=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.setWindowTitle("插件市场")
+        self.setFixedSize(800, 600)
+        self._setup_ui()
+        self._load_market()
+
+    def _setup_ui(self):
+        """初始化UI"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(16)
+
+        # 标题
+        title_label = SubtitleLabel("预设插件", self)
+        layout.addWidget(title_label)
+
+        # 插件列表
+        self.table = TableWidget(self)
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["插件名称", "分类", "描述", "操作"])
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.Stretch
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        layout.addWidget(self.table, 1)
+
+        # 关闭按钮
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        self.close_btn = PrimaryPushButton("关闭", self)
+        self.close_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(self.close_btn)
+
+        layout.addLayout(btn_layout)
+
+    def _load_market(self):
+        """加载插件市场"""
+        self.table.setRowCount(0)
+
+        for plugin_info in PRESET_PLUGINS:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            # 插件名称
+            name_item = QTableWidgetItem(plugin_info["display_name"])
+            self.table.setItem(row, 0, name_item)
+
+            # 分类
+            category_item = QTableWidgetItem(plugin_info["category"])
+            self.table.setItem(row, 1, category_item)
+
+            # 描述
+            desc_item = QTableWidgetItem(plugin_info["description"])
+            self.table.setItem(row, 2, desc_item)
+
+            # 操作按钮
+            btn_widget = QWidget()
+            btn_layout = QHBoxLayout(btn_widget)
+            btn_layout.setContentsMargins(4, 4, 4, 4)
+            btn_layout.setSpacing(4)
+
+            # 安装按钮
+            install_btn = PrimaryPushButton("安装", btn_widget)
+            install_btn.setFixedSize(60, 28)
+            install_btn.clicked.connect(
+                lambda checked, info=plugin_info: self._on_install_from_market(info)
+            )
+            btn_layout.addWidget(install_btn)
+
+            self.table.setCellWidget(row, 3, btn_widget)
+
+    def _on_install_from_market(self, plugin_info: Dict[str, Any]):
+        """从市场安装插件"""
+        package_name = plugin_info["npm_package"]
+
+        config = self.main_window.opencode_config or {}
+        if PluginManager.install_npm_plugin(config, package_name, ""):
+            self.main_window.save_opencode_config()
+            InfoBar.success(
+                "成功",
+                f"插件 {plugin_info['display_name']} 已添加到配置\n\nOpenCode将在下次启动时自动安装",
+                parent=self,
+            )
+        else:
+            InfoBar.error("失败", "安装插件失败", parent=self)
 
 
 # ==================== 程序入口 ====================
