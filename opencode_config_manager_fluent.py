@@ -11569,9 +11569,6 @@ class MainWindow(FluentWindow):
         # 添加语言切换按钮到导航栏底部
         self._add_language_switcher()
 
-        # 默认展开导航栏
-        QTimer.singleShot(100, lambda: self.navigationInterface.expand(useAni=False))
-
     def _update_nav_style(self):
         """根据窗口高度更新导航栏样式"""
         height = self.height()
@@ -11813,6 +11810,9 @@ class MainWindow(FluentWindow):
             text=tr("menu.language"),
             onClick=self._on_language_switch,
         )
+
+        # 默认展开导航栏（在所有导航项添加完成后）
+        QTimer.singleShot(100, lambda: self.navigationInterface.expand(useAni=False))
 
     def _show_backup_dialog(self):
         """显示备份管理对话框"""
