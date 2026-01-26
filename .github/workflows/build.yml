@@ -253,11 +253,56 @@ jobs:
           codesign -vvv "dist/OCCM_${{ env.TAG_NAME }}.dmg" || echo "DMG 签名验证完成"
         shell: /bin/bash -e {0}
 
-      - name: 8. 打包 ZIP 版本 (解压即用)
+      - name: 8. 打包 ZIP 版本 (解压即用 + 包含安装脚本)
         run: |
           cd dist
-          # 打包 .app 为 zip 方便用户直接解压使用
-          zip -r "OCCM_${{ env.TAG_NAME }}-macOS.zip" "OCCM_${{ env.TAG_NAME }}.app"
+          
+          # 创建包含完整工具的目录结构
+          mkdir -p "OCCM_${{ env.TAG_NAME }}-macOS"
+          
+          # 复制应用本体
+          cp -R "OCCM_${{ env.TAG_NAME }}.app" "OCCM_${{ env.TAG_NAME }}-macOS/"
+          
+          # 复制安装脚本
+          cp ../install_update.sh "OCCM_${{ env.TAG_NAME }}-macOS/"
+          chmod +x "OCCM_${{ env.TAG_NAME }}-macOS/install_update.sh"
+          
+          # 复制诊断脚本
+          cp ../diagnose_macos.sh "OCCM_${{ env.TAG_NAME }}-macOS/"
+          chmod +x "OCCM_${{ env.TAG_NAME }}-macOS/diagnose_macos.sh"
+          
+          # 创建安装启动器
+          cat > "OCCM_${{ env.TAG_NAME }}-macOS/安装.command" << 'EOFINSTALL'
+          #!/bin/bash
+          cd "$(dirname "$0")"
+          ./install_update.sh
+          EOFINSTALL
+          chmod +x "OCCM_${{ env.TAG_NAME }}-macOS/安装.command"
+          
+          # 复制 README
+          cat > "OCCM_${{ env.TAG_NAME }}-macOS/README.txt" << 'EOFREADME'
+          OCCM - OpenCode Config Manager
+          
+          安装方法:
+          1. 双击"安装.command"自动安装 (推荐)
+          2. 或手动拖拽 OCCM.app 到应用程序文件夹
+          
+          如果遇到"应用已损坏"或无法启动:
+          1. 打开终端
+          2. 运行: xattr -cr /Applications/OCCM.app
+          3. 重新启动应用
+          
+          诊断工具:
+          - 双击 diagnose_macos.sh 运行诊断
+          
+          更多帮助: https://github.com/icysaintdx/OpenCode-Config-Manager
+          EOFREADME
+          
+          # 打包为 ZIP
+          zip -r "OCCM_${{ env.TAG_NAME }}-macOS.zip" "OCCM_${{ env.TAG_NAME }}-macOS/"
+          
+          # 清理临时目录
+          rm -rf "OCCM_${{ env.TAG_NAME }}-macOS"
         shell: /bin/bash -e {0}
 
       - name: 9. 上传构建产物
