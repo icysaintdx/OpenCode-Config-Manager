@@ -747,7 +747,14 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
         ],
         option_fields=[
             OptionField(
-                "baseURL", "Base URL", "text", [], "https://api.minimax.chat/v1"
+                "baseURL",
+                "Base URL",
+                "select",
+                [
+                    "https://api.minimax.io/v1",
+                    "https://api.minimaxi.com/v1",
+                ],
+                "https://api.minimax.io/v1",
             ),
         ],
         env_vars=["MINIMAX_API_KEY"],
