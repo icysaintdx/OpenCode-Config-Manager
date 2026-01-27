@@ -12928,7 +12928,13 @@ class AgentGroupEditDialog(QDialog):
                 tr("agent_group.edit.max_steps"),
             ]
         )
-        self.opencode_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # 设置列宽：启用列固定宽度，其他列自适应
+        header = self.opencode_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.resizeSection(0, 60)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
         opencode_page_layout.addWidget(self.opencode_table)
 
         agent_stacked.addWidget(opencode_page)
@@ -12939,16 +12945,20 @@ class AgentGroupEditDialog(QDialog):
         omo_page_layout.setContentsMargins(0, 10, 0, 0)
 
         self.omo_table = TableWidget()
-        self.omo_table.setColumnCount(4)
+        self.omo_table.setColumnCount(3)
         self.omo_table.setHorizontalHeaderLabels(
             [
                 tr("agent_group.edit.enabled"),
                 tr("agent_group.edit.agent_id"),
-                tr("agent_group.edit.provider"),
-                tr("agent_group.edit.model"),
+                tr("common.description"),
             ]
         )
-        self.omo_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # 设置列宽：启用列固定宽度，其他列自适应
+        header = self.omo_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.resizeSection(0, 60)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
         omo_page_layout.addWidget(self.omo_table)
 
         agent_stacked.addWidget(omo_page)
@@ -12978,14 +12988,40 @@ class AgentGroupEditDialog(QDialog):
 
     def _init_agent_tables(self):
         """初始化Agent表格"""
-        # OpenCode Agents
-        opencode_agents = ["build", "plan", "explore", "code-reviewer"]
+        # 获取main_window
+        main_window = None
+        parent_widget = self.parent()
+        while parent_widget:
+            if hasattr(parent_widget, "main_window"):
+                main_window = parent_widget.main_window
+                break
+            parent_widget = parent_widget.parent()
+
+        # OpenCode Agents - 从配置中获取
+        opencode_agents = []
+        if main_window and hasattr(main_window, "opencode_config"):
+            opencode_config = main_window.opencode_config or {}
+            agent_config = opencode_config.get("agent", {})
+            if isinstance(agent_config, dict):
+                opencode_agents = list(agent_config.keys())
+
+        # 如果没有配置，使用默认列表
+        if not opencode_agents:
+            opencode_agents = ["build", "plan", "explore", "code-reviewer"]
+
         self.opencode_table.setRowCount(len(opencode_agents))
 
         for i, agent_id in enumerate(opencode_agents):
             # 启用复选框
             check_item = QTableWidgetItem()
-            check_item.setCheckState(Qt.Unchecked)
+            # build是必选Agent
+            if agent_id == "build":
+                check_item.setCheckState(Qt.Checked)
+                check_item.setFlags(
+                    check_item.flags() & ~Qt.ItemIsUserCheckable
+                )  # 不可修改
+            else:
+                check_item.setCheckState(Qt.Unchecked)
             self.opencode_table.setItem(i, 0, check_item)
 
             # Agent ID
@@ -13003,28 +13039,54 @@ class AgentGroupEditDialog(QDialog):
             steps_edit.setPlaceholderText("1-1000")
             self.opencode_table.setCellWidget(i, 3, steps_edit)
 
-        # Oh My OpenCode Agents
-        omo_agents = ["prometheus", "sisyphus-junior", "oracle", "librarian", "explore"]
+        # Oh My OpenCode Agents - 从配置中获取
+        omo_agents = []
+        if main_window and hasattr(main_window, "ohmyopencode_config"):
+            omo_config = main_window.ohmyopencode_config or {}
+            agent_config = omo_config.get("agents", {})
+            if isinstance(agent_config, dict):
+                omo_agents = list(agent_config.keys())
+
+        # 如果没有配置，使用默认列表
+        if not omo_agents:
+            omo_agents = [
+                "prometheus",
+                "sisyphus-junior",
+                "oracle",
+                "librarian",
+                "explore",
+            ]
+
         self.omo_table.setRowCount(len(omo_agents))
 
         for i, agent_id in enumerate(omo_agents):
             # 启用复选框
             check_item = QTableWidgetItem()
-            check_item.setCheckState(Qt.Unchecked)
+            # sisyphus-junior是必选Agent
+            if agent_id == "sisyphus-junior":
+                check_item.setCheckState(Qt.Checked)
+                check_item.setFlags(
+                    check_item.flags() & ~Qt.ItemIsUserCheckable
+                )  # 不可修改
+            else:
+                check_item.setCheckState(Qt.Unchecked)
             self.omo_table.setItem(i, 0, check_item)
 
             # Agent ID
             self.omo_table.setItem(i, 1, QTableWidgetItem(agent_id))
 
-            # Provider
-            provider_edit = LineEdit()
-            provider_edit.setPlaceholderText("anthropic")
-            self.omo_table.setCellWidget(i, 2, provider_edit)
+            # Description - 从配置中获取
+            description = ""
+            if main_window and hasattr(main_window, "ohmyopencode_config"):
+                omo_config = main_window.ohmyopencode_config or {}
+                agent_config = omo_config.get("agents", {})
+                if isinstance(agent_config, dict) and agent_id in agent_config:
+                    agent_data = agent_config[agent_id]
+                    if isinstance(agent_data, dict):
+                        description = agent_data.get("description", "")
 
-            # Model
-            model_edit = LineEdit()
-            model_edit.setPlaceholderText("claude-sonnet-4")
-            self.omo_table.setCellWidget(i, 3, model_edit)
+            desc_item = QTableWidgetItem(description)
+            self.omo_table.setItem(i, 2, desc_item)
 
     def _load_group_data(self):
         """加载分组数据到表单"""
@@ -13081,13 +13143,6 @@ class AgentGroupEditDialog(QDialog):
                     Qt.Checked if agent_cfg["enabled"] else Qt.Unchecked
                 )
 
-                # Provider和Model
-                provider_edit = self.omo_table.cellWidget(i, 2)
-                provider_edit.setText(agent_cfg.get("provider", ""))
-
-                model_edit = self.omo_table.cellWidget(i, 3)
-                model_edit.setText(agent_cfg.get("model", ""))
-
     def _on_save(self):
         """保存分组"""
         # 验证表单
@@ -13132,15 +13187,10 @@ class AgentGroupEditDialog(QDialog):
             agent_id = self.omo_table.item(i, 1).text()
             enabled = self.omo_table.item(i, 0).checkState() == Qt.Checked
 
-            provider_edit = self.omo_table.cellWidget(i, 2)
-            model_edit = self.omo_table.cellWidget(i, 3)
-
             omo_agents.append(
                 {
                     "agent_id": agent_id,
                     "enabled": enabled,
-                    "provider": provider_edit.text().strip(),
-                    "model": model_edit.text().strip(),
                 }
             )
 
