@@ -6382,8 +6382,18 @@ class ProviderPage(BasePage):
     def __init__(self, main_window, parent=None):
         super().__init__(tr("provider.title"), parent)
         self.main_window = main_window
+
+        # 初始化原生Provider需要的管理器
+        self.auth_manager = AuthManager()
+        self.env_detector = EnvVarDetector()
+
+        # 初始化UI
         self._setup_ui()
-        self._load_data()
+
+        # 加载数据
+        self._load_custom_data()
+        self._load_native_data()
+
         # 连接配置变更信号
         self.main_window.config_changed.connect(self._on_config_changed)
 
@@ -6588,65 +6598,34 @@ class ProviderPage(BasePage):
         self._load_data()
 
     def _setup_ui(self):
-        # 工具栏
-        toolbar = QHBoxLayout()
+        """初始化UI - 使用Pivot标签页"""
+        # Pivot 标签页
+        self.pivot = Pivot(self)
+        self.pivot.addItem(routeKey="custom", text=tr("provider.custom_provider"))
+        self.pivot.addItem(routeKey="native", text=tr("provider.native_provider"))
+        self.pivot.setCurrentItem("custom")
+        self.pivot.currentItemChanged.connect(self._on_tab_changed)
+        self._layout.addWidget(self.pivot)
 
-        self.add_btn = PrimaryPushButton(FIF.ADD, tr("provider.add_provider"), self)
-        self.add_btn.clicked.connect(self._on_add)
-        toolbar.addWidget(self.add_btn)
+        # QStackedWidget
+        self.stack = QStackedWidget(self)
 
-        self.edit_btn = PushButton(FIF.EDIT, tr("common.edit"), self)
-        self.edit_btn.clicked.connect(self._on_edit)
-        toolbar.addWidget(self.edit_btn)
+        # 自定义 Provider 页面
+        self.custom_widget = self._create_custom_provider_widget()
+        self.stack.addWidget(self.custom_widget)
 
-        self.delete_btn = PushButton(FIF.DELETE, tr("common.delete"), self)
-        self.delete_btn.clicked.connect(self._on_delete)
-        toolbar.addWidget(self.delete_btn)
+        # 原生 Provider 页面
+        self.native_widget = self._create_native_provider_widget()
+        self.stack.addWidget(self.native_widget)
 
-        self.fetch_models_btn = PushButton(FIF.SYNC, tr("provider.fetch_models"), self)
-        self.fetch_models_btn.clicked.connect(self._on_fetch_models)
-        toolbar.addWidget(self.fetch_models_btn)
+        self._layout.addWidget(self.stack, 1)
 
-        self.export_cli_btn = PushButton(FIF.SEND, tr("provider.export_to_cli"), self)
-        self.export_cli_btn.clicked.connect(self._on_export_to_cli)
-        toolbar.addWidget(self.export_cli_btn)
-
-        self.query_balance_btn = PushButton(
-            FIF.MARKET, tr("provider.query_balance"), self
-        )
-        self.query_balance_btn.clicked.connect(self._on_query_balance)
-        toolbar.addWidget(self.query_balance_btn)
-
-        toolbar.addStretch()
-        self._layout.addLayout(toolbar)
-
-        # Provider 列表
-        self.table = TableWidget(self)
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(
-            [
-                tr("common.name"),
-                tr("provider.display_name"),
-                tr("provider.sdk_type"),
-                tr("provider.api_address"),
-                tr("provider.model_count"),
-            ]
-        )
-        # 调整列宽：名称15字符，模型数5字符，SDK22字符，剩余均分
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Fixed)
-        header.resizeSection(0, 120)  # 名称 15字符约120px
-        header.setSectionResizeMode(1, QHeaderView.Stretch)  # 显示名称 均分
-        header.setSectionResizeMode(2, QHeaderView.Fixed)
-        header.resizeSection(2, 180)  # SDK 22字符约180px
-        header.setSectionResizeMode(3, QHeaderView.Stretch)  # API地址 均分
-        header.setSectionResizeMode(4, QHeaderView.Fixed)
-        header.resizeSection(4, 60)  # 模型数 5字符约60px
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table.doubleClicked.connect(self._on_edit)
-        self._layout.addWidget(self.table)
+    def _on_tab_changed(self, route_key: str):
+        """切换标签页"""
+        if route_key == "custom":
+            self.stack.setCurrentIndex(0)
+        else:
+            self.stack.setCurrentIndex(1)
 
     def _load_data(self):
         """加载 Provider 数据"""
