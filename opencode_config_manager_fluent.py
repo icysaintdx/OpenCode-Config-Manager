@@ -6397,7 +6397,9 @@ class ProviderPage(BasePage):
         # 连接配置变更信号
         self.main_window.config_changed.connect(self._on_config_changed)
 
-    def _on_models_fetched(self, provider_name: str, model_ids: List[str], error: str):
+    def _on_custom_models_fetched(
+        self, provider_name: str, model_ids: List[str], error: str
+    ):
         if error:
             self.show_warning(
                 tr("common.info"), tr("provider.fetch_failed", error=error)
@@ -6420,9 +6422,9 @@ class ProviderPage(BasePage):
             return
 
         batch_config = dialog.get_batch_config()
-        self._add_models(provider_name, selected, batch_config)
+        self._custom_add_models(provider_name, selected, batch_config)
 
-    def _add_models(
+    def _custom_add_models(
         self,
         provider_name: str,
         model_ids: List[str],
@@ -6439,15 +6441,17 @@ class ProviderPage(BasePage):
         for model_id in model_ids:
             if model_id in models:
                 continue
-            category = self._resolve_model_category(model_id)
+            category = self._custom_resolve_model_category(model_id)
             model_data = {"name": model_id}
             if batch_config:
-                model_data.update(self._apply_batch_config(category, batch_config))
+                model_data.update(
+                    self._custom_apply_batch_config(category, batch_config)
+                )
             models[model_id] = model_data
             added += 1
 
         self.main_window.save_opencode_config()
-        self._load_data()
+        self._load_custom_data()
         if added:
             self.show_success(
                 tr("common.success"), tr("provider.models_added", count=added)
@@ -6455,7 +6459,7 @@ class ProviderPage(BasePage):
         else:
             self.show_warning(tr("common.info"), tr("provider.models_exist"))
 
-    def _resolve_model_category(self, model_id: str) -> str:
+    def _custom_resolve_model_category(self, model_id: str) -> str:
         lower = model_id.lower()
         if "claude" in lower:
             return tr("provider.claude_series")
@@ -6465,7 +6469,7 @@ class ProviderPage(BasePage):
             return tr("provider.openai_series")
         return tr("provider.other_models")
 
-    def _get_preset_for_category(
+    def _custom_get_preset_for_category(
         self, category: str, preset_name: str
     ) -> Dict[str, Any]:
         custom = MODEL_PRESET_CUSTOM.get(category, {})
@@ -6482,7 +6486,7 @@ class ProviderPage(BasePage):
             "variants": {},
         }
 
-    def _apply_batch_config(
+    def _custom_apply_batch_config(
         self, category: str, batch_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         support = {
@@ -6507,7 +6511,7 @@ class ProviderPage(BasePage):
         if not batch_config:
             return result
 
-        base_preset = self._get_preset_for_category(
+        base_preset = self._custom_get_preset_for_category(
             category, MODEL_PRESET_DEFAULT.get(category, "基础")
         )
 
@@ -6779,59 +6783,59 @@ class ProviderPage(BasePage):
 
         return widget
 
-    def _load_data(self):
-        """加载 Provider 数据"""
-        self.table.setRowCount(0)
+    def _load_custom_data(self):
+        """加载自定义Provider数据"""
+        self.custom_table.setRowCount(0)
         config = self.main_window.opencode_config or {}
         providers = config.get("provider", {})
 
         for name, data in providers.items():
             if not isinstance(data, dict):
                 continue
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(name))
-            self.table.setItem(row, 1, QTableWidgetItem(data.get("name", "")))
-            self.table.setItem(row, 2, QTableWidgetItem(data.get("npm", "")))
+            row = self.custom_table.rowCount()
+            self.custom_table.insertRow(row)
+            self.custom_table.setItem(row, 0, QTableWidgetItem(name))
+            self.custom_table.setItem(row, 1, QTableWidgetItem(data.get("name", "")))
+            self.custom_table.setItem(row, 2, QTableWidgetItem(data.get("npm", "")))
             # API地址添加tooltip显示全部
             api_url = data.get("options", {}).get("baseURL", "")
             api_item = QTableWidgetItem(api_url)
             api_item.setToolTip(
                 api_url if api_url else tr("provider.use_default_address")
             )
-            self.table.setItem(row, 3, api_item)
-            self.table.setItem(
+            self.custom_table.setItem(row, 3, api_item)
+            self.custom_table.setItem(
                 row, 4, QTableWidgetItem(str(len(data.get("models", {}))))
             )
 
-    def _on_add(self):
+    def _on_custom_add(self):
         """添加 Provider"""
         dialog = ProviderDialog(self.main_window, parent=self)
         if dialog.exec_():
-            self._load_data()
+            self._load_custom_data()
             self.show_success(tr("common.success"), tr("provider.added_success"))
 
-    def _on_edit(self):
+    def _on_custom_edit(self):
         """编辑 Provider"""
-        row = self.table.currentRow()
+        row = self.custom_table.currentRow()
         if row < 0:
             self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
-        name = self.table.item(row, 0).text()
+        name = self.custom_table.item(row, 0).text()
         dialog = ProviderDialog(self.main_window, provider_name=name, parent=self)
         if dialog.exec_():
-            self._load_data()
+            self._load_custom_data()
             self.show_success(tr("common.success"), tr("provider.updated_success"))
 
-    def _on_delete(self):
+    def _on_custom_delete(self):
         """删除 Provider"""
-        row = self.table.currentRow()
+        row = self.custom_table.currentRow()
         if row < 0:
             self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
-        name = self.table.item(row, 0).text()
+        name = self.custom_table.item(row, 0).text()
         w = FluentMessageBox(
             tr("provider.delete_confirm_title"),
             tr("provider.delete_confirm", name=name),
@@ -6842,19 +6846,19 @@ class ProviderPage(BasePage):
             if "provider" in config and name in config["provider"]:
                 del config["provider"][name]
                 self.main_window.save_opencode_config()
-                self._load_data()
+                self._load_custom_data()
                 self.show_success(
                     tr("common.success"), tr("provider.deleted_success", name=name)
                 )
 
-    def _on_fetch_models(self):
+    def _on_custom_fetch_models(self):
         """拉取模型列表"""
-        row = self.table.currentRow()
+        row = self.custom_table.currentRow()
         if row < 0:
             self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
-        provider_name = self.table.item(row, 0).text()
+        provider_name = self.custom_table.item(row, 0).text()
         config = self.main_window.opencode_config or {}
         provider = config.get("provider", {}).get(provider_name, {})
         options = provider.get("options", {}) if isinstance(provider, dict) else {}
@@ -6862,26 +6866,30 @@ class ProviderPage(BasePage):
             self.show_warning(tr("common.info"), tr("provider.no_base_url"))
             return
 
-        self._fetch_models_for_provider(provider_name, options)
+        self._custom_fetch_models_for_provider(provider_name, options)
 
-    def _fetch_models_for_provider(self, provider_name: str, options: Dict[str, Any]):
+    def _custom_fetch_models_for_provider(
+        self, provider_name: str, options: Dict[str, Any]
+    ):
         if not hasattr(self, "_model_fetch_service"):
             self._model_fetch_service = ModelFetchService(self)
-            self._model_fetch_service.fetch_finished.connect(self._on_models_fetched)
+            self._model_fetch_service.fetch_finished.connect(
+                self._on_custom_models_fetched
+            )
 
         self.show_warning(
             tr("common.info"), tr("provider.fetch_models_hint", name=provider_name)
         )
         self._model_fetch_service.fetch_async(provider_name, options)
 
-    def _on_export_to_cli(self):
+    def _on_custom_export_to_cli(self):
         """导出到 CLI 工具"""
-        row = self.table.currentRow()
+        row = self.custom_table.currentRow()
         if row < 0:
             self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
-        provider_name = self.table.item(row, 0).text()
+        provider_name = self.custom_table.item(row, 0).text()
 
         # 切换到 CLI 导出页面
         if hasattr(self.main_window, "cli_export_page"):
@@ -6894,14 +6902,14 @@ class ProviderPage(BasePage):
         else:
             self.show_warning(tr("common.info"), tr("provider.cli_page_unavailable"))
 
-    def _on_query_balance(self):
+    def _on_custom_query_balance(self):
         """查询余额"""
-        row = self.table.currentRow()
+        row = self.custom_table.currentRow()
         if row < 0:
             self.show_warning(tr("common.info"), tr("provider.select_first"))
             return
 
-        provider_name = self.table.item(row, 0).text()
+        provider_name = self.custom_table.item(row, 0).text()
         config = self.main_window.opencode_config or {}
         provider = config.get("provider", {}).get(provider_name, {})
 
@@ -6932,11 +6940,11 @@ class ProviderPage(BasePage):
         # 在后台线程查询余额
         def query_thread():
             try:
-                usage_data = self._query_provider_usage(base_url, api_key)
+                usage_data = self._custom_query_provider_usage(base_url, api_key)
                 # 在主线程显示结果
                 QMetaObject.invokeMethod(
                     self,
-                    "_show_balance_result",
+                    "_custom_show_balance_result",
                     Qt.QueuedConnection,
                     Q_ARG(str, provider_name),
                     Q_ARG(object, usage_data),
@@ -6947,7 +6955,7 @@ class ProviderPage(BasePage):
                 # 在主线程显示错误
                 QMetaObject.invokeMethod(
                     self,
-                    "_show_balance_error",
+                    "_custom_show_balance_error",
                     Qt.QueuedConnection,
                     Q_ARG(str, str(e)),
                     Q_ARG(object, state_tooltip),
@@ -6956,7 +6964,9 @@ class ProviderPage(BasePage):
         thread = threading.Thread(target=query_thread, daemon=True)
         thread.start()
 
-    def _query_provider_usage(self, base_url: str, api_key: str) -> Dict[str, Any]:
+    def _custom_query_provider_usage(
+        self, base_url: str, api_key: str
+    ) -> Dict[str, Any]:
         """查询 Provider 用量（支持 OpenAI API 和 NewAPI）"""
         import json
         from datetime import datetime, timedelta
@@ -6966,21 +6976,21 @@ class ProviderPage(BasePage):
 
         # 先尝试 NewAPI 接口
         try:
-            return self._query_newapi_usage(base_url, api_key)
+            return self._custom_query_newapi_usage(base_url, api_key)
         except Exception as newapi_error:
             # NewAPI 失败，尝试 OpenAI API
             pass
 
         # 尝试 OpenAI API 接口
         try:
-            return self._query_openai_usage(base_url, api_key)
+            return self._custom_query_openai_usage(base_url, api_key)
         except Exception as openai_error:
             # 两种方式都失败，抛出错误
             raise Exception(
                 f"余额查询失败。NewAPI: {str(newapi_error)[:50]}... OpenAI API: {str(openai_error)[:50]}..."
             )
 
-    def _query_newapi_usage(self, base_url: str, api_key: str) -> Dict[str, Any]:
+    def _custom_query_newapi_usage(self, base_url: str, api_key: str) -> Dict[str, Any]:
         """查询 NewAPI 用量"""
         import json
 
@@ -7033,7 +7043,7 @@ class ProviderPage(BasePage):
             "query_end_date": "",
         }
 
-    def _query_openai_usage(self, base_url: str, api_key: str) -> Dict[str, Any]:
+    def _custom_query_openai_usage(self, base_url: str, api_key: str) -> Dict[str, Any]:
         """查询 OpenAI API 用量"""
         import json
         from datetime import datetime, timedelta
@@ -7166,7 +7176,7 @@ class ProviderPage(BasePage):
         }
 
     @pyqtSlot(str, object, str, object)
-    def _show_balance_result(
+    def _custom_show_balance_result(
         self,
         provider_name: str,
         usage_data: Dict[str, Any],
@@ -7183,7 +7193,7 @@ class ProviderPage(BasePage):
         dialog.exec_()
 
     @pyqtSlot(str, object)
-    def _show_balance_error(self, error_msg: str, state_tooltip):
+    def _custom_show_balance_error(self, error_msg: str, state_tooltip):
         """显示余额查询错误"""
         state_tooltip.setContent(tr("provider.query_failed"))
         state_tooltip.setState(False)
