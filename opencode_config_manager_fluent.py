@@ -7203,6 +7203,308 @@ class ProviderPage(BasePage):
             tr("common.error"), tr("provider.query_balance_error", error=error_msg)
         )
 
+    # ==================== 原生Provider方法 ====================
+
+    def _load_native_data(self):
+        """加载原生Provider数据"""
+        self.native_table.setRowCount(0)
+
+        # 读取已配置的认证
+        auth_data = {}
+        try:
+            auth_data = self.auth_manager.read_auth()
+        except Exception:
+            pass
+
+        for provider in NATIVE_PROVIDERS:
+            row = self.native_table.rowCount()
+            self.native_table.insertRow(row)
+
+            # Provider 名称
+            name_item = QTableWidgetItem(provider.name)
+            name_item.setData(Qt.UserRole, provider.id)
+            self.native_table.setItem(row, 0, name_item)
+
+            # SDK
+            self.native_table.setItem(row, 1, QTableWidgetItem(provider.sdk))
+
+            # 状态
+            is_configured = provider.id in auth_data and auth_data[provider.id]
+            status_text = (
+                tr("native_provider.configured")
+                if is_configured
+                else tr("native_provider.not_configured")
+            )
+            status_item = QTableWidgetItem(status_text)
+            if is_configured:
+                status_item.setForeground(QColor("#4CAF50"))
+            else:
+                status_item.setForeground(QColor("#9E9E9E"))
+            self.native_table.setItem(row, 2, status_item)
+
+            # 环境变量
+            env_vars = ", ".join(provider.env_vars) if provider.env_vars else "-"
+            env_item = QTableWidgetItem(env_vars)
+            env_item.setToolTip(env_vars)
+            self.native_table.setItem(row, 3, env_item)
+
+    def _get_selected_native_provider(self) -> Optional[NativeProviderConfig]:
+        """获取当前选中的原生Provider"""
+        row = self.native_table.currentRow()
+        if row < 0:
+            return None
+        provider_id = self.native_table.item(row, 0).data(Qt.UserRole)
+        return get_native_provider(provider_id)
+
+    def _on_native_config(self):
+        """配置原生Provider"""
+        provider = self._get_selected_native_provider()
+        if not provider:
+            self.show_warning(
+                tr("common.info"), tr("common.please_select_first", item="Provider")
+            )
+            return
+
+        dialog = NativeProviderDialog(
+            self.main_window,
+            provider,
+            self.auth_manager,
+            self.env_detector,
+            parent=self,
+        )
+        if dialog.exec_():
+            self._load_native_data()
+            self.show_success(
+                tr("common.success"),
+                tr("native_provider.config_saved", name=provider.name),
+            )
+
+    def _on_native_test(self):
+        """测试连接"""
+        provider = self._get_selected_native_provider()
+        if not provider:
+            self.show_warning(
+                tr("common.info"), tr("common.please_select_first", item="Provider")
+            )
+            return
+
+        if not provider.test_endpoint:
+            self.show_warning(
+                tr("common.info"), tr("native_provider.test_not_supported")
+            )
+            return
+
+        # 获取认证信息
+        auth_data = self.auth_manager.get_provider_auth(provider.id)
+        if not auth_data:
+            self.show_error(
+                tr("provider.test_failed"), tr("provider.please_configure_provider")
+            )
+            return
+
+        api_key = auth_data.get("apiKey", "")
+        if api_key:
+            api_key = _resolve_env_value(api_key)
+
+        if not api_key:
+            self.show_error(
+                tr("provider.test_failed"), tr("provider.api_key_not_found")
+            )
+            return
+
+        # 获取 baseURL
+        config = self.main_window.opencode_config or {}
+        provider_options = (
+            config.get("provider", {}).get(provider.id, {}).get("options", {})
+        )
+        base_url = provider_options.get("baseURL", "")
+
+        if not base_url:
+            default_urls = {
+                "anthropic": "https://api.anthropic.com",
+                "openai": "https://api.openai.com",
+                "gemini": "https://generativelanguage.googleapis.com",
+                "xai": "https://api.x.ai",
+                "groq": "https://api.groq.com",
+                "openrouter": "https://openrouter.ai/api",
+                "deepseek": "https://api.deepseek.com",
+                "opencode": "https://api.opencode.ai",
+            }
+            base_url = default_urls.get(provider.id, "")
+
+        if not base_url:
+            self.show_error(
+                tr("provider.test_failed"), tr("provider.cannot_determine_api_address")
+            )
+            return
+
+        test_url = base_url.rstrip("/") + provider.test_endpoint
+
+        # 执行测试
+        self.show_warning("测试中", "正在测试连接...")
+
+        start_time = time.time()
+        try:
+            req = urllib.request.Request(test_url)
+            req.add_header("Authorization", f"Bearer {api_key}")
+            req.add_header("x-api-key", api_key)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                elapsed = int((time.time() - start_time) * 1000)
+                self.show_success(
+                    tr("provider.connection_success"),
+                    f"{tr('provider.response_time')}: {elapsed}ms",
+                )
+        except urllib.error.HTTPError as e:
+            self.show_error(
+                tr("provider.connection_failed"), f"HTTP {e.code}: {e.reason}"
+            )
+        except Exception as e:
+            self.show_error(tr("provider.connection_failed"), str(e))
+
+    def _on_native_delete(self):
+        """删除原生Provider配置"""
+        provider = self._get_selected_native_provider()
+        if not provider:
+            self.show_warning(
+                tr("common.info"), tr("common.please_select_first", item="Provider")
+            )
+            return
+
+        # 检查是否已配置
+        auth_data = self.auth_manager.get_provider_auth(provider.id)
+        if not auth_data:
+            self.show_warning(
+                tr("common.info"), tr("native_provider.provider_not_configured")
+            )
+            return
+
+        # 确认删除
+        msg_box = FluentMessageBox(
+            "确认删除",
+            f"确定要删除 {provider.name} 的配置吗？\n这将删除认证信息和选项配置。",
+            self,
+        )
+        if msg_box.exec_():
+            # 删除认证信息
+            self.auth_manager.delete_provider_auth(provider.id)
+
+            # 删除 opencode.json 中的配置
+            config = self.main_window.opencode_config or {}
+            if "provider" in config and provider.id in config["provider"]:
+                del config["provider"][provider.id]
+                self.main_window.save_opencode_config()
+
+            self._load_native_data()
+            self.show_success(
+                tr("common.success"),
+                tr("native_provider.config_deleted", name=provider.name),
+            )
+
+    def _on_native_detect_configured(self):
+        """检测已配置的原生Provider"""
+        detected = []
+        for provider in NATIVE_PROVIDERS:
+            if not provider.env_vars:
+                continue
+            for env_var in provider.env_vars:
+                value = os.environ.get(env_var)
+                if value:
+                    detected.append(f"{provider.name} ({env_var})")
+                    break
+
+        if detected:
+            msg = "检测到以下已配置的 Provider:\n\n" + "\n".join(detected)
+            self.show_success("检测完成", msg)
+        else:
+            self.show_warning("检测完成", "未检测到已配置的 Provider")
+
+    def _on_native_query_balance(self):
+        """查询原生Provider余额"""
+        provider = self._get_selected_native_provider()
+        if not provider:
+            self.show_warning(
+                tr("common.info"), tr("common.please_select_first", item="Provider")
+            )
+            return
+
+        # 获取认证信息
+        auth_data = self.auth_manager.get_provider_auth(provider.id)
+        if not auth_data:
+            self.show_error(
+                tr("provider.test_failed"), tr("provider.please_configure_provider")
+            )
+            return
+
+        api_key = auth_data.get("apiKey", "")
+        if api_key:
+            api_key = _resolve_env_value(api_key)
+
+        if not api_key:
+            self.show_error(
+                tr("provider.test_failed"), tr("provider.api_key_not_found")
+            )
+            return
+
+        # 获取 baseURL
+        config = self.main_window.opencode_config or {}
+        provider_options = (
+            config.get("provider", {}).get(provider.id, {}).get("options", {})
+        )
+        base_url = provider_options.get("baseURL", "")
+
+        if not base_url:
+            default_urls = {
+                "anthropic": "https://api.anthropic.com",
+                "openai": "https://api.openai.com",
+                "gemini": "https://generativelanguage.googleapis.com",
+                "xai": "https://api.x.ai",
+                "groq": "https://api.groq.com",
+                "openrouter": "https://openrouter.ai/api",
+                "deepseek": "https://api.deepseek.com",
+                "opencode": "https://api.opencode.ai",
+            }
+            base_url = default_urls.get(provider.id, "")
+
+        if not base_url:
+            self.show_error(
+                tr("provider.test_failed"), tr("provider.cannot_determine_api_address")
+            )
+            return
+
+        # 显示加载提示
+        state_tooltip = StateToolTip(
+            tr("provider.querying_balance"), tr("provider.please_wait"), self.window()
+        )
+        state_tooltip.move(state_tooltip.getSuitablePos())
+        state_tooltip.show()
+
+        # 在后台线程查询余额
+        def query_thread():
+            try:
+                usage_data = self._custom_query_provider_usage(base_url, api_key)
+                # 在主线程显示结果
+                QMetaObject.invokeMethod(
+                    self,
+                    "_custom_show_balance_result",
+                    Qt.QueuedConnection,
+                    Q_ARG(str, provider.name),
+                    Q_ARG(object, usage_data),
+                    Q_ARG(str, api_key),
+                    Q_ARG(object, state_tooltip),
+                )
+            except Exception as e:
+                # 在主线程显示错误
+                QMetaObject.invokeMethod(
+                    self,
+                    "_custom_show_balance_error",
+                    Qt.QueuedConnection,
+                    Q_ARG(str, str(e)),
+                    Q_ARG(object, state_tooltip),
+                )
+
+        thread = threading.Thread(target=query_thread, daemon=True)
+        thread.start()
+
 
 class BalanceResultDialog(BaseDialog):
     """余额查询结果对话框"""
