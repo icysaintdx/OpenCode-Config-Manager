@@ -325,6 +325,651 @@ class RestoreError(CLIExportError):
         super().__init__(f"恢复备份失败 ({backup_path}): {reason}")
 
 
+# ==================== Agent 分组管理 ====================
+class AgentGroupManager:
+    """Agent分组管理器
+
+    管理OpenCode和Oh My OpenCode的Agent分组配置，支持：
+    - 创建、编辑、删除自定义分组
+    - 快速应用预设或自定义分组
+    - 导入/导出分组配置
+    - 使用统计追踪
+    """
+
+    # 预设模板定义
+    PRESETS = [
+        {
+            "id": "preset-minimal",
+            "name": "最小化配置",
+            "name_en": "Minimal",
+            "description": "仅启用核心Agent，适合简单任务",
+            "description_en": "Core agents only, for simple tasks",
+            "icon": "⚡",
+            "agents": {
+                "opencode": [{"agent_id": "build", "enabled": True, "config": {}}],
+                "oh_my_opencode": [{"agent_id": "sisyphus-junior", "enabled": True}],
+            },
+        },
+        {
+            "id": "preset-standard",
+            "name": "标准配置",
+            "name_en": "Standard",
+            "description": "平衡的Agent组合，适合大多数任务",
+            "description_en": "Balanced agent combination for most tasks",
+            "icon": "⚙️",
+            "agents": {
+                "opencode": [
+                    {"agent_id": "build", "enabled": True, "config": {}},
+                    {"agent_id": "plan", "enabled": True, "config": {}},
+                ],
+                "oh_my_opencode": [
+                    {"agent_id": "prometheus", "enabled": True},
+                    {"agent_id": "sisyphus-junior", "enabled": True},
+                    {"agent_id": "oracle", "enabled": True},
+                ],
+            },
+        },
+        {
+            "id": "preset-full",
+            "name": "完整配置",
+            "name_en": "Full",
+            "description": "启用所有Agent，适合复杂项目",
+            "description_en": "All agents enabled for complex projects",
+            "icon": "🚀",
+            "agents": {
+                "opencode": [
+                    {"agent_id": "build", "enabled": True, "config": {}},
+                    {"agent_id": "plan", "enabled": True, "config": {}},
+                    {"agent_id": "explore", "enabled": True, "config": {}},
+                    {"agent_id": "code-reviewer", "enabled": True, "config": {}},
+                ],
+                "oh_my_opencode": [
+                    {"agent_id": "prometheus", "enabled": True},
+                    {"agent_id": "sisyphus-junior", "enabled": True},
+                    {"agent_id": "oracle", "enabled": True},
+                    {"agent_id": "librarian", "enabled": True},
+                    {"agent_id": "explore", "enabled": True},
+                ],
+            },
+        },
+        {
+            "id": "preset-frontend",
+            "name": "前端开发",
+            "name_en": "Frontend",
+            "description": "针对前端UI/UX开发优化",
+            "description_en": "Optimized for frontend UI/UX development",
+            "icon": "🎨",
+            "agents": {
+                "opencode": [
+                    {"agent_id": "build", "enabled": True, "config": {}},
+                    {"agent_id": "plan", "enabled": True, "config": {}},
+                ],
+                "oh_my_opencode": [
+                    {"agent_id": "prometheus", "enabled": True},
+                    {"agent_id": "sisyphus-junior", "enabled": True},
+                ],
+            },
+        },
+        {
+            "id": "preset-backend",
+            "name": "后端开发",
+            "name_en": "Backend",
+            "description": "针对后端API/数据库开发优化",
+            "description_en": "Optimized for backend API/database development",
+            "icon": "🔧",
+            "agents": {
+                "opencode": [
+                    {"agent_id": "build", "enabled": True, "config": {}},
+                    {"agent_id": "plan", "enabled": True, "config": {}},
+                    {"agent_id": "explore", "enabled": True, "config": {}},
+                ],
+                "oh_my_opencode": [
+                    {"agent_id": "prometheus", "enabled": True},
+                    {"agent_id": "sisyphus-junior", "enabled": True},
+                    {"agent_id": "oracle", "enabled": True},
+                ],
+            },
+        },
+    ]
+
+    def __init__(self, config_dir: Path):
+        """初始化分组管理器
+
+        Args:
+            config_dir: 配置文件目录 (~/.config/opencode)
+        """
+        self.config_dir = config_dir
+        self.groups_file = config_dir / "agent-groups.json"
+        self.backup_dir = config_dir / "backups"
+        self.groups_data = {}
+        self.load_groups()
+
+    # ========== 数据加载/保存 ==========
+
+    def load_groups(self) -> None:
+        """从文件加载分组配置"""
+        if not self.groups_file.exists():
+            # 初始化默认配置
+            self.groups_data = {
+                "version": "1.0.0",
+                "groups": [],
+                "settings": {
+                    "auto_backup": True,
+                    "show_usage_stats": True,
+                    "default_group_id": None,
+                },
+            }
+            self.save_groups()
+            return
+
+        try:
+            with open(self.groups_file, "r", encoding="utf-8") as f:
+                self.groups_data = json.load(f)
+
+            # 确保必要的字段存在
+            if "groups" not in self.groups_data:
+                self.groups_data["groups"] = []
+            if "settings" not in self.groups_data:
+                self.groups_data["settings"] = {
+                    "auto_backup": True,
+                    "show_usage_stats": True,
+                    "default_group_id": None,
+                }
+        except Exception as e:
+            print(f"加载分组配置失败: {e}")
+            self.groups_data = {
+                "version": "1.0.0",
+                "groups": [],
+                "settings": {
+                    "auto_backup": True,
+                    "show_usage_stats": True,
+                    "default_group_id": None,
+                },
+            }
+
+    def save_groups(self) -> None:
+        """保存分组配置到文件"""
+        try:
+            # 确保目录存在
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+
+            # 保存前备份
+            if self.groups_data.get("settings", {}).get("auto_backup", True):
+                if self.groups_file.exists():
+                    self.backup_groups()
+
+            # 保存配置
+            with open(self.groups_file, "w", encoding="utf-8") as f:
+                json.dump(self.groups_data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"保存分组配置失败: {e}")
+            raise
+
+    def backup_groups(self) -> Optional[Path]:
+        """备份当前分组配置
+
+        Returns:
+            Path: 备份文件路径，失败返回None
+        """
+        try:
+            # 确保备份目录存在
+            self.backup_dir.mkdir(parents=True, exist_ok=True)
+
+            # 生成备份文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_file = self.backup_dir / f"agent-groups-backup-{timestamp}.json"
+
+            # 复制当前配置
+            if self.groups_file.exists():
+                import shutil
+
+                shutil.copy2(self.groups_file, backup_file)
+
+                # 清理旧备份（保留最近10个）
+                self._cleanup_old_backups()
+
+                return backup_file
+        except Exception as e:
+            print(f"备份分组配置失败: {e}")
+            return None
+
+    def _cleanup_old_backups(self, keep_count: int = 10) -> None:
+        """清理旧备份文件
+
+        Args:
+            keep_count: 保留的备份数量
+        """
+        try:
+            # 获取所有备份文件
+            backup_files = sorted(
+                self.backup_dir.glob("agent-groups-backup-*.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+
+            # 删除多余的备份
+            for backup_file in backup_files[keep_count:]:
+                backup_file.unlink()
+        except Exception as e:
+            print(f"清理旧备份失败: {e}")
+
+    # ========== 分组CRUD操作 ==========
+
+    def create_group(
+        self, name: str, description: str, agents: Dict, icon: str = "📁"
+    ) -> str:
+        """创建新分组
+
+        Args:
+            name: 分组名称
+            description: 分组描述
+            agents: Agent配置字典
+            icon: 分组图标
+
+        Returns:
+            str: 分组ID (UUID)
+        """
+        import uuid
+
+        group_id = f"group-{uuid.uuid4().hex[:8]}"
+        now = datetime.now().isoformat()
+
+        group = {
+            "id": group_id,
+            "name": name,
+            "description": description,
+            "type": "custom",
+            "icon": icon,
+            "created_at": now,
+            "updated_at": now,
+            "agents": agents,
+            "statistics": {"usage_count": 0, "last_used": None},
+        }
+
+        self.groups_data["groups"].append(group)
+        self.save_groups()
+
+        return group_id
+
+    def update_group(self, group_id: str, **kwargs) -> bool:
+        """更新分组配置
+
+        Args:
+            group_id: 分组ID
+            **kwargs: 要更新的字段
+
+        Returns:
+            bool: 是否成功
+        """
+        group = self.get_group(group_id)
+        if not group:
+            return False
+
+        # 更新字段
+        for key, value in kwargs.items():
+            if key in ["name", "description", "icon", "agents"]:
+                group[key] = value
+
+        # 更新时间戳
+        group["updated_at"] = datetime.now().isoformat()
+
+        self.save_groups()
+        return True
+
+    def delete_group(self, group_id: str) -> bool:
+        """删除分组
+
+        Args:
+            group_id: 分组ID
+
+        Returns:
+            bool: 是否成功
+        """
+        groups = self.groups_data["groups"]
+        original_len = len(groups)
+
+        self.groups_data["groups"] = [g for g in groups if g["id"] != group_id]
+
+        if len(self.groups_data["groups"]) < original_len:
+            self.save_groups()
+            return True
+
+        return False
+
+    def get_group(self, group_id: str) -> Optional[Dict]:
+        """获取分组配置
+
+        Args:
+            group_id: 分组ID
+
+        Returns:
+            Optional[Dict]: 分组配置，不存在返回None
+        """
+        for group in self.groups_data["groups"]:
+            if group["id"] == group_id:
+                return group
+        return None
+
+    def list_groups(self, include_presets: bool = False) -> List[Dict]:
+        """列出所有分组
+
+        Args:
+            include_presets: 是否包含预设模板
+
+        Returns:
+            List[Dict]: 分组列表
+        """
+        groups = self.groups_data["groups"].copy()
+
+        if include_presets:
+            # 添加预设模板（标记为preset类型）
+            for preset in self.PRESETS:
+                preset_copy = preset.copy()
+                preset_copy["type"] = "preset"
+                groups.append(preset_copy)
+
+        return groups
+
+    # ========== 分组应用 ==========
+
+    def apply_group(
+        self, group_id: str, opencode_config: Dict, omo_config: Dict
+    ) -> Tuple[Dict, Dict]:
+        """应用分组配置到OpenCode和Oh My OpenCode
+
+        Args:
+            group_id: 分组ID
+            opencode_config: 当前OpenCode配置
+            omo_config: 当前Oh My OpenCode配置
+
+        Returns:
+            Tuple[Dict, Dict]: 更新后的(opencode_config, omo_config)
+        """
+        # 获取分组配置（支持预设模板）
+        group = self.get_group(group_id)
+        if not group:
+            # 尝试从预设模板中查找
+            for preset in self.PRESETS:
+                if preset["id"] == group_id:
+                    group = preset
+                    break
+
+        if not group:
+            return opencode_config, omo_config
+
+        # 1. 更新OpenCode Agent配置
+        if "agent" not in opencode_config:
+            opencode_config["agent"] = {}
+
+        # 获取所有OpenCode Agent ID
+        all_opencode_agents = set()
+        for agent_cfg in group["agents"].get("opencode", []):
+            all_opencode_agents.add(agent_cfg["agent_id"])
+
+        # 应用分组配置
+        for agent_cfg in group["agents"].get("opencode", []):
+            agent_id = agent_cfg["agent_id"]
+            if agent_cfg["enabled"]:
+                # 启用Agent并应用配置
+                if agent_id not in opencode_config["agent"]:
+                    opencode_config["agent"][agent_id] = {}
+
+                # 合并配置
+                config = agent_cfg.get("config", {})
+                opencode_config["agent"][agent_id].update(config)
+
+                # 确保disable字段为False或不存在
+                if "disable" in opencode_config["agent"][agent_id]:
+                    opencode_config["agent"][agent_id]["disable"] = False
+            else:
+                # 禁用Agent
+                if agent_id in opencode_config["agent"]:
+                    opencode_config["agent"][agent_id]["disable"] = True
+
+        # 2. 更新Oh My OpenCode Agent配置
+        if "agents" not in omo_config:
+            omo_config["agents"] = {}
+
+        # 获取所有Oh My OpenCode Agent ID
+        all_omo_agents = set()
+        for agent_cfg in group["agents"].get("oh_my_opencode", []):
+            all_omo_agents.add(agent_cfg["agent_id"])
+
+        # 应用分组配置
+        for agent_cfg in group["agents"].get("oh_my_opencode", []):
+            agent_id = agent_cfg["agent_id"]
+            if agent_cfg["enabled"]:
+                # 启用Agent并应用配置
+                omo_config["agents"][agent_id] = {
+                    "provider": agent_cfg.get("provider", ""),
+                    "model": agent_cfg.get("model", ""),
+                }
+            else:
+                # 禁用Agent（从配置中移除）
+                if agent_id in omo_config["agents"]:
+                    del omo_config["agents"][agent_id]
+
+        # 3. 更新使用统计（仅对自定义分组）
+        if group.get("type") == "custom":
+            self.update_usage_stats(group_id)
+
+        return opencode_config, omo_config
+
+    def get_current_group_match(
+        self, opencode_config: Dict, omo_config: Dict
+    ) -> Optional[str]:
+        """检测当前配置是否匹配某个分组
+
+        Args:
+            opencode_config: 当前OpenCode配置
+            omo_config: 当前Oh My OpenCode配置
+
+        Returns:
+            Optional[str]: 匹配的分组ID，无匹配返回None
+        """
+        # 获取当前启用的Agent
+        current_opencode_agents = set()
+        for agent_id, config in opencode_config.get("agent", {}).items():
+            if not config.get("disable", False):
+                current_opencode_agents.add(agent_id)
+
+        current_omo_agents = set(omo_config.get("agents", {}).keys())
+
+        # 检查所有分组（包括预设）
+        all_groups = self.list_groups(include_presets=True)
+
+        for group in all_groups:
+            # 获取分组中启用的Agent
+            group_opencode_agents = set()
+            for agent_cfg in group["agents"].get("opencode", []):
+                if agent_cfg["enabled"]:
+                    group_opencode_agents.add(agent_cfg["agent_id"])
+
+            group_omo_agents = set()
+            for agent_cfg in group["agents"].get("oh_my_opencode", []):
+                if agent_cfg["enabled"]:
+                    group_omo_agents.add(agent_cfg["agent_id"])
+
+            # 检查是否匹配
+            if (
+                current_opencode_agents == group_opencode_agents
+                and current_omo_agents == group_omo_agents
+            ):
+                return group["id"]
+
+        return None
+
+    # ========== 预设模板 ==========
+
+    def get_presets(self) -> List[Dict]:
+        """获取所有预设模板
+
+        Returns:
+            List[Dict]: 预设模板列表
+        """
+        return self.PRESETS.copy()
+
+    def create_from_preset(
+        self, preset_id: str, name: str, description: Optional[str] = None
+    ) -> Optional[str]:
+        """从预设模板创建分组
+
+        Args:
+            preset_id: 预设模板ID
+            name: 新分组名称
+            description: 新分组描述（可选）
+
+        Returns:
+            Optional[str]: 新分组ID，失败返回None
+        """
+        # 查找预设模板
+        preset = None
+        for p in self.PRESETS:
+            if p["id"] == preset_id:
+                preset = p
+                break
+
+        if not preset:
+            return None
+
+        # 使用预设的描述（如果未提供）
+        if description is None:
+            description = preset["description"]
+
+        # 创建新分组
+        return self.create_group(
+            name=name,
+            description=description,
+            agents=preset["agents"],
+            icon=preset["icon"],
+        )
+
+    # ========== 导入/导出 ==========
+
+    def export_group(self, group_id: str, file_path: Path) -> bool:
+        """导出分组到文件
+
+        Args:
+            group_id: 分组ID
+            file_path: 导出文件路径
+
+        Returns:
+            bool: 是否成功
+        """
+        group = self.get_group(group_id)
+        if not group:
+            return False
+
+        try:
+            # 创建导出数据
+            export_data = {
+                "version": "1.0.0",
+                "exported_at": datetime.now().isoformat(),
+                "group": group,
+            }
+
+            # 写入文件
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+
+            return True
+        except Exception as e:
+            print(f"导出分组失败: {e}")
+            return False
+
+    def import_group(self, file_path: Path, overwrite: bool = False) -> Optional[str]:
+        """从文件导入分组
+
+        Args:
+            file_path: 导入文件路径
+            overwrite: 是否覆盖同名分组
+
+        Returns:
+            Optional[str]: 导入的分组ID，失败返回None
+        """
+        try:
+            # 读取文件
+            with open(file_path, "r", encoding="utf-8") as f:
+                import_data = json.load(f)
+
+            # 验证格式
+            if "group" not in import_data:
+                print("导入文件格式错误：缺少group字段")
+                return None
+
+            group = import_data["group"]
+
+            # 检查同名分组
+            existing_group = None
+            for g in self.groups_data["groups"]:
+                if g["name"] == group["name"]:
+                    existing_group = g
+                    break
+
+            if existing_group and not overwrite:
+                print(f"分组 '{group['name']}' 已存在")
+                return None
+
+            if existing_group and overwrite:
+                # 覆盖现有分组
+                group_id = existing_group["id"]
+                self.update_group(
+                    group_id,
+                    description=group["description"],
+                    icon=group.get("icon", "📁"),
+                    agents=group["agents"],
+                )
+                return group_id
+            else:
+                # 创建新分组
+                return self.create_group(
+                    name=group["name"],
+                    description=group["description"],
+                    agents=group["agents"],
+                    icon=group.get("icon", "📁"),
+                )
+        except Exception as e:
+            print(f"导入分组失败: {e}")
+            return None
+
+    # ========== 统计信息 ==========
+
+    def update_usage_stats(self, group_id: str) -> None:
+        """更新分组使用统计
+
+        Args:
+            group_id: 分组ID
+        """
+        group = self.get_group(group_id)
+        if not group:
+            return
+
+        if "statistics" not in group:
+            group["statistics"] = {"usage_count": 0, "last_used": None}
+
+        group["statistics"]["usage_count"] = (
+            group["statistics"].get("usage_count", 0) + 1
+        )
+        group["statistics"]["last_used"] = datetime.now().isoformat()
+
+        self.save_groups()
+
+    def get_usage_stats(self, group_id: str) -> Dict:
+        """获取分组使用统计
+
+        Args:
+            group_id: 分组ID
+
+        Returns:
+            Dict: 统计信息
+        """
+        group = self.get_group(group_id)
+        if not group:
+            return {"usage_count": 0, "last_used": None}
+
+        return group.get("statistics", {"usage_count": 0, "last_used": None})
+
+
 # ==================== 原生 Provider 认证管理 ====================
 class AuthManager:
     """认证凭证管理器 - 管理 auth.json 文件的读写操作
@@ -1070,6 +1715,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QGridLayout,
+    QFormLayout,
     QLabel,
     QStackedWidget,
     QSplitter,
@@ -11625,6 +12271,918 @@ class MCPDialog(BaseDialog):
         self.format_btn.setText(tr("cli_export.format_json"))
 
 
+# ==================== Agent 分组管理 UI 组件 ====================
+
+
+class AgentGroupWidget(QWidget):
+    """Agent分组选择器组件"""
+
+    group_changed = pyqtSignal(str)  # 分组切换信号 (group_id)
+
+    def __init__(self, group_manager: AgentGroupManager, parent=None):
+        super().__init__(parent)
+        self.group_manager = group_manager
+        self.current_group_id = None
+        self._init_ui()
+        self._refresh_groups()
+
+    def _init_ui(self):
+        """初始化UI"""
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # 当前分组标签
+        label = BodyLabel(tr("agent_group.current_group"))
+        layout.addWidget(label)
+
+        # 分组下拉框
+        self.group_combo = ComboBox()
+        self.group_combo.setMinimumWidth(200)
+        self.group_combo.currentIndexChanged.connect(self._on_group_selected)
+        layout.addWidget(self.group_combo)
+
+        # 应用按钮
+        self.apply_btn = PrimaryPushButton(tr("agent_group.apply"))
+        self.apply_btn.clicked.connect(self._on_apply_clicked)
+        layout.addWidget(self.apply_btn)
+
+        # 管理按钮
+        self.manage_btn = PushButton(tr("agent_group.manage"))
+        self.manage_btn.clicked.connect(self._on_manage_clicked)
+        layout.addWidget(self.manage_btn)
+
+        layout.addStretch()
+
+    def _refresh_groups(self):
+        """刷新分组列表"""
+        self.group_combo.clear()
+
+        # 添加"无分组"选项
+        self.group_combo.addItem(tr("agent_group.no_group"), None)
+
+        # 添加预设模板
+        presets = self.group_manager.get_presets()
+        for preset in presets:
+            icon = preset.get("icon", "")
+            name = preset.get("name", preset["id"])
+            self.group_combo.addItem(f"{icon} {name}", preset["id"])
+
+        # 添加自定义分组
+        groups = self.group_manager.list_groups()
+        if groups:
+            self.group_combo.insertSeparator(self.group_combo.count())
+            for group in groups:
+                icon = group.get("icon", "📁")
+                name = group["name"]
+                self.group_combo.addItem(f"{icon} {name}", group["id"])
+
+    def _on_group_selected(self, index):
+        """分组选择变化"""
+        if index >= 0:
+            self.current_group_id = self.group_combo.itemData(index)
+
+    def _on_apply_clicked(self):
+        """应用分组"""
+        if self.current_group_id:
+            self.group_changed.emit(self.current_group_id)
+
+    def _on_manage_clicked(self):
+        """打开分组管理对话框"""
+        dialog = AgentGroupDialog(self.group_manager, self)
+        if dialog.exec_():
+            self._refresh_groups()
+
+    def set_current_group(self, group_id: Optional[str]):
+        """设置当前分组"""
+        for i in range(self.group_combo.count()):
+            if self.group_combo.itemData(i) == group_id:
+                self.group_combo.setCurrentIndex(i)
+                break
+
+
+class AgentGroupDialog(QDialog):
+    """Agent分组管理对话框"""
+
+    def __init__(self, group_manager: AgentGroupManager, parent=None):
+        super().__init__(parent)
+        self.group_manager = group_manager
+
+        # 设置对话框属性
+        self.setWindowTitle(tr("agent_group.dialog.title"))
+        self.setMinimumSize(800, 600)
+        self.setWindowModality(Qt.ApplicationModal)
+
+        # 设置样式
+        if isDarkTheme():
+            self.setStyleSheet("""
+                QDialog {
+                    background-color: #202020;
+                }
+            """)
+
+        self._init_ui()
+        self._load_groups()
+
+    def _init_ui(self):
+        """初始化UI"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # 标题
+        title_label = TitleLabel(tr("agent_group.dialog.title"))
+        layout.addWidget(title_label)
+
+        # 创建标签页
+        self.tab_widget = Pivot()
+        self.tab_widget.addItem(
+            routeKey="custom",
+            text=tr("agent_group.dialog.my_groups"),
+            onClick=lambda: self._switch_tab("custom"),
+        )
+        self.tab_widget.addItem(
+            routeKey="preset",
+            text=tr("agent_group.dialog.presets"),
+            onClick=lambda: self._switch_tab("preset"),
+        )
+        layout.addWidget(self.tab_widget)
+
+        # 创建堆叠窗口
+        self.stack_widget = QStackedWidget()
+        layout.addWidget(self.stack_widget)
+
+        # 自定义分组页面
+        self.custom_page = QWidget()
+        self._init_custom_page()
+        self.stack_widget.addWidget(self.custom_page)
+
+        # 预设模板页面
+        self.preset_page = QWidget()
+        self._init_preset_page()
+        self.stack_widget.addWidget(self.preset_page)
+
+        # 底部按钮
+        btn_layout = QHBoxLayout()
+
+        self.new_btn = PrimaryPushButton(tr("agent_group.dialog.new_group"))
+        self.new_btn.clicked.connect(self._on_new_group)
+        btn_layout.addWidget(self.new_btn)
+
+        self.import_btn = PushButton(tr("agent_group.dialog.import"))
+        self.import_btn.clicked.connect(self._on_import)
+        btn_layout.addWidget(self.import_btn)
+
+        self.export_btn = PushButton(tr("agent_group.dialog.export"))
+        self.export_btn.clicked.connect(self._on_export)
+        btn_layout.addWidget(self.export_btn)
+
+        btn_layout.addStretch()
+
+        self.close_btn = PushButton(tr("common.close"))
+        self.close_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(self.close_btn)
+
+        layout.addLayout(btn_layout)
+
+    def _init_custom_page(self):
+        """初始化自定义分组页面"""
+        layout = QVBoxLayout(self.custom_page)
+
+        # 分组列表
+        self.custom_list = ListWidget()
+        self.custom_list.setAlternatingRowColors(True)
+        layout.addWidget(self.custom_list)
+
+    def _init_preset_page(self):
+        """初始化预设模板页面"""
+        layout = QVBoxLayout(self.preset_page)
+
+        # 预设列表
+        self.preset_list = ListWidget()
+        self.preset_list.setAlternatingRowColors(True)
+        layout.addWidget(self.preset_list)
+
+    def _switch_tab(self, tab_key: str):
+        """切换标签页"""
+        if tab_key == "custom":
+            self.stack_widget.setCurrentIndex(0)
+            self.new_btn.setEnabled(True)
+            self.export_btn.setEnabled(True)
+        else:
+            self.stack_widget.setCurrentIndex(1)
+            self.new_btn.setEnabled(False)
+            self.export_btn.setEnabled(False)
+
+    def _load_groups(self):
+        """加载分组数据"""
+        # 加载自定义分组
+        self.custom_list.clear()
+        groups = self.group_manager.list_groups()
+        for group in groups:
+            self._add_group_item(self.custom_list, group, is_preset=False)
+
+        # 加载预设模板
+        self.preset_list.clear()
+        presets = self.group_manager.get_presets()
+        for preset in presets:
+            self._add_group_item(self.preset_list, preset, is_preset=True)
+
+    def _add_group_item(self, list_widget: ListWidget, group: Dict, is_preset: bool):
+        """添加分组项到列表"""
+        item = QListWidgetItem(list_widget)
+
+        # 创建自定义widget
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(10, 5, 10, 5)
+
+        # 图标
+        icon_label = BodyLabel(group.get("icon", "📁"))
+        icon_label.setFixedWidth(30)
+        layout.addWidget(icon_label)
+
+        # 左侧信息区域（名称和描述）
+        info_layout = QVBoxLayout()
+        name_label = SubtitleLabel(group["name"])
+        info_layout.addWidget(name_label)
+
+        desc_label = CaptionLabel(group.get("description", ""))
+        desc_label.setTextColor(QColor(128, 128, 128), QColor(200, 200, 200))
+        info_layout.addWidget(desc_label)
+
+        # 统计信息（仅自定义分组）
+        if not is_preset and "statistics" in group:
+            stats = group["statistics"]
+            usage_count = stats.get("usage_count", 0)
+            last_used = stats.get("last_used")
+
+            stats_text = tr("agent_group.dialog.usage_count").format(count=usage_count)
+            if last_used:
+                from datetime import datetime
+
+                last_used_dt = datetime.fromisoformat(last_used)
+                time_diff = datetime.now() - last_used_dt
+                if time_diff.days > 0:
+                    stats_text += f"  {tr('agent_group.dialog.last_used_days').format(days=time_diff.days)}"
+                elif time_diff.seconds > 3600:
+                    hours = time_diff.seconds // 3600
+                    stats_text += f"  {tr('agent_group.dialog.last_used_hours').format(hours=hours)}"
+                else:
+                    stats_text += f"  {tr('agent_group.dialog.last_used_recent')}"
+
+            stats_label = CaptionLabel(stats_text)
+            stats_label.setTextColor(QColor(100, 100, 100), QColor(180, 180, 180))
+            info_layout.addWidget(stats_label)
+
+        layout.addLayout(info_layout)
+        layout.addStretch()
+
+        # Agent数量统计（在标题和按钮之间）
+        agents_config = group.get("agents", {})
+        opencode_agents = agents_config.get("opencode", [])
+        omo_agents = agents_config.get("oh_my_opencode", [])
+
+        # 计算启用的Agent数量（分组中选中的）
+        opencode_enabled_list = [
+            a["agent_id"] for a in opencode_agents if a.get("enabled", False)
+        ]
+        opencode_enabled = len(opencode_enabled_list)
+        omo_enabled_list = [
+            a["agent_id"] for a in omo_agents if a.get("enabled", False)
+        ]
+        omo_enabled = len(omo_enabled_list)
+
+        # 获取系统中实际的Agent总数
+        # 尝试从parent获取main_window
+        main_window = None
+        parent_widget = self.parent()
+        while parent_widget:
+            if hasattr(parent_widget, "main_window"):
+                main_window = parent_widget.main_window
+                break
+            parent_widget = parent_widget.parent()
+
+        # 从系统配置中获取Agent总数
+        opencode_total = 0
+        omo_total = 0
+
+        if main_window:
+            # OpenCode Agent总数
+            opencode_config = getattr(main_window, "opencode_config", None) or {}
+            opencode_system_agents = opencode_config.get("agent", {})
+            if isinstance(opencode_system_agents, dict):
+                opencode_total = len(opencode_system_agents)
+
+            # Oh My OpenCode Agent总数
+            omo_config = getattr(main_window, "ohmyopencode_config", None) or {}
+            omo_system_agents = omo_config.get("agents", {})
+            if isinstance(omo_system_agents, dict):
+                omo_total = len(omo_system_agents)
+
+        # 如果无法获取系统配置，使用分组中的数量作为fallback
+        if opencode_total == 0:
+            opencode_total = len(opencode_agents)
+        if omo_total == 0:
+            omo_total = len(omo_agents)
+
+        # 创建Agent数量标签（垂直布局）
+        agent_count_layout = QVBoxLayout()
+        agent_count_layout.setSpacing(2)
+
+        # OpenCode Agent数量
+        if opencode_total > 0:
+            opencode_count_label = CaptionLabel(
+                f"OpenCode: {opencode_enabled}/{opencode_total}"
+            )
+            opencode_count_label.setTextColor(
+                QColor(100, 149, 237), QColor(135, 206, 250)
+            )
+
+            # 设置tooltip显示所有启用的Agent
+            if opencode_enabled > 0:
+                tooltip_text = "OpenCode Agents:\n" + "\n".join(
+                    f"• {agent_id}" for agent_id in opencode_enabled_list
+                )
+                opencode_count_label.setToolTip(tooltip_text)
+
+            agent_count_layout.addWidget(opencode_count_label)
+
+        # Oh My OpenCode Agent数量
+        if omo_total > 0:
+            omo_count_label = CaptionLabel(f"Oh My OpenCode: {omo_enabled}/{omo_total}")
+            omo_count_label.setTextColor(QColor(100, 149, 237), QColor(135, 206, 250))
+
+            # 设置tooltip显示所有启用的Agent
+            if omo_enabled > 0:
+                tooltip_text = "Oh My OpenCode Agents:\n" + "\n".join(
+                    f"• {agent_id}" for agent_id in omo_enabled_list
+                )
+                omo_count_label.setToolTip(tooltip_text)
+
+            agent_count_layout.addWidget(omo_count_label)
+
+        layout.addLayout(agent_count_layout)
+        layout.addSpacing(10)
+
+        # 按钮
+        if is_preset:
+            use_btn = PushButton(tr("agent_group.dialog.use_template"))
+            use_btn.clicked.connect(lambda: self._on_use_preset(group))
+            layout.addWidget(use_btn)
+        else:
+            apply_btn = PrimaryPushButton(tr("agent_group.apply"))
+            apply_btn.clicked.connect(lambda: self._on_apply_group(group))
+            layout.addWidget(apply_btn)
+
+            edit_btn = PushButton(tr("common.edit"))
+            edit_btn.clicked.connect(lambda: self._on_edit_group(group))
+            layout.addWidget(edit_btn)
+
+            delete_btn = PushButton(tr("common.delete"))
+            delete_btn.clicked.connect(lambda: self._on_delete_group(group))
+            layout.addWidget(delete_btn)
+
+        item.setSizeHint(widget.sizeHint())
+        list_widget.setItemWidget(item, widget)
+
+    def _on_new_group(self):
+        """创建新分组"""
+        dialog = AgentGroupEditDialog(self.group_manager, parent=self)
+        if dialog.exec_():
+            self._load_groups()
+
+    def _on_edit_group(self, group: Dict):
+        """编辑分组"""
+        dialog = AgentGroupEditDialog(self.group_manager, group["id"], parent=self)
+        if dialog.exec_():
+            self._load_groups()
+
+    def _on_delete_group(self, group: Dict):
+        """删除分组"""
+        title = tr("agent_group.dialog.delete_confirm_title")
+        content = tr("agent_group.dialog.delete_confirm_content").format(
+            name=group["name"]
+        )
+
+        w = MessageBox(title, content, self)
+        if w.exec_():
+            if self.group_manager.delete_group(group["id"]):
+                InfoBar.success(
+                    title=tr("common.success"),
+                    content=tr("agent_group.dialog.delete_success"),
+                    parent=self,
+                )
+                self._load_groups()
+            else:
+                InfoBar.error(
+                    title=tr("common.error"),
+                    content=tr("agent_group.dialog.delete_failed"),
+                    parent=self,
+                )
+
+    def _on_apply_group(self, group: Dict):
+        """应用分组"""
+        # 这里需要通过信号通知主窗口应用分组
+        # 暂时只显示提示
+        InfoBar.info(
+            title=tr("agent_group.dialog.apply_info"),
+            content=tr("agent_group.dialog.apply_info_content").format(
+                name=group["name"]
+            ),
+            parent=self,
+        )
+        self.accept()
+
+    def _on_use_preset(self, preset: Dict):
+        """使用预设模板创建分组"""
+        # 弹出对话框输入名称
+        from qfluentwidgets import LineEdit
+
+        dialog = MessageBoxBase(self)
+        dialog.titleLabel = SubtitleLabel(tr("agent_group.dialog.create_from_preset"))
+        dialog.viewLayout.addWidget(dialog.titleLabel)
+
+        name_edit = LineEdit()
+        name_edit.setPlaceholderText(tr("agent_group.dialog.group_name_placeholder"))
+        name_edit.setText(preset["name"])
+        dialog.viewLayout.addWidget(name_edit)
+
+        desc_edit = TextEdit()
+        desc_edit.setPlaceholderText(tr("agent_group.dialog.group_desc_placeholder"))
+        desc_edit.setPlainText(preset["description"])
+        desc_edit.setFixedHeight(80)
+        dialog.viewLayout.addWidget(desc_edit)
+
+        dialog.yesButton.setText(tr("common.create"))
+        dialog.cancelButton.setText(tr("common.cancel"))
+
+        if dialog.exec_():
+            name = name_edit.text().strip()
+            description = desc_edit.toPlainText().strip()
+
+            if not name:
+                InfoBar.warning(
+                    title=tr("common.warning"),
+                    content=tr("agent_group.dialog.name_required"),
+                    parent=self,
+                )
+                return
+
+            group_id = self.group_manager.create_from_preset(
+                preset["id"], name, description
+            )
+            if group_id:
+                InfoBar.success(
+                    title=tr("common.success"),
+                    content=tr("agent_group.dialog.create_success"),
+                    parent=self,
+                )
+                self._load_groups()
+                self._switch_tab("custom")
+            else:
+                InfoBar.error(
+                    title=tr("common.error"),
+                    content=tr("agent_group.dialog.create_failed"),
+                    parent=self,
+                )
+
+    def _on_import(self):
+        """导入分组"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, tr("agent_group.dialog.import_title"), "", "JSON Files (*.json)"
+        )
+
+        if not file_path:
+            return
+
+        group_id = self.group_manager.import_group(Path(file_path))
+        if group_id:
+            InfoBar.success(
+                title=tr("common.success"),
+                content=tr("agent_group.dialog.import_success"),
+                parent=self,
+            )
+            self._load_groups()
+        else:
+            InfoBar.error(
+                title=tr("common.error"),
+                content=tr("agent_group.dialog.import_failed"),
+                parent=self,
+            )
+
+    def _on_export(self):
+        """导出分组"""
+        # 获取当前选中的分组
+        current_item = self.custom_list.currentItem()
+        if not current_item:
+            InfoBar.warning(
+                title=tr("common.warning"),
+                content=tr("agent_group.dialog.select_group_first"),
+                parent=self,
+            )
+            return
+
+        # 获取分组ID（从item的widget中获取）
+        widget = self.custom_list.itemWidget(current_item)
+        # 这里需要改进，暂时跳过
+        InfoBar.info(
+            title=tr("common.info"),
+            content=tr("agent_group.dialog.export_not_implemented"),
+            parent=self,
+        )
+
+
+class AgentGroupEditDialog(QDialog):
+    """Agent分组编辑对话框"""
+
+    def __init__(
+        self,
+        group_manager: AgentGroupManager,
+        group_id: Optional[str] = None,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.group_manager = group_manager
+        self.group_id = group_id
+        self.is_edit = group_id is not None
+
+        title = (
+            tr("agent_group.edit.title_edit")
+            if self.is_edit
+            else tr("agent_group.edit.title_new")
+        )
+
+        # 设置对话框属性
+        self.setWindowTitle(title)
+        self.setMinimumSize(900, 700)
+        self.setWindowModality(Qt.ApplicationModal)
+
+        # 设置样式（深色主题）
+        if isDarkTheme():
+            self.setStyleSheet("""
+                QDialog {
+                    background-color: #202020;
+                }
+                QGroupBox {
+                    background-color: #2b2b2b;
+                    border: 1px solid #3c3c3c;
+                    border-radius: 6px;
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    color: #ffffff;
+                }
+                QGroupBox::title {
+                    subcontrol-origin: margin;
+                    subcontrol-position: top left;
+                    padding: 0 5px;
+                    color: #ffffff;
+                }
+                QScrollArea {
+                    background-color: #202020;
+                    border: none;
+                }
+                QWidget {
+                    background-color: transparent;
+                }
+            """)
+
+        self._init_ui()
+
+        if self.is_edit:
+            self._load_group_data()
+
+    def _init_ui(self):
+        """初始化UI"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # 标题
+        title = (
+            tr("agent_group.edit.title_edit")
+            if self.is_edit
+            else tr("agent_group.edit.title_new")
+        )
+        title_label = TitleLabel(title)
+        layout.addWidget(title_label)
+
+        # 滚动区域
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(15)
+
+        # 基本信息
+        basic_group = QGroupBox(tr("agent_group.edit.basic_info"))
+        basic_layout = QFormLayout(basic_group)
+
+        self.name_edit = LineEdit()
+        self.name_edit.setPlaceholderText(tr("agent_group.edit.name_placeholder"))
+        basic_layout.addRow(tr("agent_group.edit.name"), self.name_edit)
+
+        self.icon_combo = ComboBox()
+        icons = ["📁", "⚡", "⚙️", "🚀", "🎨", "🔧", "💡", "🔥", "⭐", "🎯"]
+        for icon in icons:
+            self.icon_combo.addItem(icon, icon)
+        basic_layout.addRow(tr("agent_group.edit.icon"), self.icon_combo)
+
+        self.desc_edit = TextEdit()
+        self.desc_edit.setPlaceholderText(tr("agent_group.edit.desc_placeholder"))
+        self.desc_edit.setFixedHeight(60)
+        basic_layout.addRow(tr("agent_group.edit.description"), self.desc_edit)
+
+        scroll_layout.addWidget(basic_group)
+
+        # Agent配置 - 使用Pivot标签页
+        agent_pivot = Pivot(self)
+        agent_pivot.addItem(
+            routeKey="opencode",
+            text=tr("agent_group.edit.opencode_agents"),
+            onClick=lambda: agent_stacked.setCurrentIndex(0),
+        )
+        agent_pivot.addItem(
+            routeKey="omo",
+            text=tr("agent_group.edit.omo_agents"),
+            onClick=lambda: agent_stacked.setCurrentIndex(1),
+        )
+        scroll_layout.addWidget(agent_pivot)
+
+        # 标签页内容容器
+        agent_stacked = QStackedWidget()
+
+        # OpenCode Agent配置页
+        opencode_page = QWidget()
+        opencode_page_layout = QVBoxLayout(opencode_page)
+        opencode_page_layout.setContentsMargins(0, 10, 0, 0)
+
+        self.opencode_table = TableWidget()
+        self.opencode_table.setColumnCount(4)
+        self.opencode_table.setHorizontalHeaderLabels(
+            [
+                tr("agent_group.edit.enabled"),
+                tr("agent_group.edit.agent_id"),
+                tr("agent_group.edit.temperature"),
+                tr("agent_group.edit.max_steps"),
+            ]
+        )
+        self.opencode_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        opencode_page_layout.addWidget(self.opencode_table)
+
+        agent_stacked.addWidget(opencode_page)
+
+        # Oh My OpenCode Agent配置页
+        omo_page = QWidget()
+        omo_page_layout = QVBoxLayout(omo_page)
+        omo_page_layout.setContentsMargins(0, 10, 0, 0)
+
+        self.omo_table = TableWidget()
+        self.omo_table.setColumnCount(4)
+        self.omo_table.setHorizontalHeaderLabels(
+            [
+                tr("agent_group.edit.enabled"),
+                tr("agent_group.edit.agent_id"),
+                tr("agent_group.edit.provider"),
+                tr("agent_group.edit.model"),
+            ]
+        )
+        self.omo_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        omo_page_layout.addWidget(self.omo_table)
+
+        agent_stacked.addWidget(omo_page)
+
+        scroll_layout.addWidget(agent_stacked)
+
+        # 初始化Agent列表
+        self._init_agent_tables()
+
+        # 设置滚动区域
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll)
+
+        # 底部按钮
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        self.cancel_btn = PushButton(tr("common.cancel"))
+        self.cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(self.cancel_btn)
+
+        self.save_btn = PrimaryPushButton(tr("common.save"))
+        self.save_btn.clicked.connect(self._on_save)
+        btn_layout.addWidget(self.save_btn)
+
+        layout.addLayout(btn_layout)
+
+    def _init_agent_tables(self):
+        """初始化Agent表格"""
+        # OpenCode Agents
+        opencode_agents = ["build", "plan", "explore", "code-reviewer"]
+        self.opencode_table.setRowCount(len(opencode_agents))
+
+        for i, agent_id in enumerate(opencode_agents):
+            # 启用复选框
+            check_item = QTableWidgetItem()
+            check_item.setCheckState(Qt.Unchecked)
+            self.opencode_table.setItem(i, 0, check_item)
+
+            # Agent ID
+            self.opencode_table.setItem(i, 1, QTableWidgetItem(agent_id))
+
+            # Temperature
+            temp_edit = LineEdit()
+            temp_edit.setText("0.5")
+            temp_edit.setPlaceholderText("0.0-1.0")
+            self.opencode_table.setCellWidget(i, 2, temp_edit)
+
+            # Max Steps
+            steps_edit = LineEdit()
+            steps_edit.setText("50")
+            steps_edit.setPlaceholderText("1-1000")
+            self.opencode_table.setCellWidget(i, 3, steps_edit)
+
+        # Oh My OpenCode Agents
+        omo_agents = ["prometheus", "sisyphus-junior", "oracle", "librarian", "explore"]
+        self.omo_table.setRowCount(len(omo_agents))
+
+        for i, agent_id in enumerate(omo_agents):
+            # 启用复选框
+            check_item = QTableWidgetItem()
+            check_item.setCheckState(Qt.Unchecked)
+            self.omo_table.setItem(i, 0, check_item)
+
+            # Agent ID
+            self.omo_table.setItem(i, 1, QTableWidgetItem(agent_id))
+
+            # Provider
+            provider_edit = LineEdit()
+            provider_edit.setPlaceholderText("anthropic")
+            self.omo_table.setCellWidget(i, 2, provider_edit)
+
+            # Model
+            model_edit = LineEdit()
+            model_edit.setPlaceholderText("claude-sonnet-4")
+            self.omo_table.setCellWidget(i, 3, model_edit)
+
+    def _load_group_data(self):
+        """加载分组数据到表单"""
+        group = self.group_manager.get_group(self.group_id)
+        if not group:
+            return
+
+        # 基本信息
+        self.name_edit.setText(group["name"])
+        self.desc_edit.setPlainText(group.get("description", ""))
+
+        icon = group.get("icon", "📁")
+        for i in range(self.icon_combo.count()):
+            if self.icon_combo.itemData(i) == icon:
+                self.icon_combo.setCurrentIndex(i)
+                break
+
+        # OpenCode Agents
+        opencode_agents = {
+            a["agent_id"]: a for a in group["agents"].get("opencode", [])
+        }
+        for i in range(self.opencode_table.rowCount()):
+            agent_id = self.opencode_table.item(i, 1).text()
+            if agent_id in opencode_agents:
+                agent_cfg = opencode_agents[agent_id]
+
+                # 启用状态
+                check_item = self.opencode_table.item(i, 0)
+                check_item.setCheckState(
+                    Qt.Checked if agent_cfg["enabled"] else Qt.Unchecked
+                )
+
+                # 配置参数
+                config = agent_cfg.get("config", {})
+                if "temperature" in config:
+                    temp_edit = self.opencode_table.cellWidget(i, 2)
+                    temp_edit.setText(str(config["temperature"]))
+                if "maxSteps" in config:
+                    steps_edit = self.opencode_table.cellWidget(i, 3)
+                    steps_edit.setText(str(config["maxSteps"]))
+
+        # Oh My OpenCode Agents
+        omo_agents = {
+            a["agent_id"]: a for a in group["agents"].get("oh_my_opencode", [])
+        }
+        for i in range(self.omo_table.rowCount()):
+            agent_id = self.omo_table.item(i, 1).text()
+            if agent_id in omo_agents:
+                agent_cfg = omo_agents[agent_id]
+
+                # 启用状态
+                check_item = self.omo_table.item(i, 0)
+                check_item.setCheckState(
+                    Qt.Checked if agent_cfg["enabled"] else Qt.Unchecked
+                )
+
+                # Provider和Model
+                provider_edit = self.omo_table.cellWidget(i, 2)
+                provider_edit.setText(agent_cfg.get("provider", ""))
+
+                model_edit = self.omo_table.cellWidget(i, 3)
+                model_edit.setText(agent_cfg.get("model", ""))
+
+    def _on_save(self):
+        """保存分组"""
+        # 验证表单
+        name = self.name_edit.text().strip()
+        if not name:
+            InfoBar.warning(
+                title=tr("common.warning"),
+                content=tr("agent_group.edit.name_required"),
+                parent=self,
+            )
+            return
+
+        # 收集数据
+        description = self.desc_edit.toPlainText().strip()
+        icon = self.icon_combo.currentData()
+
+        # 收集OpenCode Agent配置
+        opencode_agents = []
+        for i in range(self.opencode_table.rowCount()):
+            agent_id = self.opencode_table.item(i, 1).text()
+            enabled = self.opencode_table.item(i, 0).checkState() == Qt.Checked
+
+            config = {}
+            temp_edit = self.opencode_table.cellWidget(i, 2)
+            steps_edit = self.opencode_table.cellWidget(i, 3)
+
+            try:
+                if temp_edit.text():
+                    config["temperature"] = float(temp_edit.text())
+                if steps_edit.text():
+                    config["maxSteps"] = int(steps_edit.text())
+            except ValueError:
+                pass
+
+            opencode_agents.append(
+                {"agent_id": agent_id, "enabled": enabled, "config": config}
+            )
+
+        # 收集Oh My OpenCode Agent配置
+        omo_agents = []
+        for i in range(self.omo_table.rowCount()):
+            agent_id = self.omo_table.item(i, 1).text()
+            enabled = self.omo_table.item(i, 0).checkState() == Qt.Checked
+
+            provider_edit = self.omo_table.cellWidget(i, 2)
+            model_edit = self.omo_table.cellWidget(i, 3)
+
+            omo_agents.append(
+                {
+                    "agent_id": agent_id,
+                    "enabled": enabled,
+                    "provider": provider_edit.text().strip(),
+                    "model": model_edit.text().strip(),
+                }
+            )
+
+        agents = {"opencode": opencode_agents, "oh_my_opencode": omo_agents}
+
+        # 保存或更新
+        try:
+            if self.is_edit:
+                success = self.group_manager.update_group(
+                    self.group_id,
+                    name=name,
+                    description=description,
+                    icon=icon,
+                    agents=agents,
+                )
+            else:
+                group_id = self.group_manager.create_group(
+                    name=name, description=description, agents=agents, icon=icon
+                )
+                success = group_id is not None
+
+            if success:
+                InfoBar.success(
+                    title=tr("common.success"),
+                    content=tr("agent_group.edit.save_success"),
+                    parent=self,
+                )
+                self.accept()
+            else:
+                InfoBar.error(
+                    title=tr("common.error"),
+                    content=tr("agent_group.edit.save_failed"),
+                    parent=self,
+                )
+        except Exception as e:
+            InfoBar.error(
+                title=tr("common.error"),
+                content=f"{tr('agent_group.edit.save_failed')}: {str(e)}",
+                parent=self,
+            )
+
+
 # ==================== OpenCode Agent 页面 ====================
 class OpenCodeAgentPage(BasePage):
     """OpenCode 原生 Agent 配置页面"""
@@ -11632,6 +13190,11 @@ class OpenCodeAgentPage(BasePage):
     def __init__(self, main_window, parent=None):
         super().__init__(tr("agent.title"), parent)
         self.main_window = main_window
+
+        # 初始化分组管理器
+        config_dir = Path.home() / ".config" / "opencode"
+        self.group_manager = AgentGroupManager(config_dir)
+
         self._setup_ui()
         self._load_data()
         # 连接配置变更信号
@@ -11642,6 +13205,17 @@ class OpenCodeAgentPage(BasePage):
         self._load_data()
 
     def _setup_ui(self):
+        # Agent分组选择器
+        self.group_widget = AgentGroupWidget(self.group_manager, self)
+        self.group_widget.group_changed.connect(self._on_group_applied)
+        self._layout.addWidget(self.group_widget)
+
+        # 添加分隔线
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        self._layout.addWidget(separator)
+
         # 工具栏
         toolbar = QHBoxLayout()
 
@@ -11755,6 +13329,55 @@ class OpenCodeAgentPage(BasePage):
                 self.show_success(
                     tr("common.success"), tr("dialog.agent_deleted", name=name)
                 )
+
+    def _on_group_applied(self, group_id: str):
+        """应用Agent分组"""
+        try:
+            # 获取当前配置
+            opencode_config = self.main_window.opencode_config or {}
+            omo_config = self.main_window.omo_config or {}
+
+            # 检查Oh My OpenCode是否安装
+            has_omo = (
+                hasattr(self.main_window, "ohmyopencode_config")
+                and self.main_window.ohmyopencode_config is not None
+            )
+
+            # 应用分组
+            opencode_config, omo_config = self.group_manager.apply_group(
+                group_id, opencode_config, omo_config
+            )
+
+            # 保存配置
+            self.main_window.opencode_config = opencode_config
+            self.main_window.save_opencode_config()
+
+            # 只有在OMO安装时才保存OMO配置
+            if has_omo:
+                self.main_window.omo_config = omo_config
+                self.main_window.save_omo_config()
+
+            # 刷新显示
+            self._load_data()
+
+            # 显示成功提示
+            group = self.group_manager.get_group(group_id)
+            if not group:
+                # 尝试从预设中获取
+                for preset in self.group_manager.get_presets():
+                    if preset["id"] == group_id:
+                        group = preset
+                        break
+
+            if group:
+                self.show_success(
+                    tr("common.success"),
+                    tr("agent_group.dialog.apply_info_content").format(
+                        name=group["name"]
+                    ),
+                )
+        except Exception as e:
+            self.show_error(tr("common.error"), f"应用分组失败: {str(e)}")
 
 
 class OpenCodeAgentDialog(BaseDialog):
@@ -13490,6 +15113,11 @@ class OhMyAgentPage(BasePage):
     def __init__(self, main_window, parent=None):
         super().__init__(tr("ohmyagent.title"), parent)
         self.main_window = main_window
+
+        # 初始化分组管理器
+        config_dir = Path.home() / ".config" / "opencode"
+        self.group_manager = AgentGroupManager(config_dir)
+
         self._setup_ui()
         self._load_data()
         # 连接配置变更信号
@@ -13500,6 +15128,33 @@ class OhMyAgentPage(BasePage):
         self._load_data()
 
     def _setup_ui(self):
+        # Agent分组选择器
+        self.group_widget = AgentGroupWidget(self.group_manager, self)
+        self.group_widget.group_changed.connect(self._on_group_applied)
+        self._layout.addWidget(self.group_widget)
+
+        # 添加分隔线
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        self._layout.addWidget(separator)
+
+        # 添加提示信息卡片
+        info_card = SimpleCardWidget(self)
+        info_layout = QHBoxLayout(info_card)
+        info_layout.setContentsMargins(15, 10, 15, 10)
+
+        info_icon = BodyLabel("💡")
+        info_icon.setFixedWidth(30)
+        info_layout.addWidget(info_icon)
+
+        info_text = CaptionLabel(tr("ohmyagent.group_tip"))
+        info_text.setWordWrap(True)
+        info_text.setTextColor(QColor(100, 100, 100), QColor(180, 180, 180))
+        info_layout.addWidget(info_text, 1)
+
+        self._layout.addWidget(info_card)
+
         # 工具栏
         toolbar = QHBoxLayout()
 
@@ -13682,6 +15337,55 @@ class OhMyAgentPage(BasePage):
                 self.show_success(
                     tr("common.success"), tr("dialog.agent_deleted", name=name)
                 )
+
+    def _on_group_applied(self, group_id: str):
+        """应用Agent分组"""
+        try:
+            # 获取当前配置
+            opencode_config = self.main_window.opencode_config or {}
+            omo_config = self.main_window.ohmyopencode_config or {}
+
+            # 检查Oh My OpenCode是否安装
+            has_omo = (
+                hasattr(self.main_window, "ohmyopencode_config")
+                and self.main_window.ohmyopencode_config is not None
+            )
+
+            # 应用分组
+            opencode_config, omo_config = self.group_manager.apply_group(
+                group_id, opencode_config, omo_config
+            )
+
+            # 保存配置
+            self.main_window.opencode_config = opencode_config
+            self.main_window.save_opencode_config()
+
+            # 只有在OMO安装时才保存OMO配置
+            if has_omo:
+                self.main_window.ohmyopencode_config = omo_config
+                self.main_window.save_ohmyopencode_config()
+
+            # 刷新显示
+            self._load_data()
+
+            # 显示成功提示
+            group = self.group_manager.get_group(group_id)
+            if not group:
+                # 尝试从预设中获取
+                for preset in self.group_manager.get_presets():
+                    if preset["id"] == group_id:
+                        group = preset
+                        break
+
+            if group:
+                self.show_success(
+                    tr("common.success"),
+                    tr("agent_group.dialog.apply_info_content").format(
+                        name=group["name"]
+                    ),
+                )
+        except Exception as e:
+            self.show_error(tr("common.error"), f"应用分组失败: {str(e)}")
 
 
 class OhMyAgentDialog(BaseDialog):
