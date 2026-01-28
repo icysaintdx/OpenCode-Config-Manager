@@ -8,6 +8,110 @@ All version update records.
 
 ---
 
+## [v1.7.1] - 2026-01-28
+**Version Codename**: Agent Group Management
+
+### 🆕 New Features
+#### **Agent Group Management System** ⭐⭐⭐
+- **Complete Agent Group Management**:
+  - Create and manage agent groups (OpenCode + Oh My OpenCode agents combination)
+  - One-click apply preset groups to Agent configuration pages
+  - Support custom group creation, editing, and deletion
+  - Group configuration saved to `~/.config/opencode/agent-groups.json`
+- **6 Preset Group Templates**:
+  - **Minimal**: 1 OpenCode agent + 1 OMO agent
+  - **Standard**: 2 OpenCode agents + 2 OMO agents
+  - **Common**: 4 OpenCode agents + 5 OMO agents
+  - **Complete**: 7 OpenCode agents + 7 OMO agents
+  - **Frontend**: 3 OpenCode agents + 4 OMO agents
+  - **Backend**: 4 OpenCode agents + 3 OMO agents
+- **Pivot Tab UI**:
+  - Use Pivot component to switch between OpenCode and Oh My OpenCode agents
+  - Clear tab separator line
+  - Fixed 40px height tab bar
+- **Dynamic Agent List**:
+  - Dynamically load agent list from actual config files
+  - No longer use hard-coded agent lists
+  - Support custom agent display
+- **Agent Count Display**:
+  - Display selected/total agent count (e.g., "OpenCode: 4/7  Oh My OpenCode: 5/7")
+  - Tooltip shows all selected agent names
+  - Real-time count updates
+- **Flexible Agent Selection**:
+  - Removed mandatory agent restrictions (previously build/sisyphus-junior were required)
+  - All agents can be freely selected
+  - Support creating empty groups
+
+### 🐛 Bug Fixes
+#### **Dialog Layout Optimization** ⭐
+- **Problem**: Agent group edit dialog layout unreasonable, insufficient table display space
+- **Fix**:
+  - Reduced dialog padding and spacing (20px→15px, 15px→10px)
+  - Reduced description box height (60px→50px)
+  - Removed scroll container for basic info area
+  - Table uses stretch factor=1 to occupy remaining space
+  - Saved ~25-30px vertical space for table display
+- **Files**: `opencode_config_manager_fluent.py` (modified layout code)
+
+#### **OMO Description Display Fix** ⭐
+- **Problem**: Oh My OpenCode agents show blank when description is empty
+- **Fix**:
+  - Added fallback to PRESET_AGENTS dictionary
+  - Use preset description when config lacks description
+  - Ensure all OMO agents have readable descriptions
+- **Files**: `opencode_config_manager_fluent.py` (modified description loading logic)
+
+#### **Dialog Inheritance Fix**
+- **Problem**: AgentGroupDialog and AgentGroupEditDialog inherit from MessageBoxBase causing layout issues
+- **Fix**: Changed to inherit from QDialog, use standard dialog layout
+- **Files**: `opencode_config_manager_fluent.py` (modified class inheritance)
+
+#### **OMO Table Simplification**
+- **Optimization**: Removed provider and model columns, only keep enabled, agent_id, description columns
+- **Reason**: OMO agents' provider/model info managed in OMO config page, no need to display in groups
+- **Files**: `opencode_config_manager_fluent.py` (modified table column definition)
+
+#### **Translation File JSON Syntax Error**
+- **Problem**: JSON syntax error in zh_CN.json
+- **Fix**: Fixed JSON format error, ensure file can be parsed normally
+- **Files**: `locales/zh_CN.json`
+
+### 🎨 UI Optimization
+#### **Pivot Tab Style Optimization** ⭐
+- **Optimization**: 
+  - Fixed Pivot component height to 40px
+  - Added horizontal separator line (1px gray line)
+  - Improved tab visual distinction
+- **Files**: `opencode_config_manager_fluent.py` (added style code)
+
+#### **Agent Config Page Integration**
+- **Added**: Added group selector to OpenCode Agent and Oh My Agent config pages
+- **Features**: 
+  - Dropdown select saved groups
+  - One-click apply group configuration
+  - Real-time update agent enable status
+- **Files**: `opencode_config_manager_fluent.py` (added AgentGroupWidget)
+
+### 📚 Technical Implementation
+- **New Classes**:
+  - `AgentGroupManager`: Group CRUD manager
+  - `AgentGroupDialog`: Group selection dialog
+  - `AgentGroupEditDialog`: Group edit dialog
+  - `AgentGroupWidget`: Group selector component
+- **Core Methods**:
+  - `AgentGroupManager.load_groups()`: Load all groups
+  - `AgentGroupManager.save_group()`: Save group
+  - `AgentGroupManager.delete_group()`: Delete group
+  - `AgentGroupManager.get_preset_groups()`: Get preset groups
+- **Config File**: `~/.config/opencode/agent-groups.json`
+
+### 📁 File Changes
+- Updated: `opencode_config_manager_fluent.py` (added Agent group management feature)
+- Updated: `locales/zh_CN.json` (added group-related translations)
+- Updated: `locales/en_US.json` (added group-related translations)
+
+---
+
 ## [v1.7.0] - 2026-01-28
 **Version Codename**: Provider Configuration Standardization
 

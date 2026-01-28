@@ -42,10 +42,33 @@
 
 ---
 
-## 🎯 v1.6.0 Latest Version
+## 🎯 v1.7.1 Latest Version
 
 ### 🆕 New Features
-#### **Plugin Management System** ⭐⭐⭐
+#### **Agent Group Management System** ⭐⭐⭐
+- **Complete Agent Group Management**:
+  - Create and manage agent groups (OpenCode + Oh My OpenCode agents combination)
+  - One-click apply preset groups to Agent configuration pages
+  - Support custom group creation, editing, and deletion
+- **6 Preset Group Templates**:
+  - Minimal: 1+1 agents
+  - Standard: 2+2 agents
+  - Common: 4+5 agents
+  - Complete: 7+7 agents
+  - Frontend: 3+4 agents
+  - Backend: 4+3 agents
+- **Technical Implementation**:
+  - Pivot tab UI to switch OpenCode/OMO agents
+  - Dynamic agent list loading
+  - Agent count display and tooltip
+  - Removed mandatory agent restrictions
+
+---
+
+## 🎯 v1.7.0 Version Recap
+
+### 🆕 New Features
+#### **Provider Configuration Standardization** ⭐⭐⭐
 - **Complete Plugin Management**:
   - Install plugins from GitHub URL
   - One-click uninstall installed plugins
@@ -314,6 +337,17 @@ According to [OpenCode Official Documentation](https://opencode.ai/docs/models/)
 ## 📋 Version History
 
 ### Latest Release
+
+**[v1.7.1](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.1)** - 2026-01-28
+- 🎯 Agent Group Management System - Create and manage agent groups, 6 preset templates
+- 🎨 Pivot Tab UI - Switch between OpenCode/OMO agents
+- 🔢 Agent Count Display - Show selected/total count, tooltip with details
+- 🐛 Bug Fixes - Dialog layout optimization, OMO description display fix
+
+**[v1.7.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.0)** - 2026-01-28
+- 🔧 Provider Configuration Standardization - auth.json format fix, Provider naming fix
+- 🆕 Z.AI Provider Support - Added zai and zai-coding-plan providers
+- 📝 Technical Documentation - Added 5 Provider configuration technical documents
 
 **[v1.6.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.6.0)** - 2026-01-27
 - 🔌 Plugin Management System - Complete plugin install/uninstall/marketplace functionality
