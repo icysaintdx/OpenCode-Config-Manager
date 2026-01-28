@@ -42,10 +42,33 @@
 
 ---
 
-## 🎯 v1.6.0 最新版本
+## 🎯 v1.7.1 最新版本
 
 ### 🆕 新增功能
-#### **Plugin插件管理系统** ⭐⭐⭐
+#### **Agent分组管理系统** ⭐⭐⭐
+- **完整的Agent组合管理**：
+  - 创建和管理Agent分组（OpenCode + Oh My OpenCode agents组合）
+  - 一键应用预设分组到Agent配置页面
+  - 支持自定义分组的创建、编辑、删除
+- **6个预设分组模板**：
+  - Minimal (最小配置): 1+1 agents
+  - Standard (标准配置): 2+2 agents
+  - Common (常用配置): 4+5 agents
+  - Complete (完整配置): 7+7 agents
+  - Frontend (前端开发): 3+4 agents
+  - Backend (后端开发): 4+3 agents
+- **技术实现**：
+  - Pivot标签页UI切换OpenCode/OMO agents
+  - 动态加载agent列表
+  - Agent计数显示和tooltip
+  - 移除必选agent限制
+
+---
+
+## 🎯 v1.7.0 版本回顾
+
+### 🆕 新增功能
+#### **Provider配置标准化** ⭐⭐⭐
 - **完整的插件管理功能**：
   - 从GitHub URL安装插件
   - 一键卸载已安装插件
@@ -352,6 +375,17 @@ python opencode_config_manager_fluent.py
 ## 📋 版本历史
 
 ### 最新版本
+
+**[v1.7.1](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.1)** - 2026-01-28
+- 🎯 Agent分组管理系统 - 创建和管理Agent组合，6个预设模板
+- 🎨 Pivot标签页UI - 切换OpenCode/OMO agents
+- 🔢 Agent计数显示 - 显示已选择/总数，tooltip显示详情
+- 🐛 Bug修复 - 对话框布局优化、OMO描述显示修复
+
+**[v1.7.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.0)** - 2026-01-28
+- 🔧 Provider配置标准化 - auth.json格式修正，Provider命名修正
+- 🆕 Z.AI Provider支持 - 新增zai和zai-coding-plan两个Provider
+- 📝 技术文档 - 新增5篇Provider配置相关技术文档
 
 **[v1.6.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.6.0)** - 2026-01-27
 - 🔌 Plugin插件管理系统 - 完整的插件安装/卸载/市场功能

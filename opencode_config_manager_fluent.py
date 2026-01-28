@@ -8755,11 +8755,12 @@ class NativeProviderPage(BasePage):
         self.delete_btn.clicked.connect(self._on_delete)
         toolbar.addWidget(self.delete_btn)
 
-        self.query_balance_btn = PushButton(
-            FIF.MARKET, tr("provider.query_balance"), self
-        )
-        self.query_balance_btn.clicked.connect(self._on_query_balance)
-        toolbar.addWidget(self.query_balance_btn)
+        # 注释掉查询余额按钮 - 原生Provider不需要此功能
+        # self.query_balance_btn = PushButton(
+        #     FIF.MARKET, tr("provider.query_balance"), self
+        # )
+        # self.query_balance_btn.clicked.connect(self._on_query_balance)
+        # toolbar.addWidget(self.query_balance_btn)
 
         toolbar.addStretch()
         self._layout.addLayout(toolbar)
@@ -8897,31 +8898,47 @@ class NativeProviderPage(BasePage):
             )
             return
 
-        # 获取认证信息
+        # 获取认证信息 - 优先从auth.json，其次从环境变量
         auth_data = self.auth_manager.get_provider_auth(provider.id)
-        if not auth_data:
-            self.show_error(
-                tr("provider.test_failed"), tr("provider.please_configure_provider")
-            )
-            return
+        api_key = ""
 
-        api_key = auth_data.get("apiKey", "")
-        if api_key:
-            api_key = _resolve_env_value(api_key)
+        if auth_data:
+            api_key = auth_data.get("apiKey", "")
+            if api_key:
+                api_key = _resolve_env_value(api_key)
+
+        # 如果auth.json中没有，尝试从环境变量获取
+        if not api_key:
+            env_vars = self.env_detector.detect_env_vars(provider.id)
+            if env_vars:
+                # 获取第一个检测到的环境变量值
+                api_key = list(env_vars.values())[0]
 
         if not api_key:
             self.show_error(
-                tr("provider.test_failed"), tr("provider.api_key_not_found")
+                tr("provider.test_failed"),
+                "未找到API Key。请先配置Provider或设置环境变量。",
             )
             return
 
-        # 获取 baseURL
-        config = self.main_window.opencode_config or {}
-        provider_options = (
-            config.get("provider", {}).get(provider.id, {}).get("options", {})
-        )
-        base_url = provider_options.get("baseURL", "")
+        # 获取 baseURL - 优先从NativeProviderConfig的默认值
+        base_url = ""
 
+        # 1. 先从provider的option_fields中获取默认baseURL
+        for field in provider.option_fields:
+            if field.name == "baseURL" and field.default:
+                base_url = field.default
+                break
+
+        # 2. 如果没有默认值，从opencode_config中获取
+        if not base_url:
+            config = self.main_window.opencode_config or {}
+            provider_options = (
+                config.get("provider", {}).get(provider.id, {}).get("options", {})
+            )
+            base_url = provider_options.get("baseURL", "")
+
+        # 3. 最后使用硬编码的默认URL
         if not base_url:
             default_urls = {
                 "anthropic": "https://api.anthropic.com",
@@ -8944,7 +8961,7 @@ class NativeProviderPage(BasePage):
         test_url = base_url.rstrip("/") + provider.test_endpoint
 
         # 执行测试
-        self.show_warning("测试中", "正在测试连接...")
+        InfoBar.info("测试中", f"正在测试连接: {test_url}", parent=self)
 
         start_time = time.time()
         try:
@@ -10221,6 +10238,10 @@ class ModelPage(BasePage):
         self.preset_btn.clicked.connect(self._on_add_preset)
         toolbar.addWidget(self.preset_btn)
 
+        self.fetch_btn = PushButton(FIF.DOWNLOAD, tr("model.fetch_models"), self)
+        self.fetch_btn.clicked.connect(self._on_fetch_models)
+        toolbar.addWidget(self.fetch_btn)
+
         self.edit_btn = PushButton(FIF.EDIT, tr("common.edit"), self)
         self.edit_btn.clicked.connect(self._on_edit)
         toolbar.addWidget(self.edit_btn)
@@ -10367,6 +10388,104 @@ class ModelPage(BasePage):
                     self.show_success(
                         tr("common.success"), tr("model.deleted_success", name=model_id)
                     )
+
+    def _on_fetch_models(self):
+        """从API获取模型列表"""
+        provider_name = self.provider_combo.currentText()
+        if not provider_name:
+            self.show_warning(tr("common.info"), tr("model.select_provider_first"))
+            return
+
+        # 获取Provider配置
+        config = self.main_window.opencode_config or {}
+        provider_config = config.get("provider", {}).get(provider_name, {})
+
+        # 获取baseURL和apiKey
+        options = provider_config.get("options", {})
+        base_url = options.get("baseURL", "")
+        api_key = provider_config.get("apiKey", "")
+
+        # 如果是原生Provider，从auth.json获取
+        auth_manager = AuthManager()
+        native_provider = get_native_provider(provider_name)
+
+        if native_provider:
+            # 原生Provider - 从auth.json获取认证
+            auth_data = auth_manager.get_provider_auth(provider_name)
+            if auth_data:
+                api_key = auth_data.get("apiKey", "")
+
+            # 如果没有baseURL，使用原生Provider的默认值
+            if not base_url:
+                for field in native_provider.option_fields:
+                    if field.name == "baseURL" and field.default:
+                        base_url = field.default
+                        break
+
+            # 如果还没有api_key，尝试从环境变量获取
+            if not api_key:
+                env_detector = EnvVarDetector()
+                env_vars = env_detector.detect_env_vars(provider_name)
+                if env_vars:
+                    api_key = list(env_vars.values())[0]
+
+        # 解析环境变量引用
+        if api_key:
+            api_key = _resolve_env_value(api_key)
+
+        if not base_url:
+            self.show_error(
+                tr("provider.fetch_failed"),
+                "无法确定API地址。请先配置Provider的baseURL。",
+            )
+            return
+
+        if not api_key:
+            self.show_error(
+                tr("provider.fetch_failed"),
+                "未找到API Key。请先配置Provider或设置环境变量。",
+            )
+            return
+
+        # 构建模型列表API URL
+        models_url = base_url.rstrip("/") + "/models"
+
+        InfoBar.info("获取中", f"正在从 {models_url} 获取模型列表...", parent=self)
+
+        try:
+            req = urllib.request.Request(models_url)
+            req.add_header("Authorization", f"Bearer {api_key}")
+            req.add_header("x-api-key", api_key)
+
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+
+                # 解析模型列表 - 支持多种格式
+                models = []
+                if isinstance(data, dict):
+                    if "data" in data:
+                        models = data["data"]
+                    elif "models" in data:
+                        models = data["models"]
+                elif isinstance(data, list):
+                    models = data
+
+                if not models:
+                    self.show_warning("获取完成", "API返回的模型列表为空")
+                    return
+
+                # 显示模型选择对话框
+                dialog = FetchedModelsDialog(
+                    self.main_window, provider_name, models, parent=self
+                )
+                if dialog.exec_():
+                    self._load_models(provider_name)
+                    self.show_success("添加成功", f"已添加 {dialog.added_count} 个模型")
+
+        except urllib.error.HTTPError as e:
+            self.show_error(tr("provider.fetch_failed"), f"HTTP {e.code}: {e.reason}")
+        except Exception as e:
+            self.show_error(tr("provider.fetch_failed"), str(e))
 
 
 class ModelDialog(BaseDialog):
@@ -11137,6 +11256,161 @@ class ModelDialog(BaseDialog):
             model_data["variants"] = variants
 
         models[model_id] = model_data
+        self.main_window.save_opencode_config()
+        self.accept()
+
+
+class FetchedModelsDialog(BaseDialog):
+    """从API获取的模型选择对话框"""
+
+    def __init__(self, main_window, provider_name: str, models: list, parent=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.provider_name = provider_name
+        self.models = models
+        self.added_count = 0
+
+        self.setWindowTitle(tr("model.select_models_to_add"))
+        self.setMinimumSize(600, 500)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # 标题
+        title = SubtitleLabel(
+            f"从 {self.provider_name} 获取到 {len(self.models)} 个模型", self
+        )
+        layout.addWidget(title)
+
+        # 全选/取消全选
+        select_layout = QHBoxLayout()
+        self.select_all_btn = PushButton("全选", self)
+        self.select_all_btn.clicked.connect(self._select_all)
+        select_layout.addWidget(self.select_all_btn)
+
+        self.deselect_all_btn = PushButton("取消全选", self)
+        self.deselect_all_btn.clicked.connect(self._deselect_all)
+        select_layout.addWidget(self.deselect_all_btn)
+
+        select_layout.addStretch()
+        layout.addLayout(select_layout)
+
+        # 模型列表表格
+        self.table = TableWidget(self)
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["选择", "模型ID", "创建时间"])
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.resizeSection(0, 60)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Fixed)
+        header.resizeSection(2, 150)
+
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        # 填充模型数据
+        for model in self.models:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            # 复选框
+            checkbox = QCheckBox()
+            checkbox.setChecked(False)
+            checkbox_widget = QWidget()
+            checkbox_layout = QHBoxLayout(checkbox_widget)
+            checkbox_layout.addWidget(checkbox)
+            checkbox_layout.setAlignment(Qt.AlignCenter)
+            checkbox_layout.setContentsMargins(0, 0, 0, 0)
+            self.table.setCellWidget(row, 0, checkbox_widget)
+
+            # 模型ID
+            model_id = model.get("id", "") if isinstance(model, dict) else str(model)
+            self.table.setItem(row, 1, QTableWidgetItem(model_id))
+
+            # 创建时间
+            created = model.get("created", "") if isinstance(model, dict) else ""
+            if isinstance(created, int):
+                from datetime import datetime
+
+                created = datetime.fromtimestamp(created).strftime("%Y-%m-%d %H:%M")
+            self.table.setItem(row, 2, QTableWidgetItem(str(created)))
+
+        layout.addWidget(self.table)
+
+        # 按钮
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
+        self.cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(self.cancel_btn)
+
+        self.add_btn = PrimaryPushButton(tr("model.add_selected"), self)
+        self.add_btn.clicked.connect(self._on_add)
+        btn_layout.addWidget(self.add_btn)
+
+        layout.addLayout(btn_layout)
+
+    def _select_all(self):
+        """全选"""
+        for row in range(self.table.rowCount()):
+            widget = self.table.cellWidget(row, 0)
+            if widget:
+                checkbox = widget.findChild(QCheckBox)
+                if checkbox:
+                    checkbox.setChecked(True)
+
+    def _deselect_all(self):
+        """取消全选"""
+        for row in range(self.table.rowCount()):
+            widget = self.table.cellWidget(row, 0)
+            if widget:
+                checkbox = widget.findChild(QCheckBox)
+                if checkbox:
+                    checkbox.setChecked(False)
+
+    def _on_add(self):
+        """添加选中的模型"""
+        selected_models = []
+        for row in range(self.table.rowCount()):
+            widget = self.table.cellWidget(row, 0)
+            if widget:
+                checkbox = widget.findChild(QCheckBox)
+                if checkbox and checkbox.isChecked():
+                    model_id = self.table.item(row, 1).text()
+                    selected_models.append(model_id)
+
+        if not selected_models:
+            InfoBar.warning("提示", "请至少选择一个模型", parent=self)
+            return
+
+        # 添加到配置
+        config = self.main_window.opencode_config or {}
+        if "provider" not in config:
+            config["provider"] = {}
+        if self.provider_name not in config["provider"]:
+            config["provider"][self.provider_name] = {}
+        if "models" not in config["provider"][self.provider_name]:
+            config["provider"][self.provider_name]["models"] = {}
+
+        models_config = config["provider"][self.provider_name]["models"]
+
+        for model_id in selected_models:
+            if model_id not in models_config:
+                models_config[model_id] = {
+                    "name": model_id,
+                    "limit": {},
+                    "options": {},
+                    "variants": {},
+                }
+                self.added_count += 1
+
+        self.main_window.opencode_config = config
         self.main_window.save_opencode_config()
         self.accept()
 
