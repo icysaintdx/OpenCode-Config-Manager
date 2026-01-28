@@ -10411,7 +10411,7 @@ class ModelPage(BasePage):
         # 获取baseURL和apiKey
         options = provider_config.get("options", {})
         base_url = options.get("baseURL", "")
-        api_key = provider_config.get("apiKey", "")
+        api_key = options.get("apiKey", "")  # 自定义Provider的apiKey在options里
 
         # 如果是原生Provider，从auth.json获取
         auth_manager = AuthManager()
