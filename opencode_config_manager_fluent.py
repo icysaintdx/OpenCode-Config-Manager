@@ -10413,22 +10413,51 @@ class ModelPage(BasePage):
         base_url = options.get("baseURL", "")
         api_key = options.get("apiKey", "")  # 自定义Provider的apiKey在options里
 
+        # 原生Provider的默认API地址（SDK自动处理的那些）
+        NATIVE_PROVIDER_DEFAULT_URLS = {
+            "anthropic": "https://api.anthropic.com/v1",
+            "openai": "https://api.openai.com/v1",
+            "xai": "https://api.x.ai/v1",
+            "groq": "https://api.groq.com/openai/v1",
+        }
+
+        # 不支持获取模型列表的Provider
+        UNSUPPORTED_FETCH_PROVIDERS = [
+            "amazon-bedrock",
+            "azure",
+            "github-copilot",
+            "google-vertex",
+            "gemini",  # Gemini API格式不同
+        ]
+
         # 如果是原生Provider，从auth.json获取
         auth_manager = AuthManager()
         native_provider = get_native_provider(provider_name)
 
         if native_provider:
+            # 检查是否支持获取模型
+            if provider_name in UNSUPPORTED_FETCH_PROVIDERS:
+                self.show_warning(
+                    tr("provider.fetch_failed"),
+                    f"{native_provider.name} 不支持通过API获取模型列表。\n请手动添加模型或参考官方文档。",
+                )
+                return
+
             # 原生Provider - 从auth.json获取认证
             auth_data = auth_manager.get_provider_auth(provider_name)
             if auth_data:
                 api_key = auth_data.get("apiKey", "")
 
-            # 如果没有baseURL，使用原生Provider的默认值
+            # 如果没有baseURL，先尝试原生Provider的option_fields默认值
             if not base_url:
                 for field in native_provider.option_fields:
-                    if field.name == "baseURL" and field.default:
+                    if field.key == "baseURL" and field.default:
                         base_url = field.default
                         break
+
+            # 如果还没有baseURL，使用内置的默认地址
+            if not base_url and provider_name in NATIVE_PROVIDER_DEFAULT_URLS:
+                base_url = NATIVE_PROVIDER_DEFAULT_URLS[provider_name]
 
             # 如果还没有api_key，尝试从环境变量获取
             if not api_key:
@@ -11327,7 +11356,7 @@ class FetchedModelsDialog(BaseDialog):
             self.table.insertRow(row)
 
             # 复选框
-            checkbox = QCheckBox()
+            checkbox = CheckBox()
             checkbox.setChecked(False)
             checkbox_widget = QWidget()
             checkbox_layout = QHBoxLayout(checkbox_widget)
@@ -11369,7 +11398,7 @@ class FetchedModelsDialog(BaseDialog):
         for row in range(self.table.rowCount()):
             widget = self.table.cellWidget(row, 0)
             if widget:
-                checkbox = widget.findChild(QCheckBox)
+                checkbox = widget.findChild(CheckBox)
                 if checkbox:
                     checkbox.setChecked(True)
 
@@ -11378,7 +11407,7 @@ class FetchedModelsDialog(BaseDialog):
         for row in range(self.table.rowCount()):
             widget = self.table.cellWidget(row, 0)
             if widget:
-                checkbox = widget.findChild(QCheckBox)
+                checkbox = widget.findChild(CheckBox)
                 if checkbox:
                     checkbox.setChecked(False)
 
@@ -11388,7 +11417,7 @@ class FetchedModelsDialog(BaseDialog):
         for row in range(self.table.rowCount()):
             widget = self.table.cellWidget(row, 0)
             if widget:
-                checkbox = widget.findChild(QCheckBox)
+                checkbox = widget.findChild(CheckBox)
                 if checkbox and checkbox.isChecked():
                     model_id = self.table.item(row, 1).text()
                     selected_models.append(model_id)
