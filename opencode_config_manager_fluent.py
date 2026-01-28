@@ -8917,7 +8917,7 @@ class NativeProviderPage(BasePage):
         if not api_key:
             self.show_error(
                 tr("provider.test_failed"),
-                "未找到API Key。请先配置Provider或设置环境变量。",
+                tr("provider.api_key_not_found") + "。请先配置Provider或设置环境变量。",
             )
             return
 
@@ -8926,7 +8926,11 @@ class NativeProviderPage(BasePage):
 
         # 1. 先从provider的option_fields中获取默认baseURL
         for field in provider.option_fields:
-            if field.name == "baseURL" and field.default:
+            if (
+                field.name == "baseURL"
+                and field.default is not None
+                and field.default != ""
+            ):
                 base_url = field.default
                 break
 
@@ -8948,7 +8952,11 @@ class NativeProviderPage(BasePage):
                 "groq": "https://api.groq.com",
                 "openrouter": "https://openrouter.ai/api",
                 "deepseek": "https://api.deepseek.com",
-                "opencode": "https://api.opencode.ai",
+                "opencode": "https://api.opencode.ai/v1",
+                "zhipuai": "https://open.bigmodel.cn/api/paas/v4",
+                "zhipuai-coding-plan": "https://open.bigmodel.cn/api/coding/paas/v4",
+                "zai": "https://api.z.ai/api/paas/v4",
+                "zai-coding-plan": "https://api.z.ai/api/coding/paas/v4",
             }
             base_url = default_urls.get(provider.id, "")
 

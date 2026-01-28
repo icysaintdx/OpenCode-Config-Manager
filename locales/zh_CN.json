@@ -247,6 +247,11 @@
     "connection_success": "连接成功",
     "connection_failed": "连接失败",
     "response_time": "响应时间",
+    "test_failed": "测试失败",
+    "please_configure_provider": "请先配置此 Provider",
+    "api_key_not_found": "未找到 API Key",
+    "cannot_determine_api_address": "无法确定 API 地址",
+    "fetch_failed": "获取失败",
     "enter_name": "请输入 Provider 名称",
     "provider_exists": "Provider \"{name}\" 已存在"
   },

@@ -247,6 +247,11 @@
     "connection_success": "Connection Successful",
     "connection_failed": "Connection Failed",
     "response_time": "Response Time",
+    "test_failed": "Test Failed",
+    "please_configure_provider": "Please configure this Provider first",
+    "api_key_not_found": "API Key not found",
+    "cannot_determine_api_address": "Cannot determine API address",
+    "fetch_failed": "Fetch Failed",
     "enter_name": "Please enter Provider name",
     "provider_exists": "Provider \"{name}\" already exists"
   },
