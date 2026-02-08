@@ -8,6 +8,37 @@ All version update records.
 
 ---
 
+## [v1.7.2] - 2026-02-08
+**Version Codename**: Stability Fix Release
+
+### 🐛 Bug Fixes
+- **Apply Full Configuration Crash Fix**
+  - Fixed exception caused by unsupported `ComboBox.insertSeparator` usage
+  - Replaced with a disabled separator item and ignored separator selection in group logic
+- **Skill Marketplace Install Failure Fix**
+  - Added hidden imports for `requests` and dependencies in packaging configs
+  - Fixed packaged-app install error: `No module named 'requests'`
+- **MCP Dialog Height/Resize Fix**
+  - Fixed dialog not shrinking back after collapsing extra fields
+  - Added proper vertical resize support to prevent unusable oversized dialogs
+- **GLM/Native Provider Balance Query Crash Fix**
+  - Added capability checks for providers that do not support balance query APIs
+  - Show warning message instead of crashing when query is unsupported
+- **Global Exception Handling Hardening**
+  - Added cross-platform global exception handlers for main and worker threads
+  - Log unhandled exceptions instead of hard-exiting the app
+
+### 🎨 Improvements
+- Persisted theme preference and restored it on startup
+- Normalized model `limit` cleanup logic to avoid writing invalid empty objects
+
+### 📁 File Changes
+- Updated: `opencode_config_manager_fluent.py`
+- Updated: `.github/workflows/build.yml`
+- Updated: `OCCM_Dynamic_Lang.spec`
+
+---
+
 ## [v1.7.1] - 2026-01-28
 **Version Codename**: Agent Group Management
 
