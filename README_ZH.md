@@ -42,26 +42,28 @@
 
 ---
 
-## 🎯 v1.7.1 最新版本
+## 🎯 v1.7.2 最新版本
 
-### 🆕 新增功能
-#### **Agent分组管理系统** ⭐⭐⭐
-- **完整的Agent组合管理**：
-  - 创建和管理Agent分组（OpenCode + Oh My OpenCode agents组合）
-  - 一键应用预设分组到Agent配置页面
-  - 支持自定义分组的创建、编辑、删除
-- **6个预设分组模板**：
-  - Minimal (最小配置): 1+1 agents
-  - Standard (标准配置): 2+2 agents
-  - Common (常用配置): 4+5 agents
-  - Complete (完整配置): 7+7 agents
-  - Frontend (前端开发): 3+4 agents
-  - Backend (后端开发): 4+3 agents
-- **技术实现**：
-  - Pivot标签页UI切换OpenCode/OMO agents
-  - 动态加载agent列表
-  - Agent计数显示和tooltip
-  - 移除必选agent限制
+### 🐛 关键修复
+- **应用完整配置报错修复**
+  - 将不兼容的 `ComboBox.insertSeparator` 改为兼容的禁用分隔项
+  - 分隔项选择不会再触发错误的分组应用逻辑
+- **Skill 市场安装失败修复**
+  - 为 PyInstaller 增加 `requests` 及依赖（`urllib3`、`certifi`、`charset_normalizer`、`idna`）隐藏导入
+  - 修复打包后 `No module named 'requests'` 报错
+- **MCP 对话框缩放体验修复**
+  - 支持纵向缩放并启用尺寸拖拽
+  - 修复附加信息折叠后窗口高度不回缩的问题
+- **GLM / 原生 Provider 余额查询稳定性修复**
+  - 为不支持余额接口的 Provider 增加能力判断
+  - 不再闪退，改为弹窗提示不可查询
+- **全局崩溃兜底增强**
+  - 新增跨平台全局异常处理（主线程 + 子线程）
+  - 未捕获异常将写入日志，避免程序直接退出
+
+### 🎨 体验优化
+- 新增主题偏好持久化（`~/.config/opencode/occm-ui.json`）
+- 规范模型 `limit` 结构，避免写出空对象导致配置异常
 
 ---
 
@@ -375,6 +377,11 @@ python opencode_config_manager_fluent.py
 ## 📋 版本历史
 
 ### 最新版本
+
+**[v1.7.2](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.2)** - 2026-02-08
+- 🐛 崩溃修复 - 修复应用完整配置报错、GLM余额查询闪退，并增强全局异常处理
+- 📦 打包修复 - 补齐 hidden imports，修复 Skill 市场 `requests` 安装失败问题
+- 🧭 交互优化 - MCP 对话框支持更好的纵向缩放/回缩，并持久化主题设置
 
 **[v1.7.1](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.1)** - 2026-01-28
 - 🎯 Agent分组管理系统 - 创建和管理Agent组合，6个预设模板

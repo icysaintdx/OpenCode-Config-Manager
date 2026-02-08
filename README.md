@@ -42,26 +42,28 @@
 
 ---
 
-## 🎯 v1.7.1 Latest Version
+## 🎯 v1.7.2 Latest Version
 
-### 🆕 New Features
-#### **Agent Group Management System** ⭐⭐⭐
-- **Complete Agent Group Management**:
-  - Create and manage agent groups (OpenCode + Oh My OpenCode agents combination)
-  - One-click apply preset groups to Agent configuration pages
-  - Support custom group creation, editing, and deletion
-- **6 Preset Group Templates**:
-  - Minimal: 1+1 agents
-  - Standard: 2+2 agents
-  - Common: 4+5 agents
-  - Complete: 7+7 agents
-  - Frontend: 3+4 agents
-  - Backend: 4+3 agents
-- **Technical Implementation**:
-  - Pivot tab UI to switch OpenCode/OMO agents
-  - Dynamic agent list loading
-  - Agent count display and tooltip
-  - Removed mandatory agent restrictions
+### 🐛 Key Fixes
+- **Apply Full Configuration Crash Fix**
+  - Replaced unsupported `ComboBox.insertSeparator` with a compatible disabled separator item
+  - Prevented separator selection from triggering invalid group apply logic
+- **Skill Marketplace Installation Fix**
+  - Added PyInstaller hidden imports for `requests` and dependencies (`urllib3`, `certifi`, `charset_normalizer`, `idna`)
+  - Fixed packaged app error: `No module named 'requests'`
+- **MCP Dialog Resize UX Fix**
+  - Enabled vertical resize with size grip support
+  - Fixed collapse behavior so dialog height shrinks correctly after hiding extra fields
+- **GLM / Native Provider Balance Query Safety**
+  - Added provider capability checks for unsupported native balance APIs
+  - Show warning message instead of crashing when query is unsupported
+- **Global Crash Resilience**
+  - Added cross-platform global exception handler for main thread and worker threads
+  - Log unhandled exceptions instead of hard-exiting the application
+
+### 🎨 Improvements
+- Persisted theme preference to UI config (`~/.config/opencode/occm-ui.json`)
+- Normalized model `limit` structure to avoid invalid empty config output
 
 ---
 
@@ -337,6 +339,11 @@ According to [OpenCode Official Documentation](https://opencode.ai/docs/models/)
 ## 📋 Version History
 
 ### Latest Release
+
+**[v1.7.2](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.2)** - 2026-02-08
+- 🐛 Crash Fixes - Fixed full-config apply crash, GLM balance-query crash, and improved global exception handling
+- 📦 Packaging Fixes - Added hidden imports to resolve Skill marketplace `requests` install errors in packaged builds
+- 🧭 UX Improvements - MCP dialog now supports better vertical resize/collapse behavior and theme preference persistence
 
 **[v1.7.1](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.1)** - 2026-01-28
 - 🎯 Agent Group Management System - Create and manage agent groups, 6 preset templates
