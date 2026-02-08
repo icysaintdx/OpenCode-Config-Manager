@@ -68,6 +68,11 @@ jobs:
             --hidden-import qfluentwidgets.components `
             --hidden-import qfluentwidgets.common `
             --hidden-import qfluentwidgets.window `
+            --hidden-import requests `
+            --hidden-import urllib3 `
+            --hidden-import certifi `
+            --hidden-import charset_normalizer `
+            --hidden-import idna `
             --collect-data qfluentwidgets `
             --collect-submodules qfluentwidgets `
             --exclude-module torch `
@@ -155,6 +160,11 @@ jobs:
             --hidden-import=qfluentwidgets.components \
             --hidden-import=qfluentwidgets.common \
             --hidden-import=qfluentwidgets.window \
+            --hidden-import=requests \
+            --hidden-import=urllib3 \
+            --hidden-import=certifi \
+            --hidden-import=charset_normalizer \
+            --hidden-import=idna \
             --collect-data qfluentwidgets \
             --collect-data PyQt5 \
             --exclude-module PyQt5.QtBluetooth \
@@ -375,6 +385,11 @@ jobs:
             --hidden-import=qfluentwidgets.components \
             --hidden-import=qfluentwidgets.common \
             --hidden-import=qfluentwidgets.window \
+            --hidden-import=requests \
+            --hidden-import=urllib3 \
+            --hidden-import=certifi \
+            --hidden-import=charset_normalizer \
+            --hidden-import=idna \
             --collect-data qfluentwidgets \
             --collect-data PyQt5 \
             --exclude-module PyQt5.QtBluetooth \

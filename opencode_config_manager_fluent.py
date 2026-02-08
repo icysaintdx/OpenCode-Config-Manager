@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-OpenCode & Oh My OpenCode 配置管理器 v1.7.1 (QFluentWidgets 版本)
+OpenCode & Oh My OpenCode 配置管理器 v1.7.2 (QFluentWidgets 版本)
 一个可视化的GUI工具，用于管理OpenCode和Oh My OpenCode的配置文件
 
 基于 PyQt5 + QFluentWidgets 重写，提供现代化 Fluent Design 界面
@@ -16,18 +16,25 @@ import traceback
 import time
 
 
-# macOS 崩溃处理器 (必须在 PyQt5 导入之前设置)
-def setup_macos_crash_handler():
-    """设置 macOS 崩溃处理器"""
-    if platform.system() != "Darwin":
-        return
+# 全局崩溃处理器 (必须在 PyQt5 导入之前设置)
+def setup_global_crash_handler():
+    """设置全局异常处理，避免未捕获异常直接导致程序退出"""
+    import threading as _threading
 
     def exception_handler(exc_type, exc_value, exc_traceback):
         """捕获未处理的异常"""
         from pathlib import Path
 
-        # 写入崩溃日志
-        crash_log_dir = Path.home() / "Library" / "Logs" / "OCCM"
+        # 键盘中断保持默认行为
+        if exc_type is KeyboardInterrupt:
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        # 写入崩溃日志（跨平台）
+        if platform.system() == "Darwin":
+            crash_log_dir = Path.home() / "Library" / "Logs" / "OCCM"
+        else:
+            crash_log_dir = Path.home() / ".config" / "opencode" / "logs"
         crash_log_dir.mkdir(parents=True, exist_ok=True)
 
         crash_log_file = crash_log_dir / f"crash_{int(time.time())}.log"
@@ -63,14 +70,19 @@ def setup_macos_crash_handler():
             print(f"OCCM 崩溃 - 日志已保存到: {crash_log_file}")
             print(f"{'=' * 80}\n")
 
-        # 调用默认处理器
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        # 不再调用默认处理器，避免 GUI 进程直接退出
 
     sys.excepthook = exception_handler
 
+    # 处理后台线程未捕获异常
+    def thread_exception_handler(args):
+        exception_handler(args.exc_type, args.exc_value, args.exc_traceback)
+
+    _threading.excepthook = thread_exception_handler
+
 
 # 立即设置崩溃处理器
-setup_macos_crash_handler()
+setup_global_crash_handler()
 
 if sys.platform == "win32" and getattr(sys, "frozen", False):
     # 检查临时目录路径是否包含非 ASCII 字符
@@ -2160,7 +2172,7 @@ class UIConfig:
         """
 
 
-APP_VERSION = "1.7.1"
+APP_VERSION = "1.7.2"
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
 GITHUB_URL = f"https://github.com/{GITHUB_REPO}"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -5520,6 +5532,35 @@ class ConfigValidator:
                 fixed_provider["models"] = {}
                 fixes.append(f"Provider '{provider_name}': 修复 models 字段为对象")
 
+            # 规范化 models.limit，避免写入 limit: {} 触发上游校验失败
+            for model_id, model_cfg in list(fixed_provider.get("models", {}).items()):
+                if not isinstance(model_cfg, dict):
+                    continue
+                if "limit" not in model_cfg:
+                    continue
+
+                limit = model_cfg.get("limit")
+                if not isinstance(limit, dict):
+                    model_cfg.pop("limit", None)
+                    fixes.append(
+                        f"Provider '{provider_name}' Model '{model_id}': 移除无效 limit"
+                    )
+                    continue
+
+                normalized_limit = {}
+                if isinstance(limit.get("context"), int):
+                    normalized_limit["context"] = limit["context"]
+                if isinstance(limit.get("output"), int):
+                    normalized_limit["output"] = limit["output"]
+
+                if normalized_limit:
+                    model_cfg["limit"] = normalized_limit
+                else:
+                    model_cfg.pop("limit", None)
+                    fixes.append(
+                        f"Provider '{provider_name}' Model '{model_id}': 移除空 limit"
+                    )
+
             # 规范化字段顺序: npm, name, options, models
             ordered_provider = {}
             if "npm" in fixed_provider:
@@ -8240,6 +8281,30 @@ class ProviderPage(BasePage):
         else:
             self.show_warning("检测完成", "未检测到已配置的 Provider")
 
+    def _is_balance_query_supported(
+        self, provider_id: str, base_url: str
+    ) -> Tuple[bool, str]:
+        """检查当前 Provider 是否支持余额查询（避免不兼容接口导致闪退）"""
+        unsupported_ids = {
+            "zhipuai",
+            "zhipuai-coding-plan",
+            "gemini",
+            "google-vertex",
+            "azure",
+            "amazon-bedrock",
+            "github-copilot",
+        }
+        if provider_id in unsupported_ids:
+            return (
+                False,
+                "当前 Provider 暂不支持通用余额接口查询（仅支持兼容 NewAPI/OpenAI 计费接口的服务）。",
+            )
+
+        if not base_url:
+            return False, "未配置可用的 baseURL，无法查询余额。"
+
+        return True, ""
+
     def _on_native_query_balance(self):
         """查询原生Provider余额"""
         provider = self._get_selected_native_provider()
@@ -8291,6 +8356,11 @@ class ProviderPage(BasePage):
             self.show_error(
                 tr("provider.test_failed"), tr("provider.cannot_determine_api_address")
             )
+            return
+
+        supported, reason = self._is_balance_query_supported(provider.id, base_url)
+        if not supported:
+            self.show_warning("余额查询不可用", reason)
             return
 
         # 显示加载提示
@@ -8692,13 +8762,25 @@ class ModelPresetCustomDialog(BaseDialog):
             model_id = item.text().split(" - ")[0]
             if model_id in models_data:
                 preset = models_data[model_id]
-                models[model_id] = {
+                model_cfg = {
                     "name": preset.get("name", ""),
                     "attachment": preset.get("attachment", False),
-                    "limit": preset.get("limit", {}),
                     "options": preset.get("options", {}),
                     "variants": preset.get("variants", {}),
                 }
+
+                # 只保留有效的数字 limit 字段，避免生成 limit: {}
+                preset_limit = preset.get("limit", {})
+                if isinstance(preset_limit, dict):
+                    normalized_limit = {}
+                    if isinstance(preset_limit.get("context"), int):
+                        normalized_limit["context"] = preset_limit["context"]
+                    if isinstance(preset_limit.get("output"), int):
+                        normalized_limit["output"] = preset_limit["output"]
+                    if normalized_limit:
+                        model_cfg["limit"] = normalized_limit
+
+                models[model_id] = model_cfg
                 added += 1
 
         self.main_window.save_opencode_config()
@@ -9083,6 +9165,30 @@ class NativeProviderPage(BasePage):
         else:
             InfoBar.info("检测结果", "未检测到已配置的原生Provider", parent=self)
 
+    def _is_balance_query_supported(
+        self, provider_id: str, base_url: str
+    ) -> Tuple[bool, str]:
+        """检查当前 Provider 是否支持余额查询（避免不兼容接口导致闪退）"""
+        unsupported_ids = {
+            "zhipuai",
+            "zhipuai-coding-plan",
+            "gemini",
+            "google-vertex",
+            "azure",
+            "amazon-bedrock",
+            "github-copilot",
+        }
+        if provider_id in unsupported_ids:
+            return (
+                False,
+                "当前 Provider 暂不支持通用余额接口查询（仅支持兼容 NewAPI/OpenAI 计费接口的服务）。",
+            )
+
+        if not base_url:
+            return False, "未配置可用的 baseURL，无法查询余额。"
+
+        return True, ""
+
     def _on_query_balance(self):
         """查询余额"""
         provider = self._get_selected_provider()
@@ -9116,6 +9222,11 @@ class NativeProviderPage(BasePage):
             self.show_warning(tr("common.info"), tr("provider.no_base_url"))
             return
 
+        supported, reason = self._is_balance_query_supported(provider.id, base_url)
+        if not supported:
+            self.show_warning("余额查询不可用", reason)
+            return
+
         # 显示加载提示
         state_tooltip = StateToolTip(
             tr("provider.querying_balance"), tr("provider.please_wait"), self.window()
@@ -9134,6 +9245,7 @@ class NativeProviderPage(BasePage):
                     Qt.QueuedConnection,
                     Q_ARG(str, provider.name),
                     Q_ARG(object, usage_data),
+                    Q_ARG(str, api_key),
                     Q_ARG(object, state_tooltip),
                 )
             except Exception as e:
@@ -11476,7 +11588,6 @@ class FetchedModelsDialog(BaseDialog):
             if model_id not in models_config:
                 models_config[model_id] = {
                     "name": model_id,
-                    "limit": {},
                     "options": {},
                     "variants": {},
                 }
@@ -12178,6 +12289,8 @@ class MCPDialog(BaseDialog):
             )
             self.setWindowTitle(title)
         self.setMinimumWidth(550)
+        self.setMinimumHeight(620)
+        self.setSizeGripEnabled(True)
         self._setup_ui()
 
         if self.is_edit:
@@ -12592,6 +12705,12 @@ class MCPDialog(BaseDialog):
 
     def _on_extra_group_toggled(self, checked: bool) -> None:
         self.extra_content.setVisible(checked)
+        # 展开/收起后主动调整窗口高度，避免收起后窗口仍然过高
+        self.adjustSize()
+        screen = QApplication.primaryScreen()
+        max_h = screen.availableGeometry().height() - 40 if screen else 900
+        target_h = max(self.minimumHeight(), self.sizeHint().height())
+        self.resize(self.width(), min(target_h, max_h))
 
     def _parse_json_text(self, text: str, default_value: Any) -> Any:
         if not text:
@@ -12736,7 +12855,16 @@ class AgentGroupWidget(QWidget):
         # 添加自定义分组
         groups = self.group_manager.list_groups()
         if groups:
-            self.group_combo.insertSeparator(self.group_combo.count())
+            # qfluentwidgets.ComboBox 不支持 insertSeparator，改用禁用项模拟分隔线
+            self.group_combo.addItem("──────────", "__separator__")
+            sep_index = self.group_combo.count() - 1
+            try:
+                model = self.group_combo.model()
+                item = model.item(sep_index) if hasattr(model, "item") else None
+                if item is not None:
+                    item.setEnabled(False)
+            except Exception:
+                pass
             for group in groups:
                 icon = group.get("icon", "📁")
                 name = group["name"]
@@ -12746,6 +12874,8 @@ class AgentGroupWidget(QWidget):
         """分组选择变化"""
         if index >= 0:
             self.current_group_id = self.group_combo.itemData(index)
+            if self.current_group_id == "__separator__":
+                self.current_group_id = None
 
     def _on_apply_clicked(self):
         """应用分组"""
@@ -15346,10 +15476,23 @@ class MainWindow(FluentWindow):
         """切换深浅色主题 (手动切换会停止跟随系统)"""
         if isDarkTheme():
             setTheme(Theme.LIGHT)
+            self._save_theme_preference("light")
         else:
             setTheme(Theme.DARK)
+            self._save_theme_preference("dark")
         # 切换后重新应用自定义背景
         QTimer.singleShot(50, self._apply_dark_background)
+
+    def _save_theme_preference(self, theme: str):
+        """保存主题偏好（dark/light/auto）"""
+        try:
+            config_dir = ConfigPaths.get_config_base_dir()
+            config_dir.mkdir(parents=True, exist_ok=True)
+            pref_path = config_dir / "occm-ui.json"
+            with open(pref_path, "w", encoding="utf-8") as f:
+                json.dump({"theme": theme}, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
     def closeEvent(self, e):
         """关闭窗口时停止主题监听器"""
@@ -23616,8 +23759,24 @@ def main():
     app.setApplicationName("OpenCode Config Manager")
     app.setApplicationVersion(APP_VERSION)
 
-    # 在创建窗口前设置深色主题，避免启动闪烁
-    setTheme(Theme.DARK)
+    # 启动时读取主题偏好（默认深色）
+    theme_mode = "dark"
+    try:
+        pref_path = ConfigPaths.get_config_base_dir() / "occm-ui.json"
+        if pref_path.exists():
+            with open(pref_path, "r", encoding="utf-8") as f:
+                pref_data = json.load(f)
+            if isinstance(pref_data, dict):
+                theme_mode = pref_data.get("theme", "dark")
+    except Exception:
+        theme_mode = "dark"
+
+    if theme_mode == "light":
+        setTheme(Theme.LIGHT)
+    elif theme_mode == "auto":
+        setTheme(Theme.AUTO)
+    else:
+        setTheme(Theme.DARK)
     setThemeColor("#2979FF")
 
     # 设置全局字体 - 使用优化后的字体栈

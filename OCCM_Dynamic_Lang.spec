@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import collect_submodules
 
 datas = [('assets', 'assets'), ('locales', 'locales')]
-hiddenimports = ['qfluentwidgets', 'qfluentwidgets.widgets', 'qfluentwidgets.components', 'qfluentwidgets.common', 'qfluentwidgets.window']
+hiddenimports = ['qfluentwidgets', 'qfluentwidgets.widgets', 'qfluentwidgets.components', 'qfluentwidgets.common', 'qfluentwidgets.window', 'requests', 'urllib3', 'certifi', 'charset_normalizer', 'idna']
 datas += collect_data_files('qfluentwidgets')
 hiddenimports += collect_submodules('qfluentwidgets')
 
