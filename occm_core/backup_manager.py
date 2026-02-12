@@ -31,6 +31,10 @@ class BackupManager:
             print(f"Backup failed: {e}")
             return None
 
+    def create_backup(self) -> Optional[Path]:
+        """创建 OpenCode 主配置备份（页面调用入口）"""
+        return self.backup(ConfigPaths.get_opencode_config(), tag="manual")
+
     def backup_data(
         self, config_path: Path, data: Dict, tag: str = "memory"
     ) -> Optional[Path]:

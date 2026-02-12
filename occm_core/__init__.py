@@ -47,6 +47,7 @@ from .skill_manager import (
     SkillUpdater,
 )
 from .version_checker import VersionChecker
+from .remote_manager import RemoteManager, RemoteServer, RemoteServerStore
 
 __all__ = [
     "ConfigPaths",
@@ -90,4 +91,7 @@ __all__ = [
     "_build_chat_url",
     "_extract_origin",
     "get_native_provider",
+    "RemoteManager",
+    "RemoteServer",
+    "RemoteServerStore",
 ]

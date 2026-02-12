@@ -1,12 +1,14 @@
 """Rules 管理页面"""
 
 from __future__ import annotations
+
 from fastapi import Request
 from nicegui import ui
+
 from ..auth import AuthManager as WebAuth, require_auth
 from ..i18n_web import tr
 from ..layout import render_layout
-from occm_core import ConfigPaths, ConfigManager, BackupManager
+from occm_core import BackupManager, ConfigManager, ConfigPaths
 
 
 def register_page(auth: WebAuth | None):
@@ -16,43 +18,202 @@ def register_page(auth: WebAuth | None):
     @ui.page("/rules")
     @dec
     async def rules_page(request: Request):
+        # 读取 OpenCode 配置并兜底
         config = ConfigManager.load_json(ConfigPaths.get_opencode_config()) or {}
         instructions = config.get("instructions", [])
         if not isinstance(instructions, list):
             instructions = []
 
         def content():
-            rows = [{"idx": i, "path": p} for i, p in enumerate(instructions)]
+            # 表格行：通过索引定位到源列表
+            rows = [{"idx": i, "path": str(p)} for i, p in enumerate(instructions)]
             cols = [
                 {"name": "idx", "label": "#", "field": "idx"},
                 {"name": "path", "label": "路径", "field": "path"},
             ]
-            ui.table(columns=cols, rows=rows, row_key="idx").classes("w-full")
-            with ui.dialog() as dlg, ui.card().classes("w-[450px]"):
+
+            # 当前选中行缓存（单选）
+            selected_idx: dict[str, int | None] = {"value": None}
+
+            table = ui.table(
+                columns=cols,
+                rows=rows,
+                row_key="idx",
+                selection="single",
+            ).classes("w-full")
+
+            def on_select(_: object) -> None:
+                selected = table.selected or []
+                selected_idx["value"] = int(selected[0]["idx"]) if selected else None
+
+            table.on("selection", on_select)
+
+            def get_selected_idx(require: bool = True) -> int | None:
+                # 统一获取选中索引
+                idx = selected_idx.get("value")
+                if idx is not None:
+                    return idx
+                selected = table.selected or []
+                if selected:
+                    idx = int(selected[0]["idx"])
+                    selected_idx["value"] = idx
+                    return idx
+                if require:
+                    ui.notify("请先选择一条记录", type="warning")
+                return None
+
+            # ---- 新增对话框 ----
+            with ui.dialog() as add_dlg, ui.card().classes("w-[460px]"):
                 ui.label(tr("common.add") + " Instruction").classes("text-lg font-bold")
                 d_path = ui.input(
                     label="文件路径 / URL / Glob", placeholder="./AGENTS.md"
                 ).classes("w-full")
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
-                    ui.button(tr("common.cancel"), on_click=dlg.close).props("flat")
+                    ui.button(tr("common.cancel"), on_click=add_dlg.close).props("flat")
 
                     def do_add():
+                        # 新增 instruction 项
                         v = (d_path.value or "").strip()
                         if not v:
                             ui.notify("请输入路径", type="warning")
                             return
-                        if "instructions" not in config:
+                        if "instructions" not in config or not isinstance(
+                            config.get("instructions"), list
+                        ):
                             config["instructions"] = []
                         config["instructions"].append(v)
                         ConfigManager.save_json(
                             ConfigPaths.get_opencode_config(), config, BackupManager()
                         )
                         ui.notify(tr("common.success"), type="positive")
-                        dlg.close()
+                        add_dlg.close()
                         ui.navigate.to("/rules")
 
                     ui.button(tr("common.save"), on_click=do_add)
-            ui.button(tr("common.add"), icon="add", on_click=dlg.open).classes("mt-2")
+
+            # ---- 编辑对话框 ----
+            with ui.dialog() as edit_dlg, ui.card().classes("w-[460px]"):
+                ui.label(tr("common.edit") + " Instruction").classes(
+                    "text-lg font-bold"
+                )
+                e_idx = ui.input(label="#").classes("w-full").props("readonly")
+                e_path = ui.input(label="路径").classes("w-full")
+                with ui.row().classes("w-full justify-end gap-2 mt-2"):
+                    ui.button(tr("common.cancel"), on_click=edit_dlg.close).props(
+                        "flat"
+                    )
+
+                    def do_edit():
+                        # 编辑 instruction：按索引覆盖原值
+                        raw_idx = (e_idx.value or "").strip()
+                        new_path = (e_path.value or "").strip()
+                        if not raw_idx:
+                            ui.notify("未找到要编辑的记录", type="warning")
+                            return
+                        if not new_path:
+                            ui.notify("路径不能为空", type="warning")
+                            return
+                        try:
+                            idx = int(raw_idx)
+                        except ValueError:
+                            ui.notify("无效索引", type="warning")
+                            return
+
+                        if "instructions" not in config or not isinstance(
+                            config.get("instructions"), list
+                        ):
+                            config["instructions"] = []
+                        if idx < 0 or idx >= len(config["instructions"]):
+                            ui.notify("记录不存在，可能已被删除", type="warning")
+                            return
+
+                        config["instructions"][idx] = new_path
+                        ConfigManager.save_json(
+                            ConfigPaths.get_opencode_config(), config, BackupManager()
+                        )
+                        ui.notify(tr("common.success"), type="positive")
+                        edit_dlg.close()
+                        ui.navigate.to("/rules")
+
+                    ui.button(tr("common.save"), on_click=do_edit)
+
+            def open_edit_dialog() -> None:
+                idx = get_selected_idx()
+                if idx is None:
+                    return
+                if idx < 0 or idx >= len(instructions):
+                    ui.notify("记录不存在，可能已被删除", type="warning")
+                    return
+                # 编辑弹窗预填当前值
+                e_idx.value = str(idx)
+                e_path.value = str(instructions[idx])
+                edit_dlg.open()
+
+            # ---- 删除确认对话框 ----
+            with ui.dialog() as del_dlg, ui.card().classes("w-[420px]"):
+                ui.label(tr("common.confirm_delete_title")).classes("text-lg font-bold")
+                del_idx = ui.input(label="#").classes("w-full").props("readonly")
+                del_path = ui.input(label="路径").classes("w-full").props("readonly")
+                ui.label("删除后不可恢复，请确认操作。")
+                with ui.row().classes("w-full justify-end gap-2 mt-2"):
+                    ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
+
+                    def do_delete():
+                        # 删除 instruction：从列表中移除对应索引
+                        raw_idx = (del_idx.value or "").strip()
+                        if not raw_idx:
+                            ui.notify("未找到要删除的记录", type="warning")
+                            return
+                        try:
+                            idx = int(raw_idx)
+                        except ValueError:
+                            ui.notify("无效索引", type="warning")
+                            return
+
+                        if "instructions" not in config or not isinstance(
+                            config.get("instructions"), list
+                        ):
+                            config["instructions"] = []
+                        if idx < 0 or idx >= len(config["instructions"]):
+                            ui.notify("记录不存在，可能已被删除", type="warning")
+                            return
+
+                        config["instructions"].pop(idx)
+                        ConfigManager.save_json(
+                            ConfigPaths.get_opencode_config(), config, BackupManager()
+                        )
+                        ui.notify(tr("common.success"), type="positive")
+                        del_dlg.close()
+                        ui.navigate.to("/rules")
+
+                    ui.button(tr("common.delete"), on_click=do_delete).props(
+                        "color=negative"
+                    )
+
+            def open_delete_dialog() -> None:
+                idx = get_selected_idx()
+                if idx is None:
+                    return
+                if idx < 0 or idx >= len(instructions):
+                    ui.notify("记录不存在，可能已被删除", type="warning")
+                    return
+                del_idx.value = str(idx)
+                del_path.value = str(instructions[idx])
+                del_dlg.open()
+
+            # ---- 工具栏 ----
+            with ui.row().classes("w-full gap-2 mt-2"):
+                ui.button(tr("common.add"), icon="add", on_click=lambda: add_dlg.open())
+                ui.button(
+                    tr("common.edit"),
+                    icon="edit",
+                    on_click=lambda: open_edit_dialog(),
+                ).props("outline")
+                ui.button(
+                    tr("common.delete"),
+                    icon="delete",
+                    on_click=lambda: open_delete_dialog(),
+                ).props("outline color=negative")
 
         render_layout(
             request=request,

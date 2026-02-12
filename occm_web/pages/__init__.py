@@ -20,6 +20,7 @@ from . import (
     permission,
     plugin,
     provider,
+    remote,
     rules,
     skill,
 )
@@ -42,6 +43,7 @@ _PAGE_MODULES = [
     cli_export,
     monitor,
     backup,
+    remote,
     help_page,
 ]
 

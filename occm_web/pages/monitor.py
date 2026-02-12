@@ -1,12 +1,35 @@
-"""实时监控页面"""
+"""实时监控页面（真实业务逻辑）"""
 
 from __future__ import annotations
+
+# pyright: reportMissingImports=false
+
+from typing import Any
+
 from fastapi import Request
 from nicegui import ui
+
+from occm_core import (
+    ConfigManager,
+    ConfigPaths,
+    MonitorResult,
+    MonitorService,
+    MonitorTarget,
+)
+
 from ..auth import AuthManager as WebAuth, require_auth
-from ..i18n_web import tr
 from ..layout import render_layout
-from occm_core import ConfigPaths, ConfigManager
+
+
+def _status_text(status: str) -> str:
+    mapping = {
+        "operational": "✅ 正常",
+        "degraded": "⚠️ 退化",
+        "failed": "❌ 失败",
+        "error": "❌ 错误",
+        "no_config": "ℹ️ 未配置",
+    }
+    return mapping.get(status, status)
 
 
 def register_page(auth: WebAuth | None):
@@ -17,53 +40,175 @@ def register_page(auth: WebAuth | None):
     @dec
     async def monitor_page(request: Request):
         config = ConfigManager.load_json(ConfigPaths.get_opencode_config()) or {}
-        providers = config.get("provider", {})
-        polling = {"active": False}
-        results: list[dict] = []
+        if not isinstance(config, dict):
+            config = {}
+
+        service = MonitorService(poll_interval_ms=10000)
+        service.set_chat_test_enabled(True)
 
         def content():
-            status_label = ui.label("监控未启动").classes("text-gray-500")
-            result_col = ui.column().classes("w-full gap-2")
+            running = {"value": False}
+            selected = {"target_id": None}
+            poll_done_flag = {"value": False}
 
-            def do_poll():
-                if not polling["active"]:
-                    return
-                results.clear()
-                for pkey, pval in providers.items():
-                    if not isinstance(pval, dict):
-                        continue
-                    base = (pval.get("baseURL") or "").strip()
-                    results.append(
+            status_label = ui.label("监控未启动").classes("text-gray-500")
+
+            with ui.row().classes("w-full gap-2"):
+                ui.button(
+                    "刷新目标", icon="refresh", on_click=lambda: refresh_targets()
+                ).props("outline")
+                ui.button(
+                    "开始监控", icon="play_arrow", on_click=lambda: start_monitor()
+                ).props("unelevated")
+                ui.button(
+                    "停止监控", icon="stop", on_click=lambda: stop_monitor()
+                ).props("outline")
+
+            target_table = ui.table(
+                columns=[
+                    {
+                        "name": "target_id",
+                        "label": "目标ID",
+                        "field": "target_id",
+                        "sortable": True,
+                    },
+                    {"name": "provider", "label": "Provider", "field": "provider"},
+                    {"name": "model", "label": "Model", "field": "model"},
+                    {"name": "base_url", "label": "baseURL", "field": "base_url"},
+                ],
+                rows=[],
+                row_key="target_id",
+                selection="single",
+                pagination=10,
+            ).classes("w-full")
+
+            def on_target_select(_: Any) -> None:
+                rows = target_table.selected or []
+                selected["target_id"] = rows[0]["target_id"] if rows else None
+
+            target_table.on("selection", on_target_select)
+
+            result_table = ui.table(
+                columns=[
+                    {
+                        "name": "target_id",
+                        "label": "目标ID",
+                        "field": "target_id",
+                        "sortable": True,
+                    },
+                    {"name": "status", "label": "状态", "field": "status"},
+                    {
+                        "name": "latency_ms",
+                        "label": "延迟(ms)",
+                        "field": "latency_ms",
+                        "sortable": True,
+                    },
+                    {
+                        "name": "ping_ms",
+                        "label": "Ping(ms)",
+                        "field": "ping_ms",
+                        "sortable": True,
+                    },
+                    {
+                        "name": "checked_at",
+                        "label": "检查时间",
+                        "field": "checked_at",
+                        "sortable": True,
+                    },
+                    {"name": "message", "label": "说明", "field": "message"},
+                ],
+                rows=[],
+                row_key="target_id",
+                selection="single",
+                pagination=10,
+            ).classes("w-full")
+
+            def refresh_targets() -> None:
+                targets = service.load_targets_from_config(config)
+                target_rows = [
+                    {
+                        "target_id": t.target_id,
+                        "provider": t.provider_name,
+                        "model": t.model_name,
+                        "base_url": t.base_url,
+                    }
+                    for t in targets
+                ]
+                target_rows.sort(key=lambda r: r["target_id"])
+                target_table.rows = target_rows
+                target_table.update()
+                refresh_results()
+
+            def refresh_results() -> None:
+                rows: list[dict[str, Any]] = []
+                for row in target_table.rows:
+                    target_id = row["target_id"]
+                    history = list(service.get_history(target_id))
+                    latest: MonitorResult | None = history[-1] if history else None
+                    rows.append(
                         {
-                            "provider": pkey,
-                            "baseURL": base or "(默认)",
-                            "status": "✓ 在线" if base else "⚠ 未配置URL",
+                            "target_id": target_id,
+                            "status": _status_text(latest.status)
+                            if latest
+                            else "待检测",
+                            "latency_ms": latest.latency_ms
+                            if latest and latest.latency_ms is not None
+                            else -1,
+                            "ping_ms": latest.ping_ms
+                            if latest and latest.ping_ms is not None
+                            else -1,
+                            "checked_at": latest.checked_at.strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            )
+                            if latest
+                            else "-",
+                            "message": latest.message if latest else "尚未产生监控结果",
                         }
                     )
-                result_col.clear()
-                with result_col:
-                    for r in results:
-                        with ui.row().classes(
-                            "w-full items-center gap-4 p-2 border rounded"
-                        ):
-                            ui.label(r["provider"]).classes("font-medium w-32")
-                            ui.label(r["baseURL"]).classes("text-gray-600 flex-1")
-                            ui.label(r["status"])
+                if selected.get("target_id"):
+                    rows = [r for r in rows if r["target_id"] == selected["target_id"]]
+                result_table.rows = rows
+                result_table.update()
 
-            timer = ui.timer(5.0, do_poll, active=False)
+            def start_monitor() -> None:
+                if running["value"]:
+                    return
+                if not target_table.rows:
+                    refresh_targets()
+                if not target_table.rows:
+                    ui.notify(
+                        "没有可监控目标，请先配置 Provider 与模型", type="warning"
+                    )
+                    return
+                service.start_polling()
+                running["value"] = True
+                status_label.set_text("监控运行中...")
+                status_label.classes(remove="text-gray-500")
+                status_label.classes(add="text-positive")
 
-            def toggle():
-                polling["active"] = not polling["active"]
-                timer.active = polling["active"]
-                status_label.set_text(
-                    "监控运行中..." if polling["active"] else "监控已停止"
-                )
-                if polling["active"]:
-                    do_poll()
+            def stop_monitor() -> None:
+                if not running["value"]:
+                    return
+                service.stop_polling()
+                running["value"] = False
+                status_label.set_text("监控已停止")
+                status_label.classes(remove="text-positive")
+                status_label.classes(add="text-gray-500")
 
-            ui.button("开始/停止监控", icon="play_arrow", on_click=toggle).classes(
-                "mt-2"
-            )
+            # 监听一次轮询结束事件，配合定时器刷新
+            def on_poll_done() -> None:
+                poll_done_flag["value"] = True
+
+            service.add_poll_done_callback(on_poll_done)
+
+            def tick() -> None:
+                if poll_done_flag["value"] or running["value"]:
+                    poll_done_flag["value"] = False
+                    refresh_results()
+
+            ui.timer(2.0, tick, active=True)
+
+            refresh_targets()
 
         render_layout(
             request=request,

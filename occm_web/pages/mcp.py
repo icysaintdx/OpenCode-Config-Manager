@@ -9,19 +9,19 @@ from ..layout import render_layout
 from occm_core import ConfigPaths, ConfigManager, BackupManager
 
 
-def _load_config() -> dict:
+def _load_config() -> dict[str, object]:
     return ConfigManager.load_json(ConfigPaths.get_opencode_config()) or {}
 
 
-def _load_omo() -> dict:
+def _load_omo() -> dict[str, object]:
     return ConfigManager.load_json(ConfigPaths.get_ohmyopencode_config()) or {}
 
 
-def _save_config(config: dict) -> None:
+def _save_config(config: dict[str, object]) -> None:
     ConfigManager.save_json(ConfigPaths.get_opencode_config(), config, BackupManager())
 
 
-def _save_omo(config: dict) -> None:
+def _save_omo(config: dict[str, object]) -> None:
     ConfigManager.save_json(
         ConfigPaths.get_ohmyopencode_config(), config, BackupManager()
     )
@@ -59,20 +59,53 @@ def register_page(auth: WebAuth | None):
         )
 
 
-def _render_mcp_table(config: dict, mcp_cfg: dict):
-    rows = []
-    for key, val in mcp_cfg.items():
+def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
+    import json as _json
+
+    def _as_int(value: object, default: int = 5000) -> int:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except Exception:
+                return default
+        return default
+
+    def _ensure_mcp_map() -> dict[str, object]:
+        current = config.get("mcp")
+        if isinstance(current, dict):
+            normalized = {str(k): v for k, v in current.items()}
+        else:
+            normalized = {}
+        config["mcp"] = normalized
+        return normalized
+
+    # 记录当前选中行，供编辑/删除复用
+    selected_name: dict[str, str | None] = {"value": None}
+
+    rows: list[dict[str, object]] = []
+    for name, val in mcp_cfg.items():
         if not isinstance(val, dict):
             continue
         mtype = "remote" if val.get("url") else "local"
+        cmd_value = val.get("command", [])
+        if isinstance(cmd_value, list):
+            cmd_display = " ".join(str(item) for item in cmd_value)
+        else:
+            cmd_display = ""
         rows.append(
             {
-                "name": key,
+                "name": name,
                 "type": mtype,
                 "enabled": "✓" if val.get("enabled", True) else "✗",
-                "command": " ".join(val.get("command", []))
-                if isinstance(val.get("command"), list)
-                else str(val.get("url", "")),
+                "command": cmd_display,
+                "url": str(val.get("url", "")),
+                "timeout": _as_int(val.get("timeout", 5000), 5000),
             }
         )
 
@@ -80,69 +113,243 @@ def _render_mcp_table(config: dict, mcp_cfg: dict):
         {"name": "name", "label": tr("common.name"), "field": "name", "sortable": True},
         {"name": "type", "label": tr("common.type"), "field": "type"},
         {"name": "enabled", "label": tr("common.status"), "field": "enabled"},
-        {"name": "command", "label": "Command / URL", "field": "command"},
+        {"name": "command", "label": "Command", "field": "command"},
+        {"name": "url", "label": "URL", "field": "url"},
+        {"name": "timeout", "label": "Timeout(ms)", "field": "timeout"},
     ]
-    table = ui.table(columns=columns, rows=rows, row_key="name").classes("w-full")
 
-    with ui.dialog() as dlg, ui.card().classes("w-[520px]"):
-        ui.label(tr("common.add") + " MCP").classes("text-lg font-bold")
-        d_name = ui.input(label=tr("common.name"), placeholder="context7").classes(
-            "w-full"
+    table = ui.table(
+        columns=columns,
+        rows=rows,
+        row_key="name",
+        selection="single",
+        pagination=10,
+    ).classes("w-full")
+
+    def _get_selected_name(require: bool = True) -> str | None:
+        if selected_name["value"]:
+            return selected_name["value"]
+        selected = table.selected or []
+        if selected:
+            selected_name["value"] = selected[0].get("name")
+            return selected_name["value"]
+        if require:
+            ui.notify("请先选择一行", type="warning")
+        return None
+
+    def _on_select(_: object) -> None:
+        selected = table.selected or []
+        selected_name["value"] = selected[0].get("name") if selected else None
+
+    table.on("selection", _on_select)
+
+    def _open_upsert_dialog(mode: str, edit_key: str | None = None) -> None:
+        is_edit = mode == "edit"
+        default_type = "local" if mode == "add_local" else "remote"
+
+        origin_data: dict[str, object] = {}
+        if is_edit:
+            current = mcp_cfg.get(edit_key or "", {})
+            if isinstance(current, dict):
+                origin_data = current
+            default_type = "remote" if origin_data.get("url") else "local"
+
+        initial_command = (
+            origin_data.get("command", []) if isinstance(origin_data, dict) else []
         )
-        d_type = ui.select(
-            label=tr("common.type"), options=["local", "remote"], value="local"
-        ).classes("w-full")
-        d_cmd = ui.input(
-            label="Command (JSON数组)",
-            placeholder='["npx", "-y", "@upstash/context7-mcp"]',
-        ).classes("w-full")
-        d_url = ui.input(label="URL", placeholder="https://...").classes("w-full")
-        d_env = ui.input(
-            label="环境变量 (JSON)", placeholder='{"API_KEY": "xxx"}'
-        ).classes("w-full")
-        d_timeout = ui.number(label="Timeout (ms)", value=5000).classes("w-full")
-        d_enabled = ui.switch("启用", value=True)
+        if not isinstance(initial_command, list):
+            initial_command = []
+        initial_env = (
+            origin_data.get("environment", {}) if isinstance(origin_data, dict) else {}
+        )
+        if not isinstance(initial_env, dict):
+            initial_env = {}
 
-        with ui.row().classes("w-full justify-end gap-2 mt-2"):
-            ui.button(tr("common.cancel"), on_click=dlg.close).props("flat")
+        with ui.dialog() as dlg, ui.card().classes("w-[680px] max-w-full"):
+            ui.label("编辑 MCP" if is_edit else "添加 MCP").classes("text-lg font-bold")
 
-            def do_add():
-                import json as _json
+            name_input = ui.input(
+                label="名称",
+                value=str(edit_key or ""),
+                placeholder="context7",
+            ).classes("w-full")
 
-                name = (d_name.value or "").strip()
-                if not name:
-                    ui.notify("请输入名称", type="warning")
-                    return
-                entry: dict = {"enabled": d_enabled.value}
-                if d_type.value == "local":
-                    try:
-                        entry["command"] = _json.loads(d_cmd.value or "[]")
-                    except Exception:
-                        entry["command"] = [d_cmd.value or ""]
+            type_select = ui.select(
+                label="类型",
+                options=["local", "remote"],
+                value=default_type,
+            ).classes("w-full")
+
+            cmd_input = ui.input(
+                label="Command (JSON数组)",
+                value=_json.dumps(initial_command, ensure_ascii=False),
+                placeholder='["npx", "-y", "@upstash/context7-mcp"]',
+            ).classes("w-full")
+
+            url_input = ui.input(
+                label="URL",
+                value=str(origin_data.get("url", "")),
+                placeholder="https://...",
+            ).classes("w-full")
+
+            env_input = ui.input(
+                label="环境变量(JSON)",
+                value=_json.dumps(initial_env, ensure_ascii=False),
+                placeholder='{"API_KEY": "xxx"}',
+            ).classes("w-full")
+
+            timeout_input = ui.number(
+                label="Timeout(ms)",
+                value=_as_int(origin_data.get("timeout", 5000), 5000),
+            ).classes("w-full")
+
+            enabled_switch = ui.switch(
+                "启用",
+                value=bool(origin_data.get("enabled", True)) if is_edit else True,
+            )
+
+            # 根据类型切换可见字段
+            def _apply_type_visibility() -> None:
+                if type_select.value == "local":
+                    cmd_input.visible = True
+                    url_input.visible = False
                 else:
-                    entry["url"] = (d_url.value or "").strip()
-                if d_env.value:
-                    try:
-                        entry["environment"] = _json.loads(d_env.value)
-                    except Exception:
-                        pass
-                t = int(d_timeout.value or 5000)
-                if t != 5000:
-                    entry["timeout"] = t
-                if "mcp" not in config:
-                    config["mcp"] = {}
-                config["mcp"][name] = entry
-                _save_config(config)
-                ui.notify(tr("common.success"), type="positive")
-                dlg.close()
-                ui.navigate.to("/mcp")
+                    cmd_input.visible = False
+                    url_input.visible = True
 
-            ui.button(tr("common.save"), on_click=do_add)
+            type_select.on_value_change(lambda _: _apply_type_visibility())
+            _apply_type_visibility()
 
-    ui.button(tr("common.add"), icon="add", on_click=dlg.open).classes("mt-2")
+            with ui.row().classes("w-full justify-end gap-2 mt-2"):
+                ui.button(tr("common.cancel"), on_click=dlg.close).props("flat")
+
+                def _do_save() -> None:
+                    name = (name_input.value or "").strip()
+                    if not name:
+                        ui.notify("名称不能为空", type="warning")
+                        return
+
+                    mcp_map = _ensure_mcp_map()
+
+                    entry: dict[str, object] = {"enabled": bool(enabled_switch.value)}
+
+                    if type_select.value == "local":
+                        raw_cmd = (cmd_input.value or "").strip()
+                        if not raw_cmd:
+                            ui.notify(
+                                "Local 类型必须填写 Command(JSON数组)", type="warning"
+                            )
+                            return
+                        try:
+                            parsed_cmd = _json.loads(raw_cmd)
+                        except Exception:
+                            ui.notify("Command 必须是合法 JSON 数组", type="warning")
+                            return
+                        if not isinstance(parsed_cmd, list):
+                            ui.notify("Command 必须是 JSON 数组", type="warning")
+                            return
+                        entry["command"] = parsed_cmd
+                    else:
+                        url = (url_input.value or "").strip()
+                        if not url:
+                            ui.notify("Remote 类型必须填写 URL", type="warning")
+                            return
+                        entry["url"] = url
+
+                    raw_env = (env_input.value or "").strip()
+                    if raw_env:
+                        try:
+                            parsed_env = _json.loads(raw_env)
+                        except Exception:
+                            ui.notify("环境变量必须是合法 JSON 对象", type="warning")
+                            return
+                        if not isinstance(parsed_env, dict):
+                            ui.notify("环境变量必须是 JSON 对象", type="warning")
+                            return
+                        entry["environment"] = parsed_env
+
+                    timeout_val = _as_int(timeout_input.value, 5000)
+                    if timeout_val != 5000:
+                        entry["timeout"] = timeout_val
+
+                    old_name = edit_key if is_edit else None
+                    if old_name and old_name != name and name in mcp_map:
+                        ui.notify("目标名称已存在，请更换名称", type="warning")
+                        return
+
+                    if old_name and old_name != name:
+                        mcp_map.pop(old_name, None)
+                    mcp_map[name] = entry
+
+                    _save_config(config)
+                    dlg.close()
+                    ui.notify(tr("common.success"), type="positive")
+                    ui.navigate.to("/mcp")
+
+                ui.button(tr("common.save"), on_click=_do_save)
+
+        dlg.open()
+
+    with ui.row().classes("w-full gap-2 mt-2"):
+        ui.button(
+            "添加 Local", icon="add", on_click=lambda: _open_upsert_dialog("add_local")
+        )
+        ui.button(
+            "添加 Remote",
+            icon="add",
+            on_click=lambda: _open_upsert_dialog("add_remote"),
+        )
+
+        def _on_edit() -> None:
+            key = _get_selected_name(require=True)
+            if not key:
+                return
+            _open_upsert_dialog("edit", key)
+
+        ui.button("编辑", icon="edit", on_click=_on_edit)
+
+        with ui.dialog() as delete_dlg, ui.card().classes("w-[420px]"):
+            ui.label("确认删除").classes("text-base font-semibold")
+            delete_msg = ui.label("")
+
+            with ui.row().classes("w-full justify-end gap-2 mt-2"):
+                ui.button(tr("common.cancel"), on_click=delete_dlg.close).props("flat")
+
+                def _confirm_delete() -> None:
+                    key = _get_selected_name(require=False)
+                    if not key:
+                        delete_dlg.close()
+                        ui.notify("未找到选中项", type="warning")
+                        return
+                    mcp_map = _ensure_mcp_map()
+                    mcp_map.pop(key, None)
+                    _save_config(config)
+                    delete_dlg.close()
+                    ui.notify(tr("common.success"), type="positive")
+                    ui.navigate.to("/mcp")
+
+                ui.button("删除", color="negative", on_click=_confirm_delete)
+
+        def _on_delete() -> None:
+            key = _get_selected_name(require=True)
+            if not key:
+                return
+            delete_msg.text = f"确定删除 MCP：{key} ？"
+            delete_dlg.open()
+
+        ui.button("删除", icon="delete", color="negative", on_click=_on_delete)
 
 
-def _render_omo_mcp(omo: dict):
+def _render_omo_mcp(omo: dict[str, object]):
+    def _ensure_omo_mcp_map() -> dict[str, object]:
+        current = omo.get("mcp")
+        if isinstance(current, dict):
+            normalized = {str(k): v for k, v in current.items()}
+        else:
+            normalized = {}
+        omo["mcp"] = normalized
+        return normalized
+
     omo_mcp = omo.get("mcp", {})
     if not isinstance(omo_mcp, dict):
         omo_mcp = {}
@@ -154,12 +361,14 @@ def _render_omo_mcp(omo: dict):
             ui.label(name).classes("text-base font-medium w-40")
             sw = ui.switch("", value=enabled)
 
+            # 保留原有 Oh My MCP 开关逻辑
             def toggle(n=name, s=sw):
-                if "mcp" not in omo:
-                    omo["mcp"] = {}
-                if n not in omo["mcp"]:
-                    omo["mcp"][n] = {}
-                omo["mcp"][n]["enabled"] = s.value
+                omo_mcp_map = _ensure_omo_mcp_map()
+                target = omo_mcp_map.get(n)
+                if not isinstance(target, dict):
+                    target = {}
+                    omo_mcp_map[n] = target
+                target["enabled"] = s.value
                 _save_omo(omo)
                 ui.notify(tr("common.success"), type="positive")
 

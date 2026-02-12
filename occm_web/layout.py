@@ -38,6 +38,7 @@ NAV_ITEMS: list[dict[str, str]] = [
     {"route": "/cli-export", "key": "menu.export", "fallback": "CLI导出"},
     {"route": "/monitor", "key": "menu.monitor", "fallback": "监控"},
     {"route": "/backup", "key": "menu.backup", "fallback": "备份管理"},
+    {"route": "/remote", "key": "menu.remote", "fallback": "远程管理"},
     {"route": "/help", "key": "menu.help", "fallback": "帮助"},
 ]
 
