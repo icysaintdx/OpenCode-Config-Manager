@@ -54,9 +54,18 @@ def register_page(auth: WebAuth | None):
                     rows.append({"tool": str(tool), "level": "ask", "pattern": ""})
 
             cols = [
-                {"name": "tool", "label": "工具", "field": "tool", "sortable": True},
-                {"name": "level", "label": "权限", "field": "level"},
-                {"name": "pattern", "label": "模式", "field": "pattern"},
+                {
+                    "name": "tool",
+                    "label": tr("permission.tool_name"),
+                    "field": "tool",
+                    "sortable": True,
+                },
+                {
+                    "name": "level",
+                    "label": tr("permission.permission_level"),
+                    "field": "level",
+                },
+                {"name": "pattern", "label": tr("rules.pattern"), "field": "pattern"},
             ]
 
             # 当前选中行缓存（单选）
@@ -86,23 +95,27 @@ def register_page(auth: WebAuth | None):
                     selected_tool["value"] = tool
                     return tool
                 if require:
-                    ui.notify("请先选择一条记录", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                 return None
 
             # ---- 新增对话框 ----
             with ui.dialog() as add_dlg, ui.card().classes("w-[460px]"):
-                ui.label(tr("common.add") + " 权限规则").classes("text-lg font-bold")
+                ui.label(tr("common.add") + " " + tr("web.permission_rule")).classes(
+                    "text-lg font-bold"
+                )
                 d_tool = ui.select(
-                    label="工具",
-                    options=BUILTIN_TOOLS + ["(自定义)"],
+                    label=tr("permission.tool_name"),
+                    options=BUILTIN_TOOLS + ["(" + tr("web.custom") + ")"],
                     value="Bash",
                     with_input=True,
                 ).classes("w-full")
                 d_level = ui.select(
-                    label="权限级别", options=["allow", "ask", "deny"], value="ask"
+                    label=tr("permission.permission_level"),
+                    options=["allow", "ask", "deny"],
+                    value="ask",
                 ).classes("w-full")
                 d_pattern = ui.input(
-                    label="命令模式（可选）", placeholder="git *"
+                    label=tr("web.command_pattern_optional"), placeholder="git *"
                 ).classes("w-full")
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=add_dlg.close).props("flat")
@@ -110,8 +123,8 @@ def register_page(auth: WebAuth | None):
                     def do_add():
                         # 新增规则：pattern 为空时写字符串，否则写对象
                         tool = (d_tool.value or "").strip()
-                        if not tool or tool == "(自定义)":
-                            ui.notify("请输入有效工具名", type="warning")
+                        if not tool or tool == "(" + tr("web.custom") + ")":
+                            ui.notify(tr("web.enter_valid_tool"), type="warning")
                             return
                         if "permission" not in config or not isinstance(
                             config.get("permission"), dict
@@ -136,13 +149,21 @@ def register_page(auth: WebAuth | None):
 
             # ---- 编辑对话框 ----
             with ui.dialog() as edit_dlg, ui.card().classes("w-[460px]"):
-                ui.label(tr("common.edit") + " 权限规则").classes("text-lg font-bold")
-                e_tool = ui.input(label="工具").classes("w-full").props("readonly")
+                ui.label(tr("common.edit") + " " + tr("web.permission_rule")).classes(
+                    "text-lg font-bold"
+                )
+                e_tool = (
+                    ui.input(label=tr("permission.tool_name"))
+                    .classes("w-full")
+                    .props("readonly")
+                )
                 e_level = ui.select(
-                    label="权限级别", options=["allow", "ask", "deny"], value="ask"
+                    label=tr("permission.permission_level"),
+                    options=["allow", "ask", "deny"],
+                    value="ask",
                 ).classes("w-full")
                 e_pattern = ui.input(
-                    label="命令模式（可选）", placeholder="git *"
+                    label=tr("web.command_pattern_optional"), placeholder="git *"
                 ).classes("w-full")
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=edit_dlg.close).props(
@@ -153,14 +174,14 @@ def register_page(auth: WebAuth | None):
                         # 编辑规则：tool 只读，按原 key 覆盖
                         tool = (e_tool.value or "").strip()
                         if not tool:
-                            ui.notify("未找到要编辑的工具", type="warning")
+                            ui.notify(tr("web.edit_target_not_found"), type="warning")
                             return
                         if "permission" not in config or not isinstance(
                             config.get("permission"), dict
                         ):
                             config["permission"] = {}
                         if tool not in config["permission"]:
-                            ui.notify("规则不存在，可能已被删除", type="warning")
+                            ui.notify(tr("web.record_not_exist"), type="warning")
                             return
 
                         level = str(e_level.value or "ask")
@@ -200,8 +221,12 @@ def register_page(auth: WebAuth | None):
             # ---- 删除确认对话框 ----
             with ui.dialog() as del_dlg, ui.card().classes("w-[420px]"):
                 ui.label(tr("common.confirm_delete_title")).classes("text-lg font-bold")
-                del_tool = ui.input(label="工具").classes("w-full").props("readonly")
-                ui.label("删除后不可恢复，请确认操作。")
+                del_tool = (
+                    ui.input(label=tr("permission.tool_name"))
+                    .classes("w-full")
+                    .props("readonly")
+                )
+                ui.label(tr("web.delete_irreversible"))
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
 
@@ -209,7 +234,7 @@ def register_page(auth: WebAuth | None):
                         # 删除选中权限规则
                         tool = (del_tool.value or "").strip()
                         if not tool:
-                            ui.notify("未找到要删除的工具", type="warning")
+                            ui.notify(tr("web.delete_target_not_found"), type="warning")
                             return
                         if (
                             isinstance(config.get("permission"), dict)
@@ -225,7 +250,7 @@ def register_page(auth: WebAuth | None):
                             del_dlg.close()
                             ui.navigate.to("/permission")
                         else:
-                            ui.notify("规则不存在，可能已被删除", type="warning")
+                            ui.notify(tr("web.record_not_exist"), type="warning")
 
                     ui.button(tr("common.delete"), on_click=do_delete).props(
                         "color=negative"

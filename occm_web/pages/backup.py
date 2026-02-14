@@ -14,6 +14,7 @@ from nicegui import ui
 from occm_core import BackupManager, ConfigPaths
 
 from ..auth import AuthManager as WebAuth, require_auth
+from ..i18n_web import tr
 from ..layout import render_layout
 
 
@@ -31,39 +32,47 @@ def register_page(auth: WebAuth | None):
 
             with ui.row().classes("w-full gap-2"):
                 ui.button(
-                    "创建备份", icon="backup", on_click=lambda: create_backup()
+                    tr("backup.create_backup"),
+                    icon="backup",
+                    on_click=lambda: create_backup(),
                 ).props("unelevated")
                 ui.button(
-                    "恢复选中备份", icon="restore", on_click=lambda: restore_selected()
+                    tr("backup.restore_selected"),
+                    icon="restore",
+                    on_click=lambda: restore_selected(),
                 ).props("outline")
                 ui.button(
-                    "删除选中备份", icon="delete", on_click=lambda: delete_selected()
+                    tr("common.delete"),
+                    icon="delete",
+                    on_click=lambda: delete_selected(),
                 ).props("outline color=negative")
                 ui.button(
-                    "刷新", icon="refresh", on_click=lambda: refresh_table()
+                    tr("common.refresh"),
+                    icon="refresh",
+                    on_click=lambda: refresh_table(),
                 ).props("outline")
 
             backup_table = ui.table(
                 columns=[
                     {
                         "name": "file",
-                        "label": "备份文件",
+                        "label": tr("backup.config_file"),
                         "field": "file",
                         "sortable": True,
                     },
                     {
                         "name": "time",
-                        "label": "时间",
+                        "label": tr("backup.time"),
                         "field": "time",
                         "sortable": True,
                     },
                     {
                         "name": "size",
-                        "label": "大小",
+                        "label": tr("backup.backup_size"),
                         "field": "size",
                         "sortable": True,
                     },
-                    {"name": "path", "label": "路径", "field": "path"},
+                    {"name": "path", "label": tr("backup.path"), "field": "path"},
                 ],
                 rows=[],
                 row_key="path",
@@ -102,35 +111,37 @@ def register_page(auth: WebAuth | None):
                 # 按任务要求调用 create_backup()
                 path = bm.create_backup()
                 if path is None:
-                    ui.notify("创建备份失败", type="negative")
+                    ui.notify(tr("web.backup_create_failed"), type="negative")
                     return
-                ui.notify(f"备份已创建: {path.name}", type="positive")
+                ui.notify(
+                    f"{tr('backup.backup_success')}: {path.name}", type="positive"
+                )
                 refresh_table()
 
             def restore_selected() -> None:
                 selected_path = selected.get("path")
                 if not selected_path:
-                    ui.notify("请先选择一行备份", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                     return
                 backup_path = Path(selected_path)
                 ok = bm.restore(backup_path, ConfigPaths.get_opencode_config())
                 if not ok:
-                    ui.notify("恢复失败", type="negative")
+                    ui.notify(tr("web.restore_failed"), type="negative")
                     return
-                ui.notify("恢复成功", type="positive")
+                ui.notify(tr("backup.restore_success"), type="positive")
 
             def delete_selected() -> None:
                 selected_path = selected.get("path")
                 if not selected_path:
-                    ui.notify("请先选择一行备份", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                     return
                 backup_path = Path(selected_path)
                 ok = bm.delete_backup(backup_path)
                 if not ok:
-                    ui.notify("删除失败", type="negative")
+                    ui.notify(tr("web.delete_failed"), type="negative")
                     return
                 selected["path"] = None
-                ui.notify("删除成功", type="positive")
+                ui.notify(tr("backup.delete_success"), type="positive")
                 refresh_table()
 
             refresh_table()

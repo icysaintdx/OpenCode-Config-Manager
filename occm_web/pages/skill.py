@@ -76,25 +76,29 @@ def register_page(auth: WebAuth | None):
             selected: dict[str, str | None] = {"name": None}
 
             with ui.tabs().classes("w-full") as tabs:
-                t_installed = ui.tab("已安装 Skills")
-                t_market = ui.tab("Skill 市场")
+                t_installed = ui.tab(tr("skill.title"))
+                t_market = ui.tab(tr("skill.market"))
 
             with ui.tab_panels(tabs, value=t_installed).classes("w-full"):
                 with ui.tab_panel(t_installed):
                     with ui.row().classes("w-full gap-2"):
                         ui.button(
-                            "刷新", icon="refresh", on_click=lambda: refresh_installed()
+                            tr("common.refresh"),
+                            icon="refresh",
+                            on_click=lambda: refresh_installed(),
                         ).props("outline")
                         ui.button(
-                            "编辑权限", icon="edit", on_click=lambda: open_edit_dialog()
+                            tr("web.edit_permission"),
+                            icon="edit",
+                            on_click=lambda: open_edit_dialog(),
                         ).props("outline")
                         ui.button(
-                            "删除 Skill",
+                            tr("web.delete_skill"),
                             icon="delete",
                             on_click=lambda: delete_selected(),
                         ).props("outline color=negative")
                         ui.button(
-                            "检查更新",
+                            tr("common.check_update"),
                             icon="update",
                             on_click=lambda: refresh_installed(check_update=True),
                         ).props("outline")
@@ -109,17 +113,25 @@ def register_page(auth: WebAuth | None):
                             },
                             {
                                 "name": "source",
-                                "label": "来源",
+                                "label": tr("skill.skill_source"),
                                 "field": "source",
                                 "sortable": True,
                             },
                             {
                                 "name": "permission",
-                                "label": "权限",
+                                "label": tr("skill.permission"),
                                 "field": "permission",
                             },
-                            {"name": "path", "label": "路径", "field": "path"},
-                            {"name": "update", "label": "更新状态", "field": "update"},
+                            {
+                                "name": "path",
+                                "label": tr("skill.skill_path"),
+                                "field": "path",
+                            },
+                            {
+                                "name": "update",
+                                "label": tr("web.update_status"),
+                                "field": "update",
+                            },
                         ],
                         rows=[],
                         row_key="name",
@@ -142,17 +154,20 @@ def register_page(auth: WebAuth | None):
                         def install_from_github() -> None:
                             source = (gh_input.value or "").strip()
                             if not source:
-                                ui.notify("请输入 GitHub 地址", type="warning")
+                                ui.notify(tr("web.please_enter_github"), type="warning")
                                 return
                             try:
                                 source_type, details = SkillInstaller.parse_source(
                                     source
                                 )
                             except Exception as exc:
-                                ui.notify(f"来源解析失败: {exc}", type="negative")
+                                ui.notify(
+                                    f"{tr('web.source_parse_failed')}: {exc}",
+                                    type="negative",
+                                )
                                 return
                             if source_type != "github":
-                                ui.notify("仅支持 GitHub 地址", type="warning")
+                                ui.notify(tr("web.github_only"), type="warning")
                                 return
 
                             owner = details["owner"]
@@ -185,7 +200,9 @@ def register_page(auth: WebAuth | None):
                         )
 
                     with ui.dialog() as edit_dlg, ui.card().classes("w-[420px]"):
-                        ui.label("编辑 Skill 权限").classes("text-lg font-bold")
+                        ui.label(tr("web.edit_skill_permission")).classes(
+                            "text-lg font-bold"
+                        )
                         perm_select = ui.select(
                             label="permission",
                             options=["allow", "ask", "deny"],
@@ -199,7 +216,9 @@ def register_page(auth: WebAuth | None):
                             def save_permission() -> None:
                                 name = selected.get("name")
                                 if not name:
-                                    ui.notify("请先选择一行 Skill", type="warning")
+                                    ui.notify(
+                                        tr("common.select_item_first"), type="warning"
+                                    )
                                     return
                                 ensure_skill_entry(name)
                                 config["skill"][name] = {
@@ -229,12 +248,12 @@ def register_page(auth: WebAuth | None):
                             return
                         target = SkillDiscovery.get_skill_by_name(name)
                         if not target:
-                            ui.notify("未找到 Skill 文件目录", type="negative")
+                            ui.notify(tr("web.skill_dir_not_found"), type="negative")
                             return
                         try:
                             shutil.rmtree(target.path.parent)
                         except Exception as exc:
-                            ui.notify(f"删除失败: {exc}", type="negative")
+                            ui.notify(f"{tr('common.error')}: {exc}", type="negative")
                             return
                         if isinstance(config.get("skill"), dict):
                             config["skill"].pop(name, None)
@@ -250,7 +269,7 @@ def register_page(auth: WebAuth | None):
                                 skill = item.get("skill")
                                 if isinstance(skill, DiscoveredSkill):
                                     update_map[skill.name] = str(
-                                        item.get("status") or "未知"
+                                        item.get("status") or tr("web.unknown")
                                     )
 
                         rows: list[dict[str, Any]] = []
@@ -264,7 +283,9 @@ def register_page(auth: WebAuth | None):
                                     .get(item.name, {})
                                     .get("permission", "ask"),
                                     "path": str(item.path.parent),
-                                    "update": update_map.get(item.name, "未检查"),
+                                    "update": update_map.get(
+                                        item.name, tr("web.not_checked")
+                                    ),
                                 }
                             )
                         rows.sort(key=lambda r: r["name"])
@@ -282,16 +303,20 @@ def register_page(auth: WebAuth | None):
                                 "field": "name",
                                 "sortable": True,
                             },
-                            {"name": "repo", "label": "仓库", "field": "repo"},
+                            {
+                                "name": "repo",
+                                "label": tr("web.repository"),
+                                "field": "repo",
+                            },
                             {
                                 "name": "category",
-                                "label": "分类",
+                                "label": tr("web.category"),
                                 "field": "category",
                                 "sortable": True,
                             },
                             {
                                 "name": "description",
-                                "label": "描述",
+                                "label": tr("common.description"),
                                 "field": "description",
                             },
                         ],
@@ -304,12 +329,12 @@ def register_page(auth: WebAuth | None):
                     def install_from_market() -> None:
                         picked = market_table.selected or []
                         if not picked:
-                            ui.notify("请先选择市场 Skill", type="warning")
+                            ui.notify(tr("common.select_item_first"), type="warning")
                             return
                         row = picked[0]
                         repo = str(row.get("repo") or "")
                         if "/" not in repo:
-                            ui.notify("市场仓库格式无效", type="negative")
+                            ui.notify(tr("web.market_repo_invalid"), type="negative")
                             return
                         owner, repo_name = repo.split("/", 1)
                         branch = SkillInstaller.detect_default_branch(owner, repo_name)
@@ -332,7 +357,7 @@ def register_page(auth: WebAuth | None):
 
                     with ui.row().classes("mt-2"):
                         ui.button(
-                            "安装选中市场 Skill",
+                            tr("skill.market_install"),
                             icon="download",
                             on_click=install_from_market,
                         )

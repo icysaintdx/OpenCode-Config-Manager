@@ -57,8 +57,12 @@ def register_page(auth: WebAuth | None):
                         "mode": v.get("mode", ""),
                         "temperature": v.get("temperature", ""),
                         "maxSteps": v.get("maxSteps", ""),
-                        "disabled": "是" if v.get("disable") else "否",
-                        "hidden": "是" if v.get("hidden") else "否",
+                        "disabled": tr("common.yes")
+                        if v.get("disable")
+                        else tr("common.no"),
+                        "hidden": tr("common.yes")
+                        if v.get("hidden")
+                        else tr("common.no"),
                     }
                 )
             cols = [
@@ -138,7 +142,7 @@ def register_page(auth: WebAuth | None):
                 def _open_edit():
                     selected_name = _get_selected_name()
                     if not selected_name:
-                        ui.notify("请先选择一行", type="warning")
+                        ui.notify(tr("common.select_item_first"), type="warning")
                         return
                     current = agents.get(selected_name, {})
                     if not isinstance(current, dict):
@@ -165,7 +169,7 @@ def register_page(auth: WebAuth | None):
                         # 中文注释：保存前进行基础校验与JSON反序列化
                         n = (d_name.value or "").strip()
                         if not n:
-                            ui.notify("请输入名称", type="warning")
+                            ui.notify(tr("web.please_enter_name"), type="warning")
                             return
 
                         try:
@@ -173,10 +177,10 @@ def register_page(auth: WebAuth | None):
                                 (d_tools.value or "[]").strip() or "[]"
                             )
                         except Exception:
-                            ui.notify("Tools 必须是合法 JSON", type="warning")
+                            ui.notify(tr("web.tools_must_be_json"), type="warning")
                             return
                         if not isinstance(parsed_tools, list):
-                            ui.notify("Tools 必须是 JSON 数组", type="warning")
+                            ui.notify(tr("web.tools_must_be_array"), type="warning")
                             return
 
                         entry: dict = {
@@ -206,14 +210,14 @@ def register_page(auth: WebAuth | None):
 
             # 中文注释：删除确认弹窗，避免误删
             with ui.dialog() as del_dlg, ui.card().classes("w-[420px]"):
-                del_text = ui.label("确认删除该 Agent 吗？")
+                del_text = ui.label(tr("web.confirm_delete_agent"))
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
 
                     def _do_delete():
                         selected_name = _get_selected_name()
                         if not selected_name:
-                            ui.notify("请先选择一行", type="warning")
+                            ui.notify(tr("common.select_item_first"), type="warning")
                             del_dlg.close()
                             return
                         if "agent" not in config or not isinstance(
@@ -238,9 +242,11 @@ def register_page(auth: WebAuth | None):
                 def _open_delete_confirm():
                     selected_name = _get_selected_name()
                     if not selected_name:
-                        ui.notify("请先选择一行", type="warning")
+                        ui.notify(tr("common.select_item_first"), type="warning")
                         return
-                    del_text.set_text(f"确认删除 Agent：{selected_name} ？")
+                    del_text.set_text(
+                        f"{tr('common.confirm_delete_title')}: {selected_name}"
+                    )
                     del_dlg.open()
 
                 ui.button(
@@ -335,7 +341,7 @@ def register_page(auth: WebAuth | None):
                 def _open_edit():
                     selected_name = _get_selected_name()
                     if not selected_name:
-                        ui.notify("请先选择一行", type="warning")
+                        ui.notify(tr("common.select_item_first"), type="warning")
                         return
                     current = agents.get(selected_name, {})
                     if not isinstance(current, dict):
@@ -354,7 +360,7 @@ def register_page(auth: WebAuth | None):
                     def do_save():
                         n = (d_name.value or "").strip()
                         if not n:
-                            ui.notify("请输入名称", type="warning")
+                            ui.notify(tr("web.please_enter_name"), type="warning")
                             return
                         if "agents" not in omo:
                             omo["agents"] = {}
@@ -379,14 +385,14 @@ def register_page(auth: WebAuth | None):
 
             # 中文注释：删除确认弹窗，删除前再次确认
             with ui.dialog() as del_dlg, ui.card().classes("w-[420px]"):
-                del_text = ui.label("确认删除该 OMO Agent 吗？")
+                del_text = ui.label(tr("web.confirm_delete_omo_agent"))
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
 
                     def _do_delete():
                         selected_name = _get_selected_name()
                         if not selected_name:
-                            ui.notify("请先选择一行", type="warning")
+                            ui.notify(tr("common.select_item_first"), type="warning")
                             del_dlg.close()
                             return
                         if "agents" not in omo or not isinstance(omo["agents"], dict):
@@ -409,9 +415,11 @@ def register_page(auth: WebAuth | None):
                 def _open_delete_confirm():
                     selected_name = _get_selected_name()
                     if not selected_name:
-                        ui.notify("请先选择一行", type="warning")
+                        ui.notify(tr("common.select_item_first"), type="warning")
                         return
-                    del_text.set_text(f"确认删除 OMO Agent：{selected_name} ？")
+                    del_text.set_text(
+                        f"{tr('common.confirm_delete_title')}: {selected_name}"
+                    )
                     del_dlg.open()
 
                 ui.button(

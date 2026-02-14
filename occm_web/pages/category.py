@@ -74,7 +74,7 @@ def register_page(auth: WebAuth | None):
                     selected_name["value"] = name
                     return name
                 if require:
-                    ui.notify("请先选择一条记录", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                 return None
 
             # ---- 新增对话框 ----
@@ -97,13 +97,13 @@ def register_page(auth: WebAuth | None):
                         # 新增分类：name 作为 key，model/temperature 为配置值
                         n = (d_name.value or "").strip()
                         if not n:
-                            ui.notify("请输入名称", type="warning")
+                            ui.notify(tr("web.please_enter_name"), type="warning")
                             return
                         if (
                             isinstance(omo.get("categories"), dict)
                             and n in omo["categories"]
                         ):
-                            ui.notify("该分类已存在", type="warning")
+                            ui.notify(tr("web.category_exists"), type="warning")
                             return
                         if "categories" not in omo or not isinstance(
                             omo.get("categories"), dict
@@ -144,14 +144,14 @@ def register_page(auth: WebAuth | None):
                         # 编辑分类：name 只读，不允许改 key
                         key = (e_name.value or "").strip()
                         if not key:
-                            ui.notify("未找到要编辑的分类", type="warning")
+                            ui.notify(tr("web.edit_target_not_found"), type="warning")
                             return
                         if "categories" not in omo or not isinstance(
                             omo.get("categories"), dict
                         ):
                             omo["categories"] = {}
                         if key not in omo["categories"]:
-                            ui.notify("分类不存在，可能已被删除", type="warning")
+                            ui.notify(tr("web.record_not_exist"), type="warning")
                             return
                         omo["categories"][key] = {
                             "model": e_model.value or "",
@@ -190,7 +190,7 @@ def register_page(auth: WebAuth | None):
                     .classes("w-full")
                     .props("readonly")
                 )
-                ui.label("删除后不可恢复，请确认操作。")
+                ui.label(tr("web.delete_irreversible"))
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
 
@@ -198,7 +198,7 @@ def register_page(auth: WebAuth | None):
                         # 删除选中分类
                         key = (del_name.value or "").strip()
                         if not key:
-                            ui.notify("未找到要删除的分类", type="warning")
+                            ui.notify(tr("web.delete_target_not_found"), type="warning")
                             return
                         if (
                             isinstance(omo.get("categories"), dict)
@@ -214,7 +214,7 @@ def register_page(auth: WebAuth | None):
                             del_dlg.close()
                             ui.navigate.to("/category")
                         else:
-                            ui.notify("分类不存在，可能已被删除", type="warning")
+                            ui.notify(tr("web.record_not_exist"), type="warning")
 
                     ui.button(tr("common.delete"), on_click=do_delete).props(
                         "color=negative"

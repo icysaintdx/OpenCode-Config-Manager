@@ -35,16 +35,17 @@ def register_page(auth: WebAuth | None):
 
             # 任务要求字段：enabled / strategy / maxTokens
             enabled_switch = ui.switch(
-                "启用上下文压缩 (enabled)", value=bool(compaction.get("enabled", True))
+                tr("compaction.enable_compaction"),
+                value=bool(compaction.get("enabled", True)),
             )
             strategy_select = ui.select(
-                label="压缩策略 (strategy)",
+                label=tr("web.compaction_strategy"),
                 options=["balanced", "aggressive", "conservative"],
                 value=str(compaction.get("strategy", "balanced")),
                 with_input=True,
             ).classes("w-full")
             max_tokens_input = ui.number(
-                label="最大 Token (maxTokens)",
+                label=tr("web.max_tokens"),
                 value=int(compaction.get("maxTokens", 120000)),
                 min=1024,
                 max=1_000_000,
@@ -83,9 +84,9 @@ def register_page(auth: WebAuth | None):
             max_tokens_input.on("update:model-value", lambda _: refresh_preview())
 
             with ui.row().classes("mt-3 gap-2"):
-                ui.button("刷新预览", icon="refresh", on_click=refresh_preview).props(
-                    "outline"
-                )
+                ui.button(
+                    tr("web.refresh_preview"), icon="refresh", on_click=refresh_preview
+                ).props("outline")
                 ui.button(tr("common.save"), icon="save", on_click=do_save).props(
                     "unelevated"
                 )

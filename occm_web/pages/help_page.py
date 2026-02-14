@@ -20,19 +20,19 @@ def register_page(auth: WebAuth | None):
             ui.label("OCCM Web v1.8.0").classes("text-xl font-bold")
             ui.separator()
             with ui.card().classes("w-full"):
-                ui.label("配置文件路径").classes("font-medium")
+                ui.label(tr("web.config_file_paths")).classes("font-medium")
                 ui.label(f"OpenCode: {ConfigPaths.get_opencode_config()}")
                 ui.label(f"Oh My OpenCode: {ConfigPaths.get_ohmyopencode_config()}")
-                ui.label(f"备份目录: {ConfigPaths.get_backup_dir()}")
+                ui.label(f"{tr('web.backup_dir')}: {ConfigPaths.get_backup_dir()}")
             with ui.card().classes("w-full mt-4"):
-                ui.label("相关链接").classes("font-medium")
+                ui.label(tr("web.related_links")).classes("font-medium")
                 ui.link(
                     "GitHub - OpenCode Config Manager",
                     "https://github.com/icysaintdx/OpenCode-Config-Manager",
                     new_tab=True,
                 )
                 ui.link(
-                    "OpenCode 官方文档",
+                    tr("web.opencode_docs"),
                     "https://opencode.ai/docs/models/",
                     new_tab=True,
                 )

@@ -29,7 +29,7 @@ def register_page(auth: WebAuth | None):
             rows = [{"idx": i, "path": str(p)} for i, p in enumerate(instructions)]
             cols = [
                 {"name": "idx", "label": "#", "field": "idx"},
-                {"name": "path", "label": "路径", "field": "path"},
+                {"name": "path", "label": tr("rules.path_label"), "field": "path"},
             ]
 
             # 当前选中行缓存（单选）
@@ -59,14 +59,14 @@ def register_page(auth: WebAuth | None):
                     selected_idx["value"] = idx
                     return idx
                 if require:
-                    ui.notify("请先选择一条记录", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                 return None
 
             # ---- 新增对话框 ----
             with ui.dialog() as add_dlg, ui.card().classes("w-[460px]"):
                 ui.label(tr("common.add") + " Instruction").classes("text-lg font-bold")
                 d_path = ui.input(
-                    label="文件路径 / URL / Glob", placeholder="./AGENTS.md"
+                    label=tr("rules.file_path_placeholder"), placeholder="./AGENTS.md"
                 ).classes("w-full")
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=add_dlg.close).props("flat")
@@ -75,7 +75,7 @@ def register_page(auth: WebAuth | None):
                         # 新增 instruction 项
                         v = (d_path.value or "").strip()
                         if not v:
-                            ui.notify("请输入路径", type="warning")
+                            ui.notify(tr("web.please_enter_path"), type="warning")
                             return
                         if "instructions" not in config or not isinstance(
                             config.get("instructions"), list
@@ -97,7 +97,7 @@ def register_page(auth: WebAuth | None):
                     "text-lg font-bold"
                 )
                 e_idx = ui.input(label="#").classes("w-full").props("readonly")
-                e_path = ui.input(label="路径").classes("w-full")
+                e_path = ui.input(label=tr("rules.path_label")).classes("w-full")
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=edit_dlg.close).props(
                         "flat"
@@ -108,15 +108,15 @@ def register_page(auth: WebAuth | None):
                         raw_idx = (e_idx.value or "").strip()
                         new_path = (e_path.value or "").strip()
                         if not raw_idx:
-                            ui.notify("未找到要编辑的记录", type="warning")
+                            ui.notify(tr("web.edit_target_not_found"), type="warning")
                             return
                         if not new_path:
-                            ui.notify("路径不能为空", type="warning")
+                            ui.notify(tr("web.path_cannot_be_empty"), type="warning")
                             return
                         try:
                             idx = int(raw_idx)
                         except ValueError:
-                            ui.notify("无效索引", type="warning")
+                            ui.notify(tr("web.invalid_index"), type="warning")
                             return
 
                         if "instructions" not in config or not isinstance(
@@ -124,7 +124,7 @@ def register_page(auth: WebAuth | None):
                         ):
                             config["instructions"] = []
                         if idx < 0 or idx >= len(config["instructions"]):
-                            ui.notify("记录不存在，可能已被删除", type="warning")
+                            ui.notify(tr("web.record_not_exist"), type="warning")
                             return
 
                         config["instructions"][idx] = new_path
@@ -153,8 +153,12 @@ def register_page(auth: WebAuth | None):
             with ui.dialog() as del_dlg, ui.card().classes("w-[420px]"):
                 ui.label(tr("common.confirm_delete_title")).classes("text-lg font-bold")
                 del_idx = ui.input(label="#").classes("w-full").props("readonly")
-                del_path = ui.input(label="路径").classes("w-full").props("readonly")
-                ui.label("删除后不可恢复，请确认操作。")
+                del_path = (
+                    ui.input(label=tr("rules.path_label"))
+                    .classes("w-full")
+                    .props("readonly")
+                )
+                ui.label(tr("web.delete_irreversible"))
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
 
@@ -162,12 +166,12 @@ def register_page(auth: WebAuth | None):
                         # 删除 instruction：从列表中移除对应索引
                         raw_idx = (del_idx.value or "").strip()
                         if not raw_idx:
-                            ui.notify("未找到要删除的记录", type="warning")
+                            ui.notify(tr("web.delete_target_not_found"), type="warning")
                             return
                         try:
                             idx = int(raw_idx)
                         except ValueError:
-                            ui.notify("无效索引", type="warning")
+                            ui.notify(tr("web.invalid_index"), type="warning")
                             return
 
                         if "instructions" not in config or not isinstance(
@@ -175,7 +179,7 @@ def register_page(auth: WebAuth | None):
                         ):
                             config["instructions"] = []
                         if idx < 0 or idx >= len(config["instructions"]):
-                            ui.notify("记录不存在，可能已被删除", type="warning")
+                            ui.notify(tr("web.record_not_exist"), type="warning")
                             return
 
                         config["instructions"].pop(idx)
