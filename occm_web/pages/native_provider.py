@@ -35,7 +35,9 @@ def register_page(auth: WebAuth | None) -> None:
         def content() -> None:
             # --- 环境变量检测区域 ---
             with ui.card().classes("w-full mb-4"):
-                ui.label("环境变量检测").classes("text-lg font-bold mb-2")
+                ui.label(tr("native_provider.detected_env_vars")).classes(
+                    "text-lg font-bold mb-2"
+                )
                 detect_container = ui.column().classes("w-full")
 
                 def do_detect() -> None:
@@ -43,9 +45,7 @@ def register_page(auth: WebAuth | None) -> None:
                     detected = detector.detect_all_env_vars()
                     with detect_container:
                         if not detected:
-                            ui.label("未检测到已配置的环境变量").classes(
-                                "text-gray-500"
-                            )
+                            ui.label(tr("web.no_env_detected")).classes("text-gray-500")
                             return
                         rows = []
                         for pid, env_map in detected.items():
@@ -65,22 +65,28 @@ def register_page(auth: WebAuth | None) -> None:
                             },
                             {
                                 "name": "env_var",
-                                "label": "环境变量",
+                                "label": tr("native_provider.env_vars"),
                                 "field": "env_var",
                             },
-                            {"name": "value", "label": "值(已遮蔽)", "field": "value"},
+                            {
+                                "name": "value",
+                                "label": tr("web.value_masked"),
+                                "field": "value",
+                            },
                         ]
                         ui.table(columns=cols, rows=rows, row_key="env_var").classes(
                             "w-full"
                         )
 
-                ui.button("检测已配置", on_click=do_detect, icon="search").props(
-                    "outline"
-                )
+                ui.button(
+                    tr("native_provider.detect_configured"),
+                    on_click=do_detect,
+                    icon="search",
+                ).props("outline")
 
             # --- Provider 列表 ---
             with ui.card().classes("w-full"):
-                ui.label("原生 Provider 列表").classes("text-lg font-bold mb-2")
+                ui.label(tr("native_provider.title")).classes("text-lg font-bold mb-2")
 
                 selected: dict[str, str | None] = {"value": None}
 
@@ -88,7 +94,11 @@ def register_page(auth: WebAuth | None) -> None:
                     rows = []
                     for p in NATIVE_PROVIDERS:
                         pa = core_auth.get_provider_auth(p.id)
-                        status = "✅ 已配置" if pa and pa.get("apiKey") else "❌ 未配置"
+                        status = (
+                            "✅ " + tr("native_provider.configured")
+                            if pa and pa.get("apiKey")
+                            else "❌ " + tr("native_provider.not_configured")
+                        )
                         rows.append(
                             {"id": p.id, "name": p.name, "sdk": p.sdk, "status": status}
                         )
@@ -103,7 +113,7 @@ def register_page(auth: WebAuth | None) -> None:
                         "sortable": True,
                     },
                     {"name": "sdk", "label": "SDK", "field": "sdk"},
-                    {"name": "status", "label": "状态", "field": "status"},
+                    {"name": "status", "label": tr("common.status"), "field": "status"},
                 ]
                 table = ui.table(columns=cols, rows=build_rows(), row_key="id").classes(
                     "w-full"
@@ -125,9 +135,9 @@ def register_page(auth: WebAuth | None) -> None:
                     inputs: dict[str, ui.input] = {}
 
                     with detail_container:
-                        ui.label(f"配置 {prov.name}").classes(
-                            "text-base font-semibold mb-2"
-                        )
+                        ui.label(
+                            f"{tr('native_provider.config_provider')} {prov.name}"
+                        ).classes("text-base font-semibold mb-2")
 
                         # 认证字段
                         for af in prov.auth_fields:
@@ -162,15 +172,23 @@ def register_page(auth: WebAuth | None) -> None:
                             def do_save(p=pid) -> None:
                                 data = {k: (v.value or "") for k, v in inputs.items()}
                                 core_auth.set_provider_auth(p, data)
-                                ui.notify(f"{prov.name} 已保存", type="positive")
+                                ui.notify(
+                                    f"{prov.name} {tr('common.success')}",
+                                    type="positive",
+                                )
                                 table.rows = build_rows()
                                 table.update()
 
                             def do_delete(p=pid) -> None:
                                 if core_auth.delete_provider_auth(p):
-                                    ui.notify(f"{prov.name} 已删除", type="info")
+                                    ui.notify(
+                                        f"{prov.name} {tr('common.success')}",
+                                        type="info",
+                                    )
                                 else:
-                                    ui.notify("未找到配置", type="warning")
+                                    ui.notify(
+                                        tr("web.config_not_found"), type="warning"
+                                    )
                                 table.rows = build_rows()
                                 table.update()
                                 detail_container.clear()

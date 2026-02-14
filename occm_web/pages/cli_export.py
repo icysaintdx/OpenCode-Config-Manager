@@ -13,6 +13,7 @@ from nicegui import ui
 from occm_core import CLIConfigGenerator, CLIExportManager, ConfigManager, ConfigPaths
 
 from ..auth import AuthManager as WebAuth, require_auth
+from ..i18n_web import tr
 from ..layout import render_layout
 
 
@@ -37,9 +38,7 @@ def register_page(auth: WebAuth | None):
         def content():
             provider_keys = sorted(list(providers.keys()))
             if not provider_keys:
-                ui.label("未检测到 Provider，请先在 Provider 页面配置").classes(
-                    "text-negative"
-                )
+                ui.label(tr("web.no_provider_detected")).classes("text-negative")
                 return
 
             with ui.tabs().classes("w-full") as tabs:
@@ -55,19 +54,19 @@ def register_page(auth: WebAuth | None):
                 ]:
                     with ui.tab_panel(panel):
                         provider_select = ui.select(
-                            label="选择 Provider",
+                            label=tr("web.select_provider"),
                             options=provider_keys,
                             value=provider_keys[0],
                         ).classes("w-full")
 
                         model_select = ui.select(
-                            label="选择 Model",
+                            label=tr("web.select_model"),
                             options=[],
                             value="",
                             with_input=True,
                         ).classes("w-full")
 
-                        preview_title = ui.label("导出预览").classes(
+                        preview_title = ui.label(tr("web.export_preview")).classes(
                             "text-base font-medium"
                         )
                         preview_code = ui.code("{}", language="json").classes("w-full")
@@ -138,16 +137,21 @@ def register_page(auth: WebAuth | None):
                         def refresh_preview() -> None:
                             preview_text = build_preview_text()
                             preview_code.set_content(preview_text)
-                            preview_title.set_text(f"{cli_type.upper()} 导出预览")
+                            preview_title.set_text(
+                                f"{cli_type.upper()} {tr('web.export_preview')}"
+                            )
 
                         def do_export() -> None:
                             provider = get_selected_provider()
                             model = get_selected_model()
                             if not provider:
-                                ui.notify("请选择有效 Provider", type="warning")
+                                ui.notify(
+                                    tr("web.please_select_valid_provider"),
+                                    type="warning",
+                                )
                                 return
                             if not model:
-                                ui.notify("请输入或选择模型", type="warning")
+                                ui.notify(tr("web.please_select_model"), type="warning")
                                 return
 
                             if cli_type == "claude":
@@ -159,12 +163,17 @@ def register_page(auth: WebAuth | None):
 
                             if not result.success:
                                 ui.notify(
-                                    result.error_message or "导出失败", type="negative"
+                                    result.error_message
+                                    or tr("cli_export.export_failed"),
+                                    type="negative",
                                 )
                                 return
 
                             files = ", ".join(str(p) for p in result.files_written)
-                            ui.notify(f"导出成功: {files}", type="positive")
+                            ui.notify(
+                                f"{tr('cli_export.export_success')}: {files}",
+                                type="positive",
+                            )
 
                         async def copy_preview() -> None:
                             preview_text = build_preview_text()
@@ -178,9 +187,11 @@ def register_page(auth: WebAuth | None):
                             """
                             ok = await ui.run_javascript(js)
                             if ok:
-                                ui.notify("已复制到剪贴板", type="positive")
+                                ui.notify(
+                                    tr("web.copied_to_clipboard"), type="positive"
+                                )
                             else:
-                                ui.notify("复制失败，请检查浏览器权限", type="negative")
+                                ui.notify(tr("web.copy_failed"), type="negative")
 
                         provider_select.on(
                             "update:model-value", lambda _: refresh_models()
@@ -191,13 +202,17 @@ def register_page(auth: WebAuth | None):
 
                         with ui.row().classes("mt-2 gap-2"):
                             ui.button(
-                                "刷新预览", icon="refresh", on_click=refresh_preview
+                                tr("web.refresh_preview"),
+                                icon="refresh",
+                                on_click=refresh_preview,
                             ).props("outline")
                             ui.button(
-                                "复制预览", icon="content_copy", on_click=copy_preview
+                                tr("web.copy_preview"),
+                                icon="content_copy",
+                                on_click=copy_preview,
                             ).props("outline")
                             ui.button(
-                                "执行导出", icon="download", on_click=do_export
+                                tr("web.do_export"), icon="download", on_click=do_export
                             ).props("unelevated")
 
                         refresh_models()

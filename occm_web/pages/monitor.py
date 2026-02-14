@@ -18,16 +18,17 @@ from occm_core import (
 )
 
 from ..auth import AuthManager as WebAuth, require_auth
+from ..i18n_web import tr
 from ..layout import render_layout
 
 
 def _status_text(status: str) -> str:
     mapping = {
-        "operational": "✅ 正常",
-        "degraded": "⚠️ 退化",
-        "failed": "❌ 失败",
-        "error": "❌ 错误",
-        "no_config": "ℹ️ 未配置",
+        "operational": "✅ " + "OK",
+        "degraded": "⚠️ " + "Degraded",
+        "failed": "❌ " + "Failed",
+        "error": "❌ " + "Error",
+        "no_config": "ℹ️ " + "No Config",
     }
     return mapping.get(status, status)
 
@@ -51,24 +52,32 @@ def register_page(auth: WebAuth | None):
             selected = {"target_id": None}
             poll_done_flag = {"value": False}
 
-            status_label = ui.label("监控未启动").classes("text-gray-500")
+            status_label = ui.label(tr("web.monitor_not_started")).classes(
+                "text-gray-500"
+            )
 
             with ui.row().classes("w-full gap-2"):
                 ui.button(
-                    "刷新目标", icon="refresh", on_click=lambda: refresh_targets()
+                    tr("web.refresh_targets"),
+                    icon="refresh",
+                    on_click=lambda: refresh_targets(),
                 ).props("outline")
                 ui.button(
-                    "开始监控", icon="play_arrow", on_click=lambda: start_monitor()
+                    tr("monitor.start_monitoring"),
+                    icon="play_arrow",
+                    on_click=lambda: start_monitor(),
                 ).props("unelevated")
                 ui.button(
-                    "停止监控", icon="stop", on_click=lambda: stop_monitor()
+                    tr("monitor.stop_monitoring"),
+                    icon="stop",
+                    on_click=lambda: stop_monitor(),
                 ).props("outline")
 
             target_table = ui.table(
                 columns=[
                     {
                         "name": "target_id",
-                        "label": "目标ID",
+                        "label": tr("web.target_id"),
                         "field": "target_id",
                         "sortable": True,
                     },
@@ -92,14 +101,14 @@ def register_page(auth: WebAuth | None):
                 columns=[
                     {
                         "name": "target_id",
-                        "label": "目标ID",
+                        "label": tr("web.target_id"),
                         "field": "target_id",
                         "sortable": True,
                     },
-                    {"name": "status", "label": "状态", "field": "status"},
+                    {"name": "status", "label": tr("common.status"), "field": "status"},
                     {
                         "name": "latency_ms",
-                        "label": "延迟(ms)",
+                        "label": tr("web.latency_ms"),
                         "field": "latency_ms",
                         "sortable": True,
                     },
@@ -111,11 +120,15 @@ def register_page(auth: WebAuth | None):
                     },
                     {
                         "name": "checked_at",
-                        "label": "检查时间",
+                        "label": tr("web.check_time"),
                         "field": "checked_at",
                         "sortable": True,
                     },
-                    {"name": "message", "label": "说明", "field": "message"},
+                    {
+                        "name": "message",
+                        "label": tr("web.description"),
+                        "field": "message",
+                    },
                 ],
                 rows=[],
                 row_key="target_id",
@@ -150,7 +163,7 @@ def register_page(auth: WebAuth | None):
                             "target_id": target_id,
                             "status": _status_text(latest.status)
                             if latest
-                            else "待检测",
+                            else tr("web.pending_check"),
                             "latency_ms": latest.latency_ms
                             if latest and latest.latency_ms is not None
                             else -1,
@@ -162,7 +175,9 @@ def register_page(auth: WebAuth | None):
                             )
                             if latest
                             else "-",
-                            "message": latest.message if latest else "尚未产生监控结果",
+                            "message": latest.message
+                            if latest
+                            else tr("web.no_monitor_result"),
                         }
                     )
                 if selected.get("target_id"):
@@ -176,13 +191,11 @@ def register_page(auth: WebAuth | None):
                 if not target_table.rows:
                     refresh_targets()
                 if not target_table.rows:
-                    ui.notify(
-                        "没有可监控目标，请先配置 Provider 与模型", type="warning"
-                    )
+                    ui.notify(tr("web.no_monitor_targets"), type="warning")
                     return
                 service.start_polling()
                 running["value"] = True
-                status_label.set_text("监控运行中...")
+                status_label.set_text(tr("web.monitor_running"))
                 status_label.classes(remove="text-gray-500")
                 status_label.classes(add="text-positive")
 
@@ -191,7 +204,7 @@ def register_page(auth: WebAuth | None):
                     return
                 service.stop_polling()
                 running["value"] = False
-                status_label.set_text("监控已停止")
+                status_label.set_text(tr("web.monitor_stopped"))
                 status_label.classes(remove="text-positive")
                 status_label.classes(add="text-gray-500")
 

@@ -131,7 +131,7 @@ def register_page(auth: WebAuth | None):
                         if str(row.get("id") or "") == selected_id:
                             return row
                 if require:
-                    ui.notify("请先选择一行模型", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                 return None
 
             def _build_model_payload(
@@ -165,18 +165,18 @@ def register_page(auth: WebAuth | None):
                     try:
                         parsed_options = json.loads(options_json_text)
                     except Exception:
-                        return None, "options 必须是合法 JSON"
+                        return None, tr("web.options_must_be_json")
                     if not isinstance(parsed_options, dict):
-                        return None, "options 必须是 JSON 对象"
+                        return None, tr("web.options_must_be_object")
                     model_cfg["options"] = parsed_options
 
                 if variants_json_text is not None and variants_json_text.strip():
                     try:
                         parsed_variants = json.loads(variants_json_text)
                     except Exception:
-                        return None, "variants 必须是合法 JSON"
+                        return None, tr("web.variants_must_be_json")
                     if not isinstance(parsed_variants, dict):
-                        return None, "variants 必须是 JSON 对象"
+                        return None, tr("web.variants_must_be_object")
                     model_cfg["variants"] = parsed_variants
 
                 return model_cfg, None
@@ -203,7 +203,7 @@ def register_page(auth: WebAuth | None):
                     )
                     d_output = ui.number(label="Max Output", value=0).classes("w-full")
 
-                    ui.label("Thinking 配置 (可选)").classes(
+                    ui.label(tr("web.thinking_config_optional")).classes(
                         "text-sm text-gray-500 mt-2"
                     )
                     d_thinking_type = ui.select(
@@ -219,26 +219,26 @@ def register_page(auth: WebAuth | None):
                         pkey = str(d_provider.value or "").strip()
                         mid = str(d_model_id.value or "").strip()
                         if not pkey:
-                            ui.notify("请先选择 Provider", type="warning")
+                            ui.notify(tr("web.please_select_provider"), type="warning")
                             return
                         if not mid:
-                            ui.notify("请输入 Model ID", type="warning")
+                            ui.notify(tr("web.please_enter_model_id"), type="warning")
                             return
 
                         providers = _providers_map()
                         if pkey not in providers:
-                            ui.notify("Provider 不存在", type="warning")
+                            ui.notify(tr("web.provider_not_exist"), type="warning")
                             return
                         provider_cfg = providers.get(pkey)
                         if not isinstance(provider_cfg, dict):
-                            ui.notify("Provider 配置异常", type="warning")
+                            ui.notify(tr("web.provider_config_error"), type="warning")
                             return
 
                         models = provider_cfg.get("models")
                         if not isinstance(models, dict):
                             models = {}
                         if mid in models:
-                            ui.notify("该 Model 已存在", type="warning")
+                            ui.notify(tr("web.model_exists"), type="warning")
                             return
 
                         model_cfg, error = _build_model_payload(
@@ -277,11 +277,11 @@ def register_page(auth: WebAuth | None):
                 providers = _providers_map()
                 current_provider = providers.get(old_provider)
                 if not isinstance(current_provider, dict):
-                    ui.notify("选中模型所在 Provider 不存在", type="warning")
+                    ui.notify(tr("web.provider_not_exist"), type="warning")
                     return
                 models = current_provider.get("models", {})
                 if not isinstance(models, dict):
-                    ui.notify("Provider models 配置异常", type="warning")
+                    ui.notify(tr("web.provider_config_error"), type="warning")
                     return
                 model_data = models.get(old_model, {})
                 if not isinstance(model_data, dict):
@@ -318,7 +318,7 @@ def register_page(auth: WebAuth | None):
                         label="Max Output", value=int(limit.get("output") or 0)
                     ).classes("w-full")
 
-                    ui.label("Thinking 配置 (可选)").classes(
+                    ui.label(tr("web.thinking_config_optional")).classes(
                         "text-sm text-gray-500 mt-2"
                     )
                     e_thinking_type = ui.select(
@@ -357,16 +357,16 @@ def register_page(auth: WebAuth | None):
                         new_provider = str(e_provider.value or "").strip()
                         new_model = str(e_model_id.value or "").strip()
                         if not new_provider:
-                            ui.notify("请先选择 Provider", type="warning")
+                            ui.notify(tr("web.please_select_provider"), type="warning")
                             return
                         if not new_model:
-                            ui.notify("请输入 Model ID", type="warning")
+                            ui.notify(tr("web.please_enter_model_id"), type="warning")
                             return
 
                         providers_map = _providers_map()
                         target_provider_cfg = providers_map.get(new_provider)
                         if not isinstance(target_provider_cfg, dict):
-                            ui.notify("目标 Provider 不存在", type="warning")
+                            ui.notify(tr("web.provider_not_exist"), type="warning")
                             return
                         target_models = target_provider_cfg.get("models")
                         if not isinstance(target_models, dict):
@@ -375,9 +375,7 @@ def register_page(auth: WebAuth | None):
                         if (
                             new_provider != old_provider or new_model != old_model
                         ) and new_model in target_models:
-                            ui.notify(
-                                "目标 Provider 下已存在同名 Model", type="warning"
-                            )
+                            ui.notify(tr("web.model_exists"), type="warning")
                             return
 
                         model_cfg, error = _build_model_payload(
@@ -405,7 +403,7 @@ def register_page(auth: WebAuth | None):
 
                         target_provider_cfg = providers_map.get(new_provider)
                         if not isinstance(target_provider_cfg, dict):
-                            ui.notify("目标 Provider 配置异常", type="warning")
+                            ui.notify(tr("web.provider_config_error"), type="warning")
                             return
                         target_models = target_provider_cfg.get("models")
                         if not isinstance(target_models, dict):
@@ -446,18 +444,18 @@ def register_page(auth: WebAuth | None):
                         "text-lg font-bold"
                     )
                     ui.label(
-                        f"确认删除模型？\nProvider: {provider}\nModel ID: {model}"
+                        f"{tr('common.confirm_delete_title')}?\nProvider: {provider}\nModel ID: {model}"
                     ).classes("whitespace-pre-line")
 
                     def do_delete() -> None:
                         providers = _providers_map()
                         provider_cfg = providers.get(provider)
                         if not isinstance(provider_cfg, dict):
-                            ui.notify("Provider 不存在", type="warning")
+                            ui.notify(tr("web.provider_not_exist"), type="warning")
                             return
                         models = provider_cfg.get("models")
                         if not isinstance(models, dict) or model not in models:
-                            ui.notify("未找到该模型", type="warning")
+                            ui.notify(tr("web.model_not_found"), type="warning")
                             return
 
                         del models[model]

@@ -13,6 +13,7 @@ from nicegui import ui
 from occm_core import BackupManager, ConfigManager, ConfigPaths, ImportService
 
 from ..auth import AuthManager as WebAuth, require_auth
+from ..i18n_web import tr
 from ..layout import render_layout
 
 
@@ -38,9 +39,9 @@ def register_page(auth: WebAuth | None):
         def save_config() -> bool:
             ok, _ = ConfigManager.save_json(config_path, config, BackupManager())
             if ok:
-                ui.notify("导入成功", type="positive")
+                ui.notify(tr("import.import_success"), type="positive")
                 return True
-            ui.notify("保存失败", type="negative")
+            ui.notify(tr("import.import_failed"), type="negative")
             return False
 
         def content():
@@ -49,31 +50,41 @@ def register_page(auth: WebAuth | None):
 
             with ui.row().classes("w-full gap-2"):
                 ui.button(
-                    "扫描检测", icon="search", on_click=lambda: scan_sources()
+                    tr("web.scan_detect"),
+                    icon="search",
+                    on_click=lambda: scan_sources(),
                 ).props("unelevated")
                 ui.button(
-                    "预览转换", icon="preview", on_click=lambda: preview_selected()
+                    tr("import.preview_convert"),
+                    icon="preview",
+                    on_click=lambda: preview_selected(),
                 ).props("outline")
                 ui.button(
-                    "确认导入", icon="download", on_click=lambda: import_selected()
+                    tr("import.import_selected"),
+                    icon="download",
+                    on_click=lambda: import_selected(),
                 ).props("outline")
 
             source_table = ui.table(
                 columns=[
                     {
                         "name": "source",
-                        "label": "来源",
+                        "label": tr("import.source"),
                         "field": "source",
                         "sortable": True,
                     },
                     {
                         "name": "type",
-                        "label": "类型",
+                        "label": tr("common.type"),
                         "field": "type",
                         "sortable": True,
                     },
-                    {"name": "exists", "label": "检测状态", "field": "exists"},
-                    {"name": "path", "label": "配置路径", "field": "path"},
+                    {"name": "exists", "label": tr("import.status"), "field": "exists"},
+                    {
+                        "name": "path",
+                        "label": tr("import.config_path"),
+                        "field": "path",
+                    },
                 ],
                 rows=[],
                 row_key="type",
@@ -87,9 +98,7 @@ def register_page(auth: WebAuth | None):
 
             source_table.on("selection", on_select)
 
-            preview_label = ui.label("预览区域：请先扫描并选择来源").classes(
-                "text-gray-600"
-            )
+            preview_label = ui.label(tr("web.preview_hint")).classes("text-gray-600")
             preview_code = ui.code("{}", language="json").classes("w-full")
 
             def scan_sources() -> None:
@@ -104,7 +113,9 @@ def register_page(auth: WebAuth | None):
                         {
                             "source": SUPPORTED_TYPES[source_type],
                             "type": source_type,
-                            "exists": "✅ 已检测" if exists else "❌ 未找到",
+                            "exists": "✅ " + tr("import.detected")
+                            if exists
+                            else "❌ " + tr("import.not_detected"),
                             "path": str(info.get("path") or ""),
                         }
                     )
@@ -112,13 +123,13 @@ def register_page(auth: WebAuth | None):
                 source_table.rows = rows
                 source_table.update()
                 converted_cache.clear()
-                preview_label.set_text("扫描完成，请选择来源后点击预览转换")
+                preview_label.set_text(tr("web.scan_done_select"))
                 preview_code.set_content("{}")
 
             def preview_selected() -> None:
                 source_type = selected.get("type")
                 if not source_type:
-                    ui.notify("请先选择一行来源", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                     return
                 results = service.scan_external_configs()
                 matched = None
@@ -127,13 +138,13 @@ def register_page(auth: WebAuth | None):
                         matched = info
                         break
                 if not matched or not matched.get("exists"):
-                    ui.notify("未检测到该来源配置", type="warning")
+                    ui.notify(tr("web.source_not_detected"), type="warning")
                     return
                 converted = service.convert_to_opencode(
                     source_type, matched.get("data") or {}
                 )
                 if not converted:
-                    ui.notify("转换失败或无可导入内容", type="negative")
+                    ui.notify(tr("web.convert_failed"), type="negative")
                     return
                 converted_cache[source_type] = converted
                 preview_label.set_text(f"{SUPPORTED_TYPES[source_type]} 转换预览")
@@ -144,11 +155,11 @@ def register_page(auth: WebAuth | None):
             def import_selected() -> None:
                 source_type = selected.get("type")
                 if not source_type:
-                    ui.notify("请先选择一行来源", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                     return
                 converted = converted_cache.get(source_type)
                 if not converted:
-                    ui.notify("请先执行预览转换", type="warning")
+                    ui.notify(tr("web.please_preview_first"), type="warning")
                     return
 
                 # 合并 provider/permission 到现有 OpenCode 配置

@@ -69,10 +69,14 @@ def register_page(auth: WebAuth | None):
 
             with ui.row().classes("w-full gap-2"):
                 ui.button(
-                    "刷新", icon="refresh", on_click=lambda: refresh_table()
+                    tr("common.refresh"),
+                    icon="refresh",
+                    on_click=lambda: refresh_table(),
                 ).props("outline")
                 ui.button(
-                    "卸载选中插件", icon="delete", on_click=lambda: uninstall_selected()
+                    tr("web.uninstall_selected"),
+                    icon="delete",
+                    on_click=lambda: uninstall_selected(),
                 ).props("outline color=negative")
 
             plugin_table = ui.table(
@@ -83,8 +87,8 @@ def register_page(auth: WebAuth | None):
                         "field": "name",
                         "sortable": True,
                     },
-                    {"name": "version", "label": "版本", "field": "version"},
-                    {"name": "source", "label": "来源", "field": "source"},
+                    {"name": "version", "label": tr("web.version"), "field": "version"},
+                    {"name": "source", "label": tr("web.source"), "field": "source"},
                     {"name": "type", "label": tr("common.type"), "field": "type"},
                 ],
                 rows=[],
@@ -108,19 +112,18 @@ def register_page(auth: WebAuth | None):
                 def install_plugin() -> None:
                     source = (gh_input.value or "").strip()
                     if not source:
-                        ui.notify("请输入 GitHub URL", type="warning")
+                        ui.notify(tr("web.please_enter_github_url"), type="warning")
                         return
                     package_name = _parse_github_package(source)
                     if not package_name:
-                        ui.notify("GitHub URL 格式无效", type="negative")
+                        ui.notify(tr("web.github_url_invalid"), type="negative")
                         return
 
-                    # PluginManager 使用 plugin 字段，这里做适配并最终回写到 plugins 字段
                     manager_cfg = {"plugin": list(config.get("plugins", []))}
                     if not PluginManager.install_npm_plugin(
                         manager_cfg, package_name, ""
                     ):
-                        ui.notify("安装失败", type="negative")
+                        ui.notify(tr("web.install_failed"), type="negative")
                         return
                     config["plugins"] = manager_cfg.get("plugin", [])
                     if save_config():
@@ -149,13 +152,13 @@ def register_page(auth: WebAuth | None):
             def uninstall_selected() -> None:
                 name = selected.get("name")
                 if not name:
-                    ui.notify("请先选择一行插件", type="warning")
+                    ui.notify(tr("common.select_item_first"), type="warning")
                     return
                 row = next(
                     (r for r in plugin_table.rows if r.get("name") == name), None
                 )
                 if not row:
-                    ui.notify("未找到选中插件", type="negative")
+                    ui.notify(tr("web.plugin_not_found"), type="negative")
                     return
                 plugin = PluginConfig(
                     name=str(row.get("name") or ""),
@@ -169,7 +172,7 @@ def register_page(auth: WebAuth | None):
                 )
                 manager_cfg = {"plugin": list(config.get("plugins", []))}
                 if not PluginManager.uninstall_plugin(manager_cfg, plugin):
-                    ui.notify("卸载失败", type="negative")
+                    ui.notify(tr("web.uninstall_failed"), type="negative")
                     return
                 config["plugins"] = manager_cfg.get("plugin", [])
                 selected["name"] = None
