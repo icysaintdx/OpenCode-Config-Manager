@@ -185,7 +185,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
             ).classes("w-full")
 
             cmd_input = ui.input(
-                label="Command (JSON数组)",
+                label=tr("web.command_json_array"),
                 value=_json.dumps(initial_command, ensure_ascii=False),
                 placeholder='["npx", "-y", "@upstash/context7-mcp"]',
             ).classes("w-full")

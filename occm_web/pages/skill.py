@@ -147,7 +147,7 @@ def register_page(auth: WebAuth | None):
 
                     with ui.row().classes("w-full gap-2 mt-2"):
                         gh_input = ui.input(
-                            label="GitHub (user/repo 或 URL)",
+                            label=tr("web.github_input_label"),
                             placeholder="vercel-labs/git-release",
                         ).classes("w-96")
 
@@ -233,7 +233,7 @@ def register_page(auth: WebAuth | None):
                     def open_edit_dialog() -> None:
                         name = selected.get("name")
                         if not name:
-                            ui.notify("请先选择一行 Skill", type="warning")
+                            ui.notify(tr("web.please_select_skill"), type="warning")
                             return
                         ensure_skill_entry(name)
                         perm_select.value = config["skill"][name].get(
@@ -244,7 +244,7 @@ def register_page(auth: WebAuth | None):
                     def delete_selected() -> None:
                         name = selected.get("name")
                         if not name:
-                            ui.notify("请先选择一行 Skill", type="warning")
+                            ui.notify(tr("web.please_select_skill"), type="warning")
                             return
                         target = SkillDiscovery.get_skill_by_name(name)
                         if not target:

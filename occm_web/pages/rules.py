@@ -142,7 +142,7 @@ def register_page(auth: WebAuth | None):
                 if idx is None:
                     return
                 if idx < 0 or idx >= len(instructions):
-                    ui.notify("记录不存在，可能已被删除", type="warning")
+                    ui.notify(tr("web.record_not_exist"), type="warning")
                     return
                 # 编辑弹窗预填当前值
                 e_idx.value = str(idx)
@@ -199,7 +199,7 @@ def register_page(auth: WebAuth | None):
                 if idx is None:
                     return
                 if idx < 0 or idx >= len(instructions):
-                    ui.notify("记录不存在，可能已被删除", type="warning")
+                    ui.notify(tr("web.record_not_exist"), type="warning")
                     return
                 del_idx.value = str(idx)
                 del_path.value = str(instructions[idx])

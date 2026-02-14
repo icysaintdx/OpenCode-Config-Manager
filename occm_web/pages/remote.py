@@ -145,7 +145,9 @@ def register_page(auth: WebAuth | None) -> None:
                             )
                             store.add_server(server)
                             ui.notify(
-                                f"已添加 {server.nickname or server.host}",
+                                tr("web.server_added").format(
+                                    name=server.nickname or server.host
+                                ),
                                 type="positive",
                             )
                             add_dlg.close()
@@ -165,9 +167,13 @@ def register_page(auth: WebAuth | None) -> None:
                         return
                     ok, msg = manager.test_connection(srv)
                     if ok:
-                        ui.notify(f"✅ 连接成功: {msg}", type="positive")
+                        ui.notify(
+                            f"✅ {tr('web.connection_success')}: {msg}", type="positive"
+                        )
                     else:
-                        ui.notify(f"❌ 连接失败: {msg}", type="negative")
+                        ui.notify(
+                            f"❌ {tr('web.connection_failed')}: {msg}", type="negative"
+                        )
 
                 ui.button(
                     tr("web.test_connection"), icon="wifi", on_click=do_test

@@ -147,7 +147,9 @@ def register_page(auth: WebAuth | None):
                     ui.notify(tr("web.convert_failed"), type="negative")
                     return
                 converted_cache[source_type] = converted
-                preview_label.set_text(f"{SUPPORTED_TYPES[source_type]} 转换预览")
+                preview_label.set_text(
+                    f"{SUPPORTED_TYPES[source_type]} {tr('web.convert_preview')}"
+                )
                 preview_code.set_content(
                     json.dumps(converted, ensure_ascii=False, indent=2)
                 )
