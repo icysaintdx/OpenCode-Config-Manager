@@ -12,35 +12,151 @@ from .i18n_web import get_i18n, tr
 from .theme import get_theme_manager
 
 
-NAV_ITEMS: list[dict[str, str]] = [
-    {"route": "/", "key": "menu.home", "fallback": "首页"},
-    {"route": "/provider", "key": "menu.provider", "fallback": "Provider管理"},
+NAV_GROUPS: list[dict[str, object]] = [
     {
-        "route": "/native-provider",
-        "key": "menu.native_provider",
-        "fallback": "原生Provider",
+        "label_key": "web.nav_group.core",
+        "fallback": "Core",
+        "icon": "settings",
+        "items": [
+            {"route": "/", "key": "menu.home", "fallback": "Home", "icon": "home"},
+            {
+                "route": "/provider",
+                "key": "menu.provider",
+                "fallback": "Provider",
+                "icon": "dns",
+            },
+            {
+                "route": "/native-provider",
+                "key": "menu.native_provider",
+                "fallback": "Native Provider",
+                "icon": "cloud",
+            },
+            {
+                "route": "/model",
+                "key": "menu.model",
+                "fallback": "Model",
+                "icon": "psychology",
+            },
+            {
+                "route": "/mcp",
+                "key": "menu.mcp",
+                "fallback": "MCP Server",
+                "icon": "hub",
+            },
+        ],
     },
-    {"route": "/model", "key": "menu.model", "fallback": "Model管理"},
-    {"route": "/mcp", "key": "menu.mcp", "fallback": "MCP服务器"},
     {
-        "route": "/agent-opencode",
-        "key": "menu.agent",
-        "fallback": "Agent配置(OpenCode)",
+        "label_key": "web.nav_group.agent",
+        "fallback": "Agent & Rules",
+        "icon": "smart_toy",
+        "items": [
+            {
+                "route": "/agent-opencode",
+                "key": "menu.agent",
+                "fallback": "Agent (OC)",
+                "icon": "smart_toy",
+            },
+            {
+                "route": "/agent-omo",
+                "key": "menu.ohmyagent",
+                "fallback": "Agent (OMO)",
+                "icon": "group",
+            },
+            {
+                "route": "/category",
+                "key": "menu.category",
+                "fallback": "Category",
+                "icon": "category",
+            },
+            {
+                "route": "/permission",
+                "key": "menu.permission",
+                "fallback": "Permission",
+                "icon": "security",
+            },
+            {
+                "route": "/rules",
+                "key": "menu.rules",
+                "fallback": "Rules",
+                "icon": "rule",
+            },
+            {
+                "route": "/compaction",
+                "key": "menu.compaction",
+                "fallback": "Compaction",
+                "icon": "compress",
+            },
+        ],
     },
-    {"route": "/agent-omo", "key": "menu.ohmyagent", "fallback": "Agent配置(OMO)"},
-    {"route": "/category", "key": "menu.category", "fallback": "Category管理"},
-    {"route": "/permission", "key": "menu.permission", "fallback": "权限管理"},
-    {"route": "/skill", "key": "menu.skill", "fallback": "Skill管理"},
-    {"route": "/plugin", "key": "menu.plugin", "fallback": "插件管理"},
-    {"route": "/rules", "key": "menu.rules", "fallback": "Rules管理"},
-    {"route": "/compaction", "key": "menu.compaction", "fallback": "上下文压缩"},
-    {"route": "/external-import", "key": "menu.import", "fallback": "外部导入"},
-    {"route": "/cli-export", "key": "menu.export", "fallback": "CLI导出"},
-    {"route": "/monitor", "key": "menu.monitor", "fallback": "监控"},
-    {"route": "/backup", "key": "menu.backup", "fallback": "备份管理"},
-    {"route": "/remote", "key": "menu.remote", "fallback": "远程管理"},
-    {"route": "/help", "key": "menu.help", "fallback": "帮助"},
+    {
+        "label_key": "web.nav_group.extend",
+        "fallback": "Extensions",
+        "icon": "extension",
+        "items": [
+            {
+                "route": "/skill",
+                "key": "menu.skill",
+                "fallback": "Skill",
+                "icon": "auto_awesome",
+            },
+            {
+                "route": "/plugin",
+                "key": "menu.plugin",
+                "fallback": "Plugin",
+                "icon": "extension",
+            },
+        ],
+    },
+    {
+        "label_key": "web.nav_group.tools",
+        "fallback": "Tools",
+        "icon": "build",
+        "items": [
+            {
+                "route": "/external-import",
+                "key": "menu.import",
+                "fallback": "Import",
+                "icon": "upload",
+            },
+            {
+                "route": "/cli-export",
+                "key": "menu.export",
+                "fallback": "CLI Export",
+                "icon": "download",
+            },
+            {
+                "route": "/monitor",
+                "key": "menu.monitor",
+                "fallback": "Monitor",
+                "icon": "monitor_heart",
+            },
+            {
+                "route": "/backup",
+                "key": "menu.backup",
+                "fallback": "Backup",
+                "icon": "backup",
+            },
+            {
+                "route": "/remote",
+                "key": "menu.remote",
+                "fallback": "Remote",
+                "icon": "cloud_sync",
+            },
+            {
+                "route": "/help",
+                "key": "menu.help",
+                "fallback": "Help",
+                "icon": "help_outline",
+            },
+        ],
+    },
 ]
+
+# Flat list for backward compat
+NAV_ITEMS: list[dict[str, str]] = []
+for _g in NAV_GROUPS:
+    for _item in _g["items"]:  # type: ignore[union-attr]
+        NAV_ITEMS.append(_item)  # type: ignore[arg-type]
 
 
 def render_layout(
@@ -107,24 +223,34 @@ def render_layout(
                     )
                     ui.navigate.to("/login")
 
-                ui.button("退出登录", on_click=_logout).props("outline")
+                ui.button(tr("web.logout"), on_click=_logout).props("outline")
 
     with ui.left_drawer(top_corner=True, bottom_corner=True).classes("w-64") as drawer:
-        with ui.column().classes("w-full gap-1 p-2"):
-            for item in NAV_ITEMS:
-                text = tr(item["key"])
-                if text == item["key"]:
-                    text = item["fallback"]
-                color = "primary" if item["route"] == current_path else "grey-8"
-                btn = ui.button(
-                    text, on_click=lambda r=item["route"]: ui.navigate.to(r)
-                ).props("align=left unelevated")
-                btn.classes("w-full justify-start")
-                btn.style(
-                    f"background: {'rgba(25,118,210,0.15)' if color == 'primary' else 'transparent'}"
+        with ui.column().classes("w-full gap-0 p-2"):
+            for group in NAV_GROUPS:
+                group_label = tr(group["label_key"])  # type: ignore[arg-type]
+                if group_label == group["label_key"]:
+                    group_label = group["fallback"]  # type: ignore[assignment]
+                ui.label(str(group_label)).classes(
+                    "text-xs font-bold uppercase tracking-wide text-gray-400 mt-3 mb-1 px-2"
                 )
-                if text != item["fallback"]:
-                    i18n.bind_text(btn, item["key"])
+                for item in group["items"]:  # type: ignore[union-attr]
+                    text = tr(item["key"])
+                    if text == item["key"]:
+                        text = item["fallback"]
+                    is_active = item["route"] == current_path
+                    btn = ui.button(
+                        text,
+                        icon=item.get("icon", ""),
+                        on_click=lambda r=item["route"]: ui.navigate.to(r),
+                    ).props("align=left unelevated no-caps")
+                    btn.classes("w-full justify-start text-sm")
+                    btn.style(
+                        f"background: {'rgba(25,118,210,0.15)' if is_active else 'transparent'};"
+                        f"font-weight: {'600' if is_active else '400'}"
+                    )
+                    if text != item["fallback"]:
+                        i18n.bind_text(btn, item["key"])
 
     with ui.column().classes("w-full p-4 md:p-6"):
         page_title = ui.label(tr(page_key)).classes("text-xl font-bold mb-4")

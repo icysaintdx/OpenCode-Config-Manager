@@ -42,8 +42,8 @@ def register_page(auth: WebAuth | None):
 
         def content():
             with ui.tabs().classes("w-full") as tabs:
-                tab_mcp = ui.tab("MCP 服务器")
-                tab_omo = ui.tab("Oh My MCP")
+                tab_mcp = ui.tab(tr("mcp.title"))
+                tab_omo = ui.tab(tr("mcp.oh_my_mcp"))
 
             with ui.tab_panels(tabs, value=tab_mcp).classes("w-full"):
                 with ui.tab_panel(tab_mcp):
@@ -134,7 +134,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
             selected_name["value"] = selected[0].get("name")
             return selected_name["value"]
         if require:
-            ui.notify("请先选择一行", type="warning")
+            ui.notify(tr("common.select_item_first"), type="warning")
         return None
 
     def _on_select(_: object) -> None:
@@ -166,16 +166,20 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
             initial_env = {}
 
         with ui.dialog() as dlg, ui.card().classes("w-[680px] max-w-full"):
-            ui.label("编辑 MCP" if is_edit else "添加 MCP").classes("text-lg font-bold")
+            ui.label(
+                tr("mcp.dialog.edit_title")
+                if is_edit
+                else tr("mcp.dialog.add_local_title")
+            ).classes("text-lg font-bold")
 
             name_input = ui.input(
-                label="名称",
+                label=tr("common.name"),
                 value=str(edit_key or ""),
                 placeholder="context7",
             ).classes("w-full")
 
             type_select = ui.select(
-                label="类型",
+                label=tr("common.type"),
                 options=["local", "remote"],
                 value=default_type,
             ).classes("w-full")
@@ -193,7 +197,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
             ).classes("w-full")
 
             env_input = ui.input(
-                label="环境变量(JSON)",
+                label=tr("mcp.env") + " (JSON)",
                 value=_json.dumps(initial_env, ensure_ascii=False),
                 placeholder='{"API_KEY": "xxx"}',
             ).classes("w-full")
@@ -204,7 +208,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
             ).classes("w-full")
 
             enabled_switch = ui.switch(
-                "启用",
+                tr("common.enable"),
                 value=bool(origin_data.get("enabled", True)) if is_edit else True,
             )
 
@@ -226,7 +230,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
                 def _do_save() -> None:
                     name = (name_input.value or "").strip()
                     if not name:
-                        ui.notify("名称不能为空", type="warning")
+                        ui.notify(tr("mcp.dialog.name_required"), type="warning")
                         return
 
                     mcp_map = _ensure_mcp_map()
@@ -236,23 +240,27 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
                     if type_select.value == "local":
                         raw_cmd = (cmd_input.value or "").strip()
                         if not raw_cmd:
-                            ui.notify(
-                                "Local 类型必须填写 Command(JSON数组)", type="warning"
-                            )
+                            ui.notify(tr("mcp.dialog.command_required"), type="warning")
                             return
                         try:
                             parsed_cmd = _json.loads(raw_cmd)
                         except Exception:
-                            ui.notify("Command 必须是合法 JSON 数组", type="warning")
+                            ui.notify(
+                                tr("mcp.dialog.command_invalid", error="JSON"),
+                                type="warning",
+                            )
                             return
                         if not isinstance(parsed_cmd, list):
-                            ui.notify("Command 必须是 JSON 数组", type="warning")
+                            ui.notify(
+                                tr("mcp.dialog.command_invalid", error="array"),
+                                type="warning",
+                            )
                             return
                         entry["command"] = parsed_cmd
                     else:
                         url = (url_input.value or "").strip()
                         if not url:
-                            ui.notify("Remote 类型必须填写 URL", type="warning")
+                            ui.notify(tr("mcp.dialog.url_required"), type="warning")
                             return
                         entry["url"] = url
 
@@ -261,10 +269,16 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
                         try:
                             parsed_env = _json.loads(raw_env)
                         except Exception:
-                            ui.notify("环境变量必须是合法 JSON 对象", type="warning")
+                            ui.notify(
+                                tr("mcp.dialog.env_invalid", error="JSON"),
+                                type="warning",
+                            )
                             return
                         if not isinstance(parsed_env, dict):
-                            ui.notify("环境变量必须是 JSON 对象", type="warning")
+                            ui.notify(
+                                tr("mcp.dialog.env_invalid", error="object"),
+                                type="warning",
+                            )
                             return
                         entry["environment"] = parsed_env
 
@@ -274,7 +288,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
 
                     old_name = edit_key if is_edit else None
                     if old_name and old_name != name and name in mcp_map:
-                        ui.notify("目标名称已存在，请更换名称", type="warning")
+                        ui.notify(tr("mcp.dialog.name_exists"), type="warning")
                         return
 
                     if old_name and old_name != name:
@@ -292,10 +306,12 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
 
     with ui.row().classes("w-full gap-2 mt-2"):
         ui.button(
-            "添加 Local", icon="add", on_click=lambda: _open_upsert_dialog("add_local")
+            tr("mcp.add_local"),
+            icon="add",
+            on_click=lambda: _open_upsert_dialog("add_local"),
         )
         ui.button(
-            "添加 Remote",
+            tr("mcp.add_remote"),
             icon="add",
             on_click=lambda: _open_upsert_dialog("add_remote"),
         )
@@ -306,10 +322,12 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
                 return
             _open_upsert_dialog("edit", key)
 
-        ui.button("编辑", icon="edit", on_click=_on_edit)
+        ui.button(tr("common.edit"), icon="edit", on_click=_on_edit)
 
         with ui.dialog() as delete_dlg, ui.card().classes("w-[420px]"):
-            ui.label("确认删除").classes("text-base font-semibold")
+            ui.label(tr("common.confirm_delete_title")).classes(
+                "text-base font-semibold"
+            )
             delete_msg = ui.label("")
 
             with ui.row().classes("w-full justify-end gap-2 mt-2"):
@@ -319,7 +337,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
                     key = _get_selected_name(require=False)
                     if not key:
                         delete_dlg.close()
-                        ui.notify("未找到选中项", type="warning")
+                        ui.notify(tr("common.select_item_first"), type="warning")
                         return
                     mcp_map = _ensure_mcp_map()
                     mcp_map.pop(key, None)
@@ -328,16 +346,20 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
                     ui.notify(tr("common.success"), type="positive")
                     ui.navigate.to("/mcp")
 
-                ui.button("删除", color="negative", on_click=_confirm_delete)
+                ui.button(
+                    tr("common.delete"), color="negative", on_click=_confirm_delete
+                )
 
         def _on_delete() -> None:
             key = _get_selected_name(require=True)
             if not key:
                 return
-            delete_msg.text = f"确定删除 MCP：{key} ？"
+            delete_msg.text = tr("mcp.delete_confirm", name=key)
             delete_dlg.open()
 
-        ui.button("删除", icon="delete", color="negative", on_click=_on_delete)
+        ui.button(
+            tr("common.delete"), icon="delete", color="negative", on_click=_on_delete
+        )
 
 
 def _render_omo_mcp(omo: dict[str, object]):
