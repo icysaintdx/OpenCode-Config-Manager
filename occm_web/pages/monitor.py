@@ -49,8 +49,8 @@ def register_page(auth: WebAuth | None):
 
         def content():
             running = {"value": False}
-            selected = {"target_id": None}
             poll_done_flag = {"value": False}
+            targets_cache: list = []
 
             status_label = ui.label(tr("web.monitor_not_started")).classes(
                 "text-gray-500"
@@ -73,7 +73,7 @@ def register_page(auth: WebAuth | None):
                     on_click=lambda: stop_monitor(),
                 ).props("outline")
 
-            target_table = ui.table(
+            result_table = ui.table(
                 columns=[
                     {
                         "name": "target_id",
@@ -83,28 +83,6 @@ def register_page(auth: WebAuth | None):
                     },
                     {"name": "provider", "label": "Provider", "field": "provider"},
                     {"name": "model", "label": "Model", "field": "model"},
-                    {"name": "base_url", "label": "baseURL", "field": "base_url"},
-                ],
-                rows=[],
-                row_key="target_id",
-                selection="single",
-                pagination=10,
-            ).classes("w-full")
-
-            def on_target_select(_: Any) -> None:
-                rows = target_table.selected or []
-                selected["target_id"] = rows[0]["target_id"] if rows else None
-
-            target_table.on("selection", on_target_select)
-
-            result_table = ui.table(
-                columns=[
-                    {
-                        "name": "target_id",
-                        "label": tr("web.target_id"),
-                        "field": "target_id",
-                        "sortable": True,
-                    },
                     {"name": "status", "label": tr("common.status"), "field": "status"},
                     {
                         "name": "latency_ms",
@@ -132,35 +110,24 @@ def register_page(auth: WebAuth | None):
                 ],
                 rows=[],
                 row_key="target_id",
-                selection="single",
                 pagination=10,
             ).classes("w-full")
 
             def refresh_targets() -> None:
-                targets = service.load_targets_from_config(config)
-                target_rows = [
-                    {
-                        "target_id": t.target_id,
-                        "provider": t.provider_name,
-                        "model": t.model_name,
-                        "base_url": t.base_url,
-                    }
-                    for t in targets
-                ]
-                target_rows.sort(key=lambda r: r["target_id"])
-                target_table.rows = target_rows
-                target_table.update()
+                targets_cache.clear()
+                targets_cache.extend(service.load_targets_from_config(config))
                 refresh_results()
 
             def refresh_results() -> None:
                 rows: list[dict[str, Any]] = []
-                for row in target_table.rows:
-                    target_id = row["target_id"]
-                    history = list(service.get_history(target_id))
+                for t in targets_cache:
+                    history = list(service.get_history(t.target_id))
                     latest: MonitorResult | None = history[-1] if history else None
                     rows.append(
                         {
-                            "target_id": target_id,
+                            "target_id": t.target_id,
+                            "provider": t.provider_name,
+                            "model": t.model_name,
                             "status": _status_text(latest.status)
                             if latest
                             else tr("web.pending_check"),
@@ -180,17 +147,16 @@ def register_page(auth: WebAuth | None):
                             else tr("web.no_monitor_result"),
                         }
                     )
-                if selected.get("target_id"):
-                    rows = [r for r in rows if r["target_id"] == selected["target_id"]]
+                rows.sort(key=lambda r: r["target_id"])
                 result_table.rows = rows
                 result_table.update()
 
             def start_monitor() -> None:
                 if running["value"]:
                     return
-                if not target_table.rows:
+                if not targets_cache:
                     refresh_targets()
-                if not target_table.rows:
+                if not targets_cache:
                     ui.notify(tr("web.no_monitor_targets"), type="warning")
                     return
                 service.start_polling()
