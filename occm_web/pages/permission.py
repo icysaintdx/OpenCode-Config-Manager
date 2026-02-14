@@ -57,7 +57,7 @@ def register_page(auth: WebAuth | None):
                             level, pattern = "ask", ""
 
                         with ui.row().classes(
-                            "w-full items-center gap-2 p-2 rounded hover:bg-gray-50"
+                            "w-full items-center gap-2 p-2 rounded hover:bg-white/5"
                         ):
                             ui.label(tool).classes("w-28 font-medium")
 

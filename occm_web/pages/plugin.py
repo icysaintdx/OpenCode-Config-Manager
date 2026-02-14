@@ -48,10 +48,10 @@ def register_page(auth: WebAuth | None):
             cfg = ConfigManager.load_json(config_path) or {}
             if not isinstance(cfg, dict):
                 cfg = {}
-            plugins = cfg.get("plugins", [])
+            plugins = cfg.get("plugin", [])
             if not isinstance(plugins, list):
                 plugins = []
-            cfg["plugins"] = plugins
+            cfg["plugin"] = plugins
             return cfg
 
         config = load_config()
@@ -119,13 +119,13 @@ def register_page(auth: WebAuth | None):
                         ui.notify(tr("web.github_url_invalid"), type="negative")
                         return
 
-                    manager_cfg = {"plugin": list(config.get("plugins", []))}
+                    manager_cfg = {"plugin": list(config.get("plugin", []))}
                     if not PluginManager.install_npm_plugin(
                         manager_cfg, package_name, ""
                     ):
                         ui.notify(tr("web.install_failed"), type="negative")
                         return
-                    config["plugins"] = manager_cfg.get("plugin", [])
+                    config["plugin"] = manager_cfg.get("plugin", [])
                     if save_config():
                         refresh_table()
 
@@ -134,7 +134,7 @@ def register_page(auth: WebAuth | None):
                 )
 
             def refresh_table() -> None:
-                manager_cfg = {"plugin": list(config.get("plugins", []))}
+                manager_cfg = {"plugin": list(config.get("plugin", []))}
                 plugins = PluginManager.get_installed_plugins(manager_cfg)
                 rows = [
                     {
@@ -170,11 +170,11 @@ def register_page(auth: WebAuth | None):
                     homepage="",
                     installed_at="",
                 )
-                manager_cfg = {"plugin": list(config.get("plugins", []))}
+                manager_cfg = {"plugin": list(config.get("plugin", []))}
                 if not PluginManager.uninstall_plugin(manager_cfg, plugin):
                     ui.notify(tr("web.uninstall_failed"), type="negative")
                     return
-                config["plugins"] = manager_cfg.get("plugin", [])
+                config["plugin"] = manager_cfg.get("plugin", [])
                 selected["name"] = None
                 if save_config():
                     refresh_table()

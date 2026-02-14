@@ -271,6 +271,35 @@ def register_page(auth: WebAuth | None):
         if not isinstance(agents, dict):
             agents = {}
 
+        # 从 opencode.json 读取 provider 和 model 列表供下拉选择
+        oc_cfg = _load_oc()
+        _providers_map = oc_cfg.get("provider", {})
+        if not isinstance(_providers_map, dict):
+            _providers_map = {}
+
+        def _provider_options() -> list[str]:
+            return sorted(_providers_map.keys())
+
+        def _model_options(provider_key: str) -> list[str]:
+            pdata = _providers_map.get(provider_key, {})
+            if not isinstance(pdata, dict):
+                return []
+            models = pdata.get("models", {})
+            if not isinstance(models, dict):
+                return []
+            return sorted(models.keys())
+
+        def _all_model_options() -> list[str]:
+            result: list[str] = []
+            for pkey, pdata in _providers_map.items():
+                if not isinstance(pdata, dict):
+                    continue
+                models = pdata.get("models", {})
+                if not isinstance(models, dict):
+                    continue
+                result.extend(sorted(models.keys()))
+            return result
+
         def content():
             # 中文注释：构建 OMO Agent 列表
             rows = [
@@ -319,12 +348,26 @@ def register_page(auth: WebAuth | None):
                 d_name = ui.input(
                     label=tr("common.name"), placeholder="oracle"
                 ).classes("w-full")
-                d_prov = ui.input(label="Provider", placeholder="anthropic").classes(
-                    "w-full"
-                )
-                d_model = ui.input(
-                    label="Model", placeholder="claude-sonnet-4-5-20250929"
+                d_prov = ui.select(
+                    label="Provider",
+                    options=_provider_options(),
+                    value="",
+                    with_input=True,
                 ).classes("w-full")
+                d_model = ui.select(
+                    label="Model",
+                    options=_all_model_options(),
+                    value="",
+                    with_input=True,
+                ).classes("w-full")
+
+                def _on_provider_change(e):
+                    pkey = str(e.value or "")
+                    models = _model_options(pkey)
+                    d_model.options = models
+                    d_model.update()
+
+                d_prov.on("update:model-value", _on_provider_change)
                 d_desc = (
                     ui.textarea(label="Description").props("autogrow").classes("w-full")
                 )
