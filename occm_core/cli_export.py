@@ -483,9 +483,6 @@ class CLIConfigGenerator:
         return {"security": {"auth": {"selectedType": auth_type}}}
 
 
-class CLIConfigGenerator: ...
-
-
 class CLIExportManager:
     """CLI 工具导出管理器"""
 
