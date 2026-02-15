@@ -34,28 +34,26 @@ body.body--light {
 
 /* --- Header --- */
 .q-header {
-  backdrop-filter: blur(16px) saturate(180%) !important;
   border-bottom: 1px solid var(--occm-border) !important;
 }
 body.body--dark .q-header {
-  background: rgba(17,17,27,0.82) !important;
+  background: rgba(17,17,27,0.97) !important;
 }
 body.body--light .q-header {
-  background: rgba(255,255,255,0.82) !important;
+  background: rgba(255,255,255,0.97) !important;
 }
 
 /* --- Sidebar / Drawer --- */
 .q-drawer {
-  backdrop-filter: blur(12px) saturate(160%) !important;
   border-right: 1px solid var(--occm-border) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }
 body.body--dark .q-drawer {
-  background: rgba(17,17,27,0.92) !important;
+  background: rgba(17,17,27,0.98) !important;
 }
 body.body--light .q-drawer {
-  background: rgba(248,250,252,0.95) !important;
+  background: rgba(248,250,252,0.98) !important;
 }
 .occm-nav-group-label {
   font-size: 0.68rem;
@@ -67,7 +65,6 @@ body.body--light .q-drawer {
 }
 .occm-nav-btn {
   border-radius: var(--occm-radius-sm) !important;
-  transition: all 0.2s ease !important;
   margin: 1px 4px !important;
   font-weight: 450 !important;
   font-size: 0.82rem !important;
@@ -86,7 +83,6 @@ body.body--light .q-drawer {
   border-radius: var(--occm-radius) !important;
   border: 1px solid var(--occm-border) !important;
   box-shadow: var(--occm-shadow) !important;
-  transition: all 0.2s ease !important;
 }
 body.body--dark .occm-card {
   background: rgba(30,30,46,0.6) !important;
@@ -96,7 +92,6 @@ body.body--light .occm-card {
 }
 .occm-card:hover {
   border-color: rgba(99,102,241,0.2) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
 }
 
 /* --- Stat Cards (gradient) --- */
@@ -153,8 +148,7 @@ body.body--dark .occm-table tbody tr:hover td {
   border: 1px solid var(--occm-border) !important;
 }
 body.body--dark .occm-dialog {
-  background: rgba(30,30,46,0.95) !important;
-  backdrop-filter: blur(20px) !important;
+  background: rgba(30,30,46,0.98) !important;
 }
 
 /* --- Toolbar / Button Groups --- */
@@ -184,7 +178,6 @@ body.body--light .occm-expansion {
 .occm-inline-row {
   border-radius: var(--occm-radius-sm) !important;
   padding: 8px 12px !important;
-  transition: background 0.15s ease !important;
   border: 1px solid transparent !important;
 }
 .occm-inline-row:hover {
@@ -236,8 +229,7 @@ body.body--light .occm-expansion {
 ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.4); }
 
 /* --- Smooth transitions --- */
-* { scroll-behavior: smooth; }
-.q-btn { transition: all 0.2s ease !important; }
+.q-btn { transition: background 0.15s ease, color 0.15s ease !important; }
 
 /* --- Add row area --- */
 .occm-add-row {
@@ -258,7 +250,6 @@ body.body--light .occm-add-row {
   border-radius: var(--occm-radius) !important;
   border: 1px solid var(--occm-border) !important;
   padding: 16px 20px !important;
-  transition: all 0.2s ease !important;
 }
 body.body--dark .occm-status-card {
   background: rgba(30,30,46,0.5) !important;
