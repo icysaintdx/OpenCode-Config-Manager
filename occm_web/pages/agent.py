@@ -363,11 +363,10 @@ def register_page(auth: WebAuth | None):
 
                 def _on_provider_change(e):
                     pkey = str(e.value or "")
-                    models = _model_options(pkey)
-                    d_model.options = models
+                    d_model.options = _model_options(pkey)
                     d_model.update()
 
-                d_prov.on("update:model-value", _on_provider_change)
+                d_prov.on_value_change(_on_provider_change)
                 d_desc = (
                     ui.textarea(label="Description").props("autogrow").classes("w-full")
                 )
