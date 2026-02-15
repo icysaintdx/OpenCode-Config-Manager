@@ -89,7 +89,8 @@
     "config_not_exist_or_empty": "Selected configuration does not exist or is empty",
     "no_valid_import_config": "No valid import configuration confirmed",
     "sdk": "SDK",
-    "provider": "Provider"
+    "provider": "Provider",
+    "no_data": "No data"
   },
   "home": {
     "title": "Home",

@@ -89,7 +89,8 @@
     "config_not_exist_or_empty": "所选配置不存在或为空",
     "no_valid_import_config": "未确认任何有效的导入配置",
     "sdk": "SDK",
-    "provider": "Provider"
+    "provider": "Provider",
+    "no_data": "暂无数据"
   },
   "home": {
     "title": "首页",
