@@ -62,7 +62,7 @@ def register_page(auth: WebAuth | None):
                         model_select = ui.select(
                             label=tr("web.select_model"),
                             options=[],
-                            value="",
+                            value=None,
                             with_input=True,
                         ).classes("w-full")
 

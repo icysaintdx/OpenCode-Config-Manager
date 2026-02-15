@@ -351,13 +351,13 @@ def register_page(auth: WebAuth | None):
                 d_prov = ui.select(
                     label="Provider",
                     options=_provider_options(),
-                    value="",
+                    value=None,
                     with_input=True,
                 ).classes("w-full")
                 d_model = ui.select(
                     label="Model",
                     options=_all_model_options(),
-                    value="",
+                    value=None,
                     with_input=True,
                 ).classes("w-full")
 
@@ -375,8 +375,8 @@ def register_page(auth: WebAuth | None):
                     edit_target["original"] = ""
                     title.set_text(tr("common.add") + " OMO Agent")
                     d_name.value = ""
-                    d_prov.value = ""
-                    d_model.value = ""
+                    d_prov.value = None
+                    d_model.value = None
                     d_desc.value = ""
                     dlg.open()
 
@@ -391,8 +391,8 @@ def register_page(auth: WebAuth | None):
                     edit_target["original"] = selected_name
                     title.set_text(tr("common.edit") + " OMO Agent")
                     d_name.value = selected_name
-                    d_prov.value = current.get("provider", "")
-                    d_model.value = current.get("model", "")
+                    d_prov.value = current.get("provider") or None
+                    d_model.value = current.get("model") or None
                     d_desc.value = current.get("description", "")
                     dlg.open()
 
