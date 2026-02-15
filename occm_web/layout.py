@@ -22,7 +22,7 @@ NAV_GROUPS: list[dict[str, object]] = [
             {
                 "route": "/provider",
                 "key": "menu.provider",
-                "fallback": "Provider",
+                "fallback": "Provider & Model",
                 "icon": "dns",
             },
             {
@@ -30,12 +30,6 @@ NAV_GROUPS: list[dict[str, object]] = [
                 "key": "menu.native_provider",
                 "fallback": "Native Provider",
                 "icon": "cloud",
-            },
-            {
-                "route": "/model",
-                "key": "menu.model",
-                "fallback": "Model",
-                "icon": "psychology",
             },
             {
                 "route": "/mcp",
