@@ -48,6 +48,8 @@ body.body--light .q-header {
 .q-drawer {
   backdrop-filter: blur(12px) saturate(160%) !important;
   border-right: 1px solid var(--occm-border) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 body.body--dark .q-drawer {
   background: rgba(17,17,27,0.92) !important;
@@ -211,6 +213,20 @@ body.body--light .occm-expansion {
 .occm-chip-off {
   background: var(--occm-surface) !important;
   color: var(--occm-text-secondary) !important;
+}
+
+/* --- Page Scroll Fix --- */
+.q-page {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+}
+.q-page-container {
+  overflow: visible !important;
+}
+.nicegui-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 /* --- Scrollbar --- */
