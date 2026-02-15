@@ -1,0 +1,252 @@
+/* ============================================
+   OCCM Web — Unified Design System
+   Dark-first, glassmorphism-inspired theme
+   ============================================ */
+
+/* --- CSS Variables --- */
+:root {
+  --occm-primary: #6366f1;
+  --occm-primary-light: #818cf8;
+  --occm-primary-dark: #4f46e5;
+  --occm-accent: #22d3ee;
+  --occm-surface: rgba(255,255,255,0.03);
+  --occm-surface-hover: rgba(255,255,255,0.07);
+  --occm-border: rgba(255,255,255,0.08);
+  --occm-text: rgba(255,255,255,0.87);
+  --occm-text-secondary: rgba(255,255,255,0.5);
+  --occm-radius: 12px;
+  --occm-radius-sm: 8px;
+  --occm-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  --occm-gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --occm-gradient-2: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
+  --occm-gradient-3: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --occm-gradient-4: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+}
+
+body.body--light {
+  --occm-surface: rgba(0,0,0,0.02);
+  --occm-surface-hover: rgba(0,0,0,0.05);
+  --occm-border: rgba(0,0,0,0.08);
+  --occm-text: rgba(0,0,0,0.87);
+  --occm-text-secondary: rgba(0,0,0,0.5);
+  --occm-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+
+/* --- Header --- */
+.q-header {
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  border-bottom: 1px solid var(--occm-border) !important;
+}
+body.body--dark .q-header {
+  background: rgba(17,17,27,0.82) !important;
+}
+body.body--light .q-header {
+  background: rgba(255,255,255,0.82) !important;
+}
+
+/* --- Sidebar / Drawer --- */
+.q-drawer {
+  backdrop-filter: blur(12px) saturate(160%) !important;
+  border-right: 1px solid var(--occm-border) !important;
+}
+body.body--dark .q-drawer {
+  background: rgba(17,17,27,0.92) !important;
+}
+body.body--light .q-drawer {
+  background: rgba(248,250,252,0.95) !important;
+}
+.occm-nav-group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 12px 4px 12px;
+  opacity: 0.45;
+}
+.occm-nav-btn {
+  border-radius: var(--occm-radius-sm) !important;
+  transition: all 0.2s ease !important;
+  margin: 1px 4px !important;
+  font-weight: 450 !important;
+  font-size: 0.82rem !important;
+}
+.occm-nav-btn:hover {
+  background: var(--occm-surface-hover) !important;
+}
+.occm-nav-btn.occm-nav-active {
+  background: rgba(99,102,241,0.15) !important;
+  color: var(--occm-primary-light) !important;
+  font-weight: 600 !important;
+}
+
+/* --- Cards --- */
+.occm-card {
+  border-radius: var(--occm-radius) !important;
+  border: 1px solid var(--occm-border) !important;
+  box-shadow: var(--occm-shadow) !important;
+  transition: all 0.2s ease !important;
+}
+body.body--dark .occm-card {
+  background: rgba(30,30,46,0.6) !important;
+}
+body.body--light .occm-card {
+  background: rgba(255,255,255,0.85) !important;
+}
+.occm-card:hover {
+  border-color: rgba(99,102,241,0.2) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+}
+
+/* --- Stat Cards (gradient) --- */
+.occm-stat-card {
+  border-radius: var(--occm-radius) !important;
+  padding: 20px 24px !important;
+  color: white !important;
+  position: relative;
+  overflow: hidden;
+  min-width: 180px;
+}
+.occm-stat-card::after {
+  content: '';
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+.occm-stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.occm-stat-card .stat-label {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* --- Tables --- */
+.occm-table .q-table__top,
+.occm-table .q-table__bottom {
+  border-color: var(--occm-border) !important;
+}
+.occm-table {
+  border-radius: var(--occm-radius) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--occm-border) !important;
+}
+body.body--dark .occm-table thead th {
+  background: rgba(99,102,241,0.08) !important;
+}
+body.body--light .occm-table thead th {
+  background: rgba(99,102,241,0.05) !important;
+}
+body.body--dark .occm-table tbody tr:hover td {
+  background: rgba(255,255,255,0.03) !important;
+}
+
+/* --- Dialogs --- */
+.occm-dialog {
+  border-radius: var(--occm-radius) !important;
+  border: 1px solid var(--occm-border) !important;
+}
+body.body--dark .occm-dialog {
+  background: rgba(30,30,46,0.95) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+/* --- Toolbar / Button Groups --- */
+.occm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* --- Expansion Panels --- */
+.occm-expansion {
+  border-radius: var(--occm-radius) !important;
+  border: 1px solid var(--occm-border) !important;
+  margin-bottom: 8px !important;
+  overflow: hidden !important;
+}
+body.body--dark .occm-expansion {
+  background: rgba(30,30,46,0.4) !important;
+}
+body.body--light .occm-expansion {
+  background: rgba(255,255,255,0.7) !important;
+}
+
+/* --- Inline Edit Rows --- */
+.occm-inline-row {
+  border-radius: var(--occm-radius-sm) !important;
+  padding: 8px 12px !important;
+  transition: background 0.15s ease !important;
+  border: 1px solid transparent !important;
+}
+.occm-inline-row:hover {
+  background: var(--occm-surface-hover) !important;
+  border-color: var(--occm-border) !important;
+}
+
+/* --- Page Title --- */
+.occm-page-title {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px !important;
+}
+
+/* --- Tabs --- */
+.occm-tabs .q-tab {
+  border-radius: var(--occm-radius-sm) var(--occm-radius-sm) 0 0 !important;
+}
+
+/* --- Chips --- */
+.occm-chip-ok {
+  background: rgba(16,185,129,0.15) !important;
+  color: #34d399 !important;
+}
+.occm-chip-off {
+  background: var(--occm-surface) !important;
+  color: var(--occm-text-secondary) !important;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.4); }
+
+/* --- Smooth transitions --- */
+* { scroll-behavior: smooth; }
+.q-btn { transition: all 0.2s ease !important; }
+
+/* --- Add row area --- */
+.occm-add-row {
+  border-radius: var(--occm-radius-sm);
+  padding: 12px 16px;
+  border: 1px dashed var(--occm-border);
+  margin-top: 12px;
+}
+body.body--dark .occm-add-row {
+  background: rgba(99,102,241,0.04);
+}
+body.body--light .occm-add-row {
+  background: rgba(99,102,241,0.02);
+}
+
+/* --- Status card --- */
+.occm-status-card {
+  border-radius: var(--occm-radius) !important;
+  border: 1px solid var(--occm-border) !important;
+  padding: 16px 20px !important;
+  transition: all 0.2s ease !important;
+}
+body.body--dark .occm-status-card {
+  background: rgba(30,30,46,0.5) !important;
+}
+body.body--light .occm-status-card {
+  background: rgba(255,255,255,0.8) !important;
+}

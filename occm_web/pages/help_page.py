@@ -19,12 +19,12 @@ def register_page(auth: WebAuth | None):
         def content():
             ui.label("OCCM Web v1.8.0").classes("text-xl font-bold")
             ui.separator()
-            with ui.card().classes("w-full"):
+            with ui.card().classes("w-full occm-card"):
                 ui.label(tr("web.config_file_paths")).classes("font-medium")
                 ui.label(f"OpenCode: {ConfigPaths.get_opencode_config()}")
                 ui.label(f"Oh My OpenCode: {ConfigPaths.get_ohmyopencode_config()}")
                 ui.label(f"{tr('web.backup_dir')}: {ConfigPaths.get_backup_dir()}")
-            with ui.card().classes("w-full mt-4"):
+            with ui.card().classes("w-full mt-4 occm-card"):
                 ui.label(tr("web.related_links")).classes("font-medium")
                 ui.link(
                     "GitHub - OpenCode Config Manager",

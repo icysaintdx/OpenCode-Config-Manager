@@ -80,7 +80,7 @@ def register_page(auth: WebAuth | None) -> None:
             ]
             table = ui.table(
                 columns=cols, rows=build_rows(), row_key="host", selection="single"
-            ).classes("w-full")
+            ).classes("w-full occm-table")
 
             def on_select(e: Any) -> None:
                 sel = e.selection
@@ -91,7 +91,7 @@ def register_page(auth: WebAuth | None) -> None:
             # --- 工具栏 ---
             with ui.row().classes("gap-2 mt-2"):
                 # 添加服务器对话框
-                with ui.dialog() as add_dlg, ui.card().classes("w-[520px]"):
+                with ui.dialog() as add_dlg, ui.card().classes("w-[520px] occm-dialog"):
                     ui.label(tr("web.add_remote_server")).classes("text-lg font-bold")
                     d_nick = ui.input(
                         label=tr("web.name_optional"), placeholder="My Server"
@@ -180,7 +180,7 @@ def register_page(auth: WebAuth | None) -> None:
                 ).props("outline")
 
                 # 删除服务器
-                with ui.dialog() as del_dlg, ui.card().classes("w-[400px]"):
+                with ui.dialog() as del_dlg, ui.card().classes("w-[400px] occm-dialog"):
                     ui.label(tr("common.confirm_delete_title")).classes(
                         "text-lg font-bold"
                     )

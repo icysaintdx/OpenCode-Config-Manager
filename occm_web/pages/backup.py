@@ -30,7 +30,7 @@ def register_page(auth: WebAuth | None):
         def content():
             selected: dict[str, str | None] = {"path": None}
 
-            with ui.row().classes("w-full gap-2"):
+            with ui.row().classes("occm-toolbar"):
                 ui.button(
                     tr("backup.create_backup"),
                     icon="backup",
@@ -78,7 +78,7 @@ def register_page(auth: WebAuth | None):
                 row_key="path",
                 selection="single",
                 pagination=12,
-            ).classes("w-full")
+            ).classes("w-full occm-table")
 
             def on_select(_: Any) -> None:
                 rows = backup_table.selected or []

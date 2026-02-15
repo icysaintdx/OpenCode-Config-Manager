@@ -45,18 +45,20 @@ def register_page(auth: WebAuth | None) -> None:
             ohmy_path = ConfigPaths.get_ohmyopencode_config()
             auth_path = CoreAuthManager().auth_path
 
-            with ui.row().classes("w-full gap-3 items-stretch flex-wrap"):
-                opencode_card = ui.card().classes("w-[320px] max-w-full")
-                ohmy_card = ui.card().classes("w-[320px] max-w-full")
-                auth_card = ui.card().classes("w-[320px] max-w-full")
+            with ui.row().classes("w-full gap-4 items-stretch flex-wrap"):
+                opencode_card = ui.card().classes(
+                    "flex-1 min-w-[280px] occm-status-card"
+                )
+                ohmy_card = ui.card().classes("flex-1 min-w-[280px] occm-status-card")
+                auth_card = ui.card().classes("flex-1 min-w-[280px] occm-status-card")
 
-            with ui.row().classes("w-full gap-3 items-stretch flex-wrap mt-2"):
-                providers_count = ui.card().classes("w-[220px] max-w-full")
-                models_count = ui.card().classes("w-[220px] max-w-full")
-                mcp_count = ui.card().classes("w-[220px] max-w-full")
-                mcp_enabled_count = ui.card().classes("w-[220px] max-w-full")
+            with ui.row().classes("w-full gap-4 items-stretch flex-wrap mt-4"):
+                providers_count = ui.element("div").classes("flex-1 min-w-[160px]")
+                models_count = ui.element("div").classes("flex-1 min-w-[160px]")
+                mcp_count = ui.element("div").classes("flex-1 min-w-[160px]")
+                mcp_enabled_count = ui.element("div").classes("flex-1 min-w-[160px]")
 
-            with ui.card().classes("w-full mt-3"):
+            with ui.card().classes("w-full mt-4 occm-card"):
                 with ui.row().classes("w-full items-center gap-2"):
                     ui.label(tr("home.validation_details")).classes(
                         "text-base font-semibold"
@@ -81,7 +83,7 @@ def register_page(auth: WebAuth | None) -> None:
                         label=tr("model.full_json_preview"),
                         value="",
                     )
-                    .props("readonly autogrow")
+                    .props("readonly autogrow outlined")
                     .classes("w-full font-mono text-xs")
                 )
 
@@ -90,22 +92,38 @@ def register_page(auth: WebAuth | None) -> None:
             ) -> None:
                 target.clear()
                 with target:
-                    ui.label(title).classes("text-base font-semibold")
-                    ui.label(meta["path"]).classes("text-xs break-all text-slate-500")
-                    ui.separator()
-                    ui.label(
-                        f"{tr('common.status')}: {tr('common.enabled') if meta['exists'] else tr('common.disabled')}"
-                    ).classes("text-sm")
-                    ui.label(f"{tr('common.value')}: {meta['size']}").classes("text-sm")
-                    ui.label(f"{tr('monitor.last_check')}: {meta['mtime']}").classes(
-                        "text-sm"
-                    )
+                    with ui.row().classes("items-center gap-2 mb-2"):
+                        ui.icon(
+                            "check_circle" if meta["exists"] else "cancel",
+                            size="xs",
+                        ).classes(
+                            "text-green-400" if meta["exists"] else "text-red-400"
+                        )
+                        ui.label(title).classes("text-sm font-semibold")
+                    ui.label(meta["path"]).classes("text-xs break-all opacity-50 mb-2")
+                    with ui.row().classes("gap-4 text-xs opacity-70"):
+                        ui.label(f"{meta['size']}")
+                        ui.label(f"{meta['mtime']}")
 
-            def render_count_card(target: ui.card, title: str, value: int) -> None:
+            _gradients = [
+                "background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                "background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)",
+                "background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)",
+                "background: linear-gradient(135deg, #10b981 0%, #34d399 100%)",
+            ]
+            _grad_idx = {"v": 0}
+
+            def render_count_card(target: Any, title: str, value: int) -> None:  # noqa: ANN401
                 target.clear()
                 with target:
-                    ui.label(title).classes("text-sm text-slate-500")
-                    ui.label(str(value)).classes("text-2xl font-bold")
+                    with (
+                        ui.element("div")
+                        .classes("occm-stat-card")
+                        .style(_gradients[_grad_idx["v"] % 4])
+                    ):
+                        ui.label(str(value)).classes("stat-value")
+                        ui.label(title).classes("stat-label")
+                _grad_idx["v"] += 1
 
             def refresh_all() -> None:
                 try:

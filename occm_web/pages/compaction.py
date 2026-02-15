@@ -83,7 +83,7 @@ def register_page(auth: WebAuth | None):
             strategy_select.on("update:model-value", lambda _: refresh_preview())
             max_tokens_input.on("update:model-value", lambda _: refresh_preview())
 
-            with ui.row().classes("mt-3 gap-2"):
+            with ui.row().classes("occm-toolbar mt-3"):
                 ui.button(
                     tr("web.refresh_preview"), icon="refresh", on_click=refresh_preview
                 ).props("outline")

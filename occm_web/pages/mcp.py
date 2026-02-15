@@ -41,7 +41,7 @@ def register_page(auth: WebAuth | None):
             mcp_cfg = {}
 
         def content():
-            with ui.tabs().classes("w-full") as tabs:
+            with ui.tabs().classes("w-full occm-tabs") as tabs:
                 tab_mcp = ui.tab(tr("mcp.title"))
                 tab_omo = ui.tab(tr("mcp.oh_my_mcp"))
 
@@ -124,7 +124,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
         row_key="name",
         selection="single",
         pagination=10,
-    ).classes("w-full")
+    ).classes("w-full occm-table")
 
     def _get_selected_name(require: bool = True) -> str | None:
         if selected_name["value"]:
@@ -165,7 +165,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
         if not isinstance(initial_env, dict):
             initial_env = {}
 
-        with ui.dialog() as dlg, ui.card().classes("w-[680px] max-w-full"):
+        with ui.dialog() as dlg, ui.card().classes("w-[680px] max-w-full occm-dialog"):
             ui.label(
                 tr("mcp.dialog.edit_title")
                 if is_edit
@@ -324,7 +324,7 @@ def _render_mcp_table(config: dict[str, object], mcp_cfg: dict[str, object]):
 
         ui.button(tr("common.edit"), icon="edit", on_click=_on_edit)
 
-        with ui.dialog() as delete_dlg, ui.card().classes("w-[420px]"):
+        with ui.dialog() as delete_dlg, ui.card().classes("w-[420px] occm-dialog"):
             ui.label(tr("common.confirm_delete_title")).classes(
                 "text-base font-semibold"
             )
@@ -379,7 +379,7 @@ def _render_omo_mcp(omo: dict[str, object]):
     for name in builtin:
         val = omo_mcp.get(name, {})
         enabled = val.get("enabled", False) if isinstance(val, dict) else False
-        with ui.row().classes("w-full items-center gap-4 p-2 border-b"):
+        with ui.row().classes("w-full items-center gap-4 occm-inline-row"):
             ui.label(name).classes("text-base font-medium w-40")
             sw = ui.switch("", value=enabled)
 

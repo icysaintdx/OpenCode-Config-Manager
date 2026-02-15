@@ -48,7 +48,7 @@ def register_page(auth: WebAuth | None):
             selected = {"type": None}
             converted_cache: dict[str, dict[str, Any]] = {}
 
-            with ui.row().classes("w-full gap-2"):
+            with ui.row().classes("occm-toolbar"):
                 ui.button(
                     tr("web.scan_detect"),
                     icon="search",
@@ -90,7 +90,7 @@ def register_page(auth: WebAuth | None):
                 row_key="type",
                 selection="single",
                 pagination=10,
-            ).classes("w-full")
+            ).classes("w-full occm-table")
 
             def on_select(_: Any) -> None:
                 rows = source_table.selected or []

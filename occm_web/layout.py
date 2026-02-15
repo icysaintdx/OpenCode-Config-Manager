@@ -3,14 +3,16 @@ from __future__ import annotations
 # pyright: reportMissingImports=false
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from fastapi import Request
-from nicegui import ui
+from nicegui import app, ui
 
 from .i18n_web import get_i18n, tr
 from .theme import get_theme_manager
 
+STATIC_DIR = Path(__file__).parent / "static"
 
 NAV_GROUPS: list[dict[str, object]] = [
     {
@@ -152,6 +154,16 @@ for _g in NAV_GROUPS:
     for _item in _g["items"]:  # type: ignore[union-attr]
         NAV_ITEMS.append(_item)  # type: ignore[arg-type]
 
+# 注册静态文件目录（仅一次）
+_static_registered = False
+
+
+def _ensure_static() -> None:
+    global _static_registered
+    if not _static_registered and STATIC_DIR.exists():
+        app.add_static_files("/static", str(STATIC_DIR))
+        _static_registered = True
+
 
 def render_layout(
     request: Request,
@@ -159,50 +171,49 @@ def render_layout(
     content_builder: Callable[[], Any],
     auth_enabled: bool,
 ) -> None:
+    _ensure_static()
     i18n = get_i18n()
     theme = get_theme_manager()
     theme.apply()
 
+    # 注入全局样式
+    ui.add_head_html('<link rel="stylesheet" href="/static/style.css">')
+
     current_path = request.url.path
 
-    with ui.header(elevated=True).classes("items-center justify-between px-3"):
-        with ui.row().classes("items-center gap-2"):
-            ui.button(icon="menu", on_click=lambda: drawer.toggle()).props("flat")
+    # --- Header ---
+    with ui.header(elevated=False).classes("items-center justify-between px-4 py-2"):
+        with ui.row().classes("items-center gap-3"):
+            ui.button(icon="menu", on_click=lambda: drawer.toggle()).props(
+                "flat round size=sm"
+            )
+            ui.icon("settings_suggest", size="sm").classes("text-indigo-400")
             title_label = ui.label(tr("app.title")).classes(
-                "text-base md:text-lg font-semibold"
+                "text-sm md:text-base font-semibold tracking-tight"
             )
             i18n.bind_text(title_label, "app.title")
 
-        with ui.row().classes("items-center gap-2"):
-            theme_label = ui.label("")
-
-            def _refresh_theme_label() -> None:
-                mode = theme.get_mode()
-                mapping = {"dark": "🌙 Dark", "light": "☀️ Light", "auto": "🖥 Auto"}
-                theme_label.set_text(mapping.get(mode, "Auto"))
+        with ui.row().classes("items-center gap-1"):
 
             def _switch_theme() -> None:
                 theme.cycle_mode()
-                _refresh_theme_label()
                 theme.apply()
 
-            _refresh_theme_label()
-            ui.button(icon="contrast", on_click=_switch_theme).props("flat")
+            theme_btn = ui.button(icon="contrast", on_click=_switch_theme).props(
+                "flat round size=sm"
+            )
+            theme_btn.tooltip("Toggle theme")
 
             lang_button = ui.button("", on_click=lambda: _switch_language()).props(
-                "flat"
+                "flat dense size=sm"
             )
 
             def _switch_language() -> None:
                 i18n.toggle_language()
-                lang_button.set_text(
-                    "中文" if i18n.get_language() == "zh_CN" else "English"
-                )
+                lang_button.set_text("中文" if i18n.get_language() == "zh_CN" else "EN")
                 ui.navigate.to(request.url.path)
 
-            lang_button.set_text(
-                "中文" if i18n.get_language() == "zh_CN" else "English"
-            )
+            lang_button.set_text("中文" if i18n.get_language() == "zh_CN" else "EN")
 
             if auth_enabled:
 
@@ -217,17 +228,21 @@ def render_layout(
                     )
                     ui.navigate.to("/login")
 
-                ui.button(tr("web.logout"), on_click=_logout).props("outline")
+                ui.button(tr("web.logout"), on_click=_logout).props(
+                    "flat dense size=sm"
+                )
 
-    with ui.left_drawer(top_corner=True, bottom_corner=True).classes("w-64") as drawer:
-        with ui.column().classes("w-full gap-0 p-2"):
+    # --- Sidebar ---
+    with ui.left_drawer(top_corner=True, bottom_corner=True).classes(
+        "w-60 p-0"
+    ) as drawer:
+        with ui.column().classes("w-full gap-0 py-2"):
             for group in NAV_GROUPS:
                 group_label = tr(group["label_key"])  # type: ignore[arg-type]
                 if group_label == group["label_key"]:
                     group_label = group["fallback"]  # type: ignore[assignment]
-                ui.label(str(group_label)).classes(
-                    "text-xs font-bold uppercase tracking-wide text-gray-400 mt-3 mb-1 px-2"
-                )
+                ui.label(str(group_label)).classes("occm-nav-group-label")
+
                 for item in group["items"]:  # type: ignore[union-attr]
                     text = tr(item["key"])
                     if text == item["key"]:
@@ -237,16 +252,16 @@ def render_layout(
                         text,
                         icon=item.get("icon", ""),
                         on_click=lambda r=item["route"]: ui.navigate.to(r),
-                    ).props("align=left unelevated no-caps")
-                    btn.classes("w-full justify-start text-sm")
-                    btn.style(
-                        f"background: {'rgba(25,118,210,0.15)' if is_active else 'transparent'};"
-                        f"font-weight: {'600' if is_active else '400'}"
+                    ).props("align=left unelevated no-caps flat")
+                    btn.classes(
+                        "w-full justify-start occm-nav-btn"
+                        + (" occm-nav-active" if is_active else "")
                     )
                     if text != item["fallback"]:
                         i18n.bind_text(btn, item["key"])
 
-    with ui.column().classes("w-full p-4 md:p-6"):
-        page_title = ui.label(tr(page_key)).classes("text-xl font-bold mb-4")
+    # --- Main Content ---
+    with ui.column().classes("w-full p-4 md:p-8 max-w-7xl mx-auto"):
+        page_title = ui.label(tr(page_key)).classes("occm-page-title")
         i18n.bind_text(page_title, page_key)
         content_builder()

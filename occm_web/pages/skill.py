@@ -75,7 +75,7 @@ def register_page(auth: WebAuth | None):
         def content():
             selected: dict[str, str | None] = {"name": None}
 
-            with ui.tabs().classes("w-full") as tabs:
+            with ui.tabs().classes("w-full occm-tabs") as tabs:
                 t_installed = ui.tab(tr("skill.title"))
                 t_market = ui.tab(tr("skill.market"))
 
@@ -137,7 +137,7 @@ def register_page(auth: WebAuth | None):
                         row_key="name",
                         selection="single",
                         pagination=12,
-                    ).classes("w-full")
+                    ).classes("w-full occm-table")
 
                     def on_select(_: Any) -> None:
                         rows = installed_table.selected or []
@@ -199,7 +199,10 @@ def register_page(auth: WebAuth | None):
                             on_click=install_from_github,
                         )
 
-                    with ui.dialog() as edit_dlg, ui.card().classes("w-[420px]"):
+                    with (
+                        ui.dialog() as edit_dlg,
+                        ui.card().classes("w-[420px] occm-dialog"),
+                    ):
                         ui.label(tr("web.edit_skill_permission")).classes(
                             "text-lg font-bold"
                         )
@@ -324,7 +327,7 @@ def register_page(auth: WebAuth | None):
                         row_key="name",
                         selection="single",
                         pagination=10,
-                    ).classes("w-full")
+                    ).classes("w-full occm-table")
 
                     def install_from_market() -> None:
                         picked = market_table.selected or []

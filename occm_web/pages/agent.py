@@ -82,7 +82,7 @@ def register_page(auth: WebAuth | None):
             # 中文注释：单选表格，后续编辑/删除基于当前选中行
             table = ui.table(
                 columns=cols, rows=rows, row_key="name", selection="single"
-            ).classes("w-full")
+            ).classes("w-full occm-table")
 
             def _get_selected_name() -> str:
                 selected = table.selected or []
@@ -95,7 +95,7 @@ def register_page(auth: WebAuth | None):
 
             # 中文注释：新增和编辑共用对话框，通过 edit_target 区分模式
             edit_target = {"original": ""}
-            with ui.dialog() as dlg, ui.card().classes("w-[700px]"):
+            with ui.dialog() as dlg, ui.card().classes("w-[700px] occm-dialog"):
                 title = ui.label(tr("common.add") + " Agent").classes(
                     "text-lg font-bold"
                 )
@@ -209,7 +209,7 @@ def register_page(auth: WebAuth | None):
                     ui.button(tr("common.save"), on_click=do_save)
 
             # 中文注释：删除确认弹窗，避免误删
-            with ui.dialog() as del_dlg, ui.card().classes("w-[420px]"):
+            with ui.dialog() as del_dlg, ui.card().classes("w-[420px] occm-dialog"):
                 del_text = ui.label(tr("web.confirm_delete_agent"))
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
@@ -235,7 +235,7 @@ def register_page(auth: WebAuth | None):
                         tr("common.delete"), color="negative", on_click=_do_delete
                     )
 
-            with ui.row().classes("mt-2 gap-2"):
+            with ui.row().classes("occm-toolbar mt-2"):
                 ui.button(tr("common.add"), icon="add", on_click=_open_add)
                 ui.button(tr("common.edit"), icon="edit", on_click=_open_edit)
 
@@ -328,7 +328,7 @@ def register_page(auth: WebAuth | None):
             # 中文注释：单选模式，为编辑和删除提供当前行上下文
             table = ui.table(
                 columns=cols, rows=rows, row_key="name", selection="single"
-            ).classes("w-full")
+            ).classes("w-full occm-table")
 
             def _get_selected_name() -> str:
                 selected = table.selected or []
@@ -341,7 +341,7 @@ def register_page(auth: WebAuth | None):
 
             # 中文注释：新增与编辑复用同一个对话框
             edit_target = {"original": ""}
-            with ui.dialog() as dlg, ui.card().classes("w-[600px]"):
+            with ui.dialog() as dlg, ui.card().classes("w-[600px] occm-dialog"):
                 title = ui.label(tr("common.add") + " OMO Agent").classes(
                     "text-lg font-bold"
                 )
@@ -426,7 +426,7 @@ def register_page(auth: WebAuth | None):
                     ui.button(tr("common.save"), on_click=do_save)
 
             # 中文注释：删除确认弹窗，删除前再次确认
-            with ui.dialog() as del_dlg, ui.card().classes("w-[420px]"):
+            with ui.dialog() as del_dlg, ui.card().classes("w-[420px] occm-dialog"):
                 del_text = ui.label(tr("web.confirm_delete_omo_agent"))
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button(tr("common.cancel"), on_click=del_dlg.close).props("flat")
@@ -450,7 +450,7 @@ def register_page(auth: WebAuth | None):
                         tr("common.delete"), color="negative", on_click=_do_delete
                     )
 
-            with ui.row().classes("mt-2 gap-2"):
+            with ui.row().classes("occm-toolbar mt-2"):
                 ui.button(tr("common.add"), icon="add", on_click=_open_add)
                 ui.button(tr("common.edit"), icon="edit", on_click=_open_edit)
 

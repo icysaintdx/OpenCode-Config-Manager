@@ -56,7 +56,7 @@ def register_page(auth: WebAuth | None):
                 "text-gray-500"
             )
 
-            with ui.row().classes("w-full gap-2"):
+            with ui.row().classes("occm-toolbar"):
                 ui.button(
                     tr("web.refresh_targets"),
                     icon="refresh",
@@ -111,7 +111,7 @@ def register_page(auth: WebAuth | None):
                 rows=[],
                 row_key="target_id",
                 pagination=10,
-            ).classes("w-full")
+            ).classes("w-full occm-table")
 
             def refresh_targets() -> None:
                 targets_cache.clear()

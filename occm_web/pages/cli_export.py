@@ -41,7 +41,7 @@ def register_page(auth: WebAuth | None):
                 ui.label(tr("web.no_provider_detected")).classes("text-negative")
                 return
 
-            with ui.tabs().classes("w-full") as tabs:
+            with ui.tabs().classes("w-full occm-tabs") as tabs:
                 t_claude = ui.tab("Claude Code")
                 t_codex = ui.tab("Codex")
                 t_gemini = ui.tab("Gemini")

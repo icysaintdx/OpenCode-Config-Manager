@@ -67,7 +67,10 @@ def register_page(auth: WebAuth | None) -> None:
                 auth_info = _safe_dict(
                     auth_manager.get_provider_auth(edit_key or "") or {}
                 )
-                with ui.dialog() as dlg, ui.card().classes("w-[680px] max-w-full"):
+                with (
+                    ui.dialog() as dlg,
+                    ui.card().classes("w-[680px] max-w-full occm-dialog"),
+                ):
                     ui.label(
                         tr("provider.edit_provider")
                         if edit_key
@@ -169,7 +172,10 @@ def register_page(auth: WebAuth | None) -> None:
                 options = _safe_dict(mdata.get("options"))
                 variants = _safe_dict(mdata.get("variants"))
                 thinking = _safe_dict(options.get("thinking"))
-                with ui.dialog() as dlg, ui.card().classes("w-[680px] max-w-full"):
+                with (
+                    ui.dialog() as dlg,
+                    ui.card().classes("w-[680px] max-w-full occm-dialog"),
+                ):
                     ui.label(
                         (tr("common.edit") if edit_model else tr("common.add"))
                         + " Model"
@@ -296,7 +302,10 @@ def register_page(auth: WebAuth | None) -> None:
                 dlg.open()
 
             def delete_provider(pkey: str) -> None:
-                with ui.dialog() as dlg, ui.card().classes("w-[420px] max-w-full"):
+                with (
+                    ui.dialog() as dlg,
+                    ui.card().classes("w-[420px] max-w-full occm-dialog"),
+                ):
                     ui.label(tr("provider.delete_confirm_title")).classes(
                         "text-base font-semibold"
                     )
@@ -322,7 +331,10 @@ def register_page(auth: WebAuth | None) -> None:
                 dlg.open()
 
             def delete_model(pkey: str, mid: str) -> None:
-                with ui.dialog() as dlg, ui.card().classes("w-[420px] max-w-full"):
+                with (
+                    ui.dialog() as dlg,
+                    ui.card().classes("w-[420px] max-w-full occm-dialog"),
+                ):
                     ui.label(tr("common.confirm_delete_title")).classes(
                         "text-base font-semibold"
                     )
@@ -431,11 +443,11 @@ def register_page(auth: WebAuth | None) -> None:
                             header += f"  |  {tr('provider.native_provider')}"
                         with (
                             ui.expansion(header, icon="dns")
-                            .classes("w-full")
+                            .classes("w-full occm-expansion")
                             .props("dense header-class='text-weight-medium'")
                         ):
                             with ui.row().classes(
-                                "w-full items-center gap-4 p-2 rounded bg-white/5"
+                                "w-full items-center gap-4 p-3 rounded-lg occm-inline-row"
                             ):
                                 ui.label(
                                     f"{tr('provider.provider_name')}: {pdata.get('name') or pkey}"
@@ -516,7 +528,7 @@ def register_page(auth: WebAuth | None) -> None:
                                     rows=m_rows,
                                     row_key="id",
                                     selection="single",
-                                ).classes("w-full")
+                                ).classes("w-full occm-table")
                                 with ui.row().classes("gap-2 mt-1"):
 
                                     def _edit_model(
@@ -558,13 +570,13 @@ def register_page(auth: WebAuth | None) -> None:
                                     "text-gray-400 py-2"
                                 )
                     ui.separator().classes("my-3")
-                    with ui.card().classes("w-full"):
+                    with ui.card().classes("w-full occm-card"):
                         ui.label(tr("provider.native_provider")).classes(
                             "text-base font-semibold"
                         )
                         native_row = ui.row().classes("w-full gap-2 flex-wrap")
                         _refresh_native_tags(native_row)
-                    with ui.card().classes("w-full mt-3"):
+                    with ui.card().classes("w-full mt-3 occm-card"):
                         with ui.row().classes("w-full items-center justify-between"):
                             ui.label(tr("native_provider.detected_env_vars")).classes(
                                 "text-base font-semibold"
@@ -599,7 +611,7 @@ def register_page(auth: WebAuth | None) -> None:
                             rows=[],
                             row_key="provider",
                             pagination=8,
-                        ).classes("w-full")
+                        ).classes("w-full occm-table")
                         _refresh_env(env_tbl)
 
             def do_refresh() -> None:

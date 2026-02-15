@@ -38,7 +38,7 @@ def register_page(auth: WebAuth | None):
                     for name, val in list(cats.items()):
                         val = val if isinstance(val, dict) else {}
                         with ui.row().classes(
-                            "w-full items-center gap-2 p-2 rounded hover:bg-gray-50"
+                            "w-full items-center gap-2 occm-inline-row"
                         ):
                             ui.label(name).classes("w-40 font-medium truncate")
                             m_inp = ui.input(

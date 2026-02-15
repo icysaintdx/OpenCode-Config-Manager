@@ -95,7 +95,7 @@ def register_page(auth: WebAuth | None):
                 row_key="name",
                 selection="single",
                 pagination=10,
-            ).classes("w-full")
+            ).classes("w-full occm-table")
 
             def on_select(_: Any) -> None:
                 rows = plugin_table.selected or []
