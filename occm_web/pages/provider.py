@@ -83,7 +83,8 @@ def register_page(auth: WebAuth | None) -> None:
                         value=str(pdata.get("name") or edit_key or ""),
                     ).classes("w-full")
                     sdk_in = ui.input(
-                        label=tr("provider.sdk_type"), value=str(pdata.get("sdk") or "")
+                        label=tr("provider.sdk_type"),
+                        value=str(pdata.get("sdk") or pdata.get("npm") or ""),
                     ).classes("w-full")
                     url_in = ui.input(
                         label=tr("provider.base_url"),
@@ -93,7 +94,11 @@ def register_page(auth: WebAuth | None) -> None:
                     ).classes("w-full")
                     key_val = ui.input(
                         label=tr("provider.api_key"),
-                        value=str(auth_info.get("apiKey") or ""),
+                        value=str(
+                            _safe_dict(pdata.get("options")).get("apiKey")
+                            or auth_info.get("apiKey")
+                            or ""
+                        ),
                         password=True,
                         password_toggle_button=True,
                     ).classes("w-full")
@@ -119,17 +124,26 @@ def register_page(auth: WebAuth | None) -> None:
                                 opts["baseURL"] = burl
                             else:
                                 opts.pop("baseURL", None)
+                            ak = str(key_val.value or "").strip()
+                            if ak:
+                                opts["apiKey"] = ak
+                            sdk_val = str(sdk_in.value or "").strip()
                             entry: dict[str, Any] = {
                                 "name": str(name_in.value or "").strip() or k,
-                                "sdk": str(sdk_in.value or "").strip(),
                             }
+                            # 保留原有字段名: sdk 或 npm
+                            if cur.get("npm") is not None:
+                                entry["npm"] = sdk_val
+                            elif cur.get("sdk") is not None:
+                                entry["sdk"] = sdk_val
+                            elif sdk_val:
+                                entry["npm"] = sdk_val
                             if models:
                                 entry["models"] = models
                             if opts:
                                 entry["options"] = opts
                             pm[k] = entry
                             config["provider"] = pm
-                            ak = str(key_val.value or "").strip()
                             if ak:
                                 auth_manager.set_provider_auth(k, {"apiKey": ak})
                             if not save_config():
@@ -404,10 +418,13 @@ def register_page(auth: WebAuth | None) -> None:
                             auth_manager.get_provider_auth(pkey) or {}
                         )
                         api_key_raw = str(
-                            auth_info.get("apiKey") or auth_info.get("key") or ""
+                            options.get("apiKey")
+                            or auth_info.get("apiKey")
+                            or auth_info.get("key")
+                            or ""
                         )
                         is_native = pkey in native_ids
-                        sdk_text = str(pdata.get("sdk") or "-")
+                        sdk_text = str(pdata.get("sdk") or pdata.get("npm") or "-")
                         model_count = len(models)
                         header = f"{pkey}  |  {sdk_text}  |  {model_count} models"
                         if is_native:
