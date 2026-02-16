@@ -511,32 +511,207 @@ jobs:
             dist/OCCM_${{ env.TAG_NAME }}-Linux-x86_64.AppImage
             dist/OCCM_${{ env.TAG_NAME }}-Linux-amd64.deb
 
+  # ==================== Web Windows 构建 ====================
+  build-web-windows:
+    name: 🪟 Web Windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 读取版本号
+        shell: pwsh
+        run: echo "TAG_NAME=${{ github.ref_name }}" >> $env:GITHUB_ENV
+      - name: 缓存 pip
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-web-${{ hashFiles('requirements_web.txt') }}
+          restore-keys: ${{ runner.os }}-pip-web-
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install nicegui requests pyinstaller
+      - name: 下载 UPX
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip" -OutFile upx.zip
+          Expand-Archive upx.zip -DestinationPath .
+          Move-Item upx-4.2.4-win64\upx.exe .
+      - name: PyInstaller 打包
+        run: |
+          pyinstaller `
+            --name "OCCM_Web_${{ env.TAG_NAME }}" `
+            --onefile --console --upx-dir . `
+            --add-data "occm_web;occm_web" `
+            --add-data "occm_core;occm_core" `
+            --add-data "locales;locales" `
+            --hidden-import nicegui --hidden-import nicegui.elements `
+            --hidden-import nicegui.ui --hidden-import uvicorn `
+            --hidden-import starlette --hidden-import fastapi `
+            --hidden-import httptools --hidden-import websockets `
+            --hidden-import requests --hidden-import urllib3 --hidden-import certifi `
+            --collect-data nicegui --collect-submodules nicegui `
+            --exclude-module torch --exclude-module tensorflow `
+            --exclude-module scipy --exclude-module matplotlib `
+            --exclude-module pandas --exclude-module numpy `
+            --exclude-module PIL --exclude-module IPython `
+            --exclude-module pytest --exclude-module PyQt5 `
+            --exclude-module qfluentwidgets `
+            --icon "assets/icon.ico" --noconfirm --clean `
+            occm_web_launcher.py
+      - name: 重命名
+        run: |
+          cd dist
+          Rename-Item "OCCM_Web_${{ env.TAG_NAME }}.exe" "OCCM_Web_${{ env.TAG_NAME }}-Windows-x64.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-windows-build
+          path: dist/OCCM_Web_${{ env.TAG_NAME }}-Windows-x64.exe
+
+  # ==================== Web macOS 构建 ====================
+  build-web-macos:
+    name: 🍎 Web macOS
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 读取版本号
+        run: echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: 缓存 pip
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: ${{ runner.os }}-pip-web-${{ hashFiles('requirements_web.txt') }}
+          restore-keys: ${{ runner.os }}-pip-web-
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install nicegui requests pyinstaller
+      - name: PyInstaller 打包
+        run: |
+          pyinstaller \
+            --name "OCCM_Web_${{ env.TAG_NAME }}" \
+            --onedir --console \
+            --add-data "occm_web:occm_web" \
+            --add-data "occm_core:occm_core" \
+            --add-data "locales:locales" \
+            --hidden-import=nicegui --hidden-import=nicegui.elements \
+            --hidden-import=nicegui.ui --hidden-import=uvicorn \
+            --hidden-import=starlette --hidden-import=fastapi \
+            --hidden-import=httptools --hidden-import=websockets \
+            --hidden-import=requests --hidden-import=urllib3 --hidden-import=certifi \
+            --collect-data nicegui --collect-submodules nicegui \
+            --exclude-module torch --exclude-module tensorflow \
+            --exclude-module scipy --exclude-module matplotlib \
+            --exclude-module pandas --exclude-module numpy \
+            --exclude-module PIL --exclude-module IPython \
+            --exclude-module pytest --exclude-module PyQt5 \
+            --exclude-module qfluentwidgets \
+            --noconfirm --strip \
+            occm_web_launcher.py
+      - name: 打包 ZIP
+        run: |
+          cd dist
+          zip -r "OCCM_Web_${{ env.TAG_NAME }}-macOS.zip" "OCCM_Web_${{ env.TAG_NAME }}/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-macos-build
+          path: dist/OCCM_Web_${{ env.TAG_NAME }}-macOS.zip
+
+  # ==================== Web Linux 构建 ====================
+  build-web-linux:
+    name: 🐧 Web Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+      - name: 读取版本号
+        run: echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: 缓存 pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-web-${{ hashFiles('requirements_web.txt') }}
+          restore-keys: ${{ runner.os }}-pip-web-
+      - name: 安装系统依赖
+        run: sudo apt update -y && sudo apt install -y libgl1 libglib2.0-0 fuse libfuse2 file
+      - name: 安装 Python 依赖
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install nicegui requests pyinstaller
+      - name: PyInstaller 打包
+        run: |
+          pyinstaller \
+            --name "OCCM_Web_${{ env.TAG_NAME }}" \
+            --onedir --console \
+            --add-data "occm_web:occm_web" \
+            --add-data "occm_core:occm_core" \
+            --add-data "locales:locales" \
+            --hidden-import=nicegui --hidden-import=nicegui.elements \
+            --hidden-import=nicegui.ui --hidden-import=uvicorn \
+            --hidden-import=starlette --hidden-import=fastapi \
+            --hidden-import=httptools --hidden-import=websockets \
+            --hidden-import=requests --hidden-import=urllib3 --hidden-import=certifi \
+            --collect-data nicegui --collect-submodules nicegui \
+            --exclude-module torch --exclude-module tensorflow \
+            --exclude-module scipy --exclude-module matplotlib \
+            --exclude-module pandas --exclude-module numpy \
+            --exclude-module PIL --exclude-module IPython \
+            --exclude-module pytest --exclude-module PyQt5 \
+            --exclude-module qfluentwidgets \
+            --noconfirm --strip \
+            occm_web_launcher.py
+      - name: 打包 tar.gz
+        run: |
+          cd dist
+          tar -zcvf "OCCM_Web_${{ env.TAG_NAME }}-Linux-x64.tar.gz" "OCCM_Web_${{ env.TAG_NAME }}/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-linux-build
+          path: dist/OCCM_Web_${{ env.TAG_NAME }}-Linux-x64.tar.gz
+
   # ==================== 统一发布 ====================
   release:
     name: 📦 发布到 GitHub Release
-    needs: [build-windows, build-macos, build-linux]
+    needs: [build-windows, build-macos, build-linux, build-web-windows, build-web-macos, build-web-linux]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: 拉取项目源码 (获取 RELEASE.md）
         uses: actions/checkout@v4
 
-      - name: 下载 Windows 构建产物
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: windows-build
           path: ./dist
-
-      - name: 下载 macOS 构建产物
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: macos-build
           path: ./dist
-
-      - name: 下载 Linux 构建产物
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: linux-build
+          path: ./dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-windows-build
+          path: ./dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-macos-build
+          path: ./dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-linux-build
           path: ./dist
 
       - name: 列出所有构建产物
