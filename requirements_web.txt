@@ -1,0 +1,11 @@
+# OCCM Web 版依赖
+# Python 3.10+ required
+
+# Web 框架
+nicegui>=2.0.0
+
+# HTTP
+requests>=2.25.0
+
+# SSH 远程管理 (可选)
+# paramiko>=3.0.0
