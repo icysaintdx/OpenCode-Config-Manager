@@ -156,19 +156,13 @@ jobs:
             --exclude-module pytest \
             --exclude-module PyQt5 \
             --exclude-module qfluentwidgets \
-            --icon "assets/icon.icns" \
             --noconfirm --strip \
             occm_web_launcher.py
-
-      - name: 签名
-        run: |
-          xattr -cr "dist/OCCM_Web_${{ env.TAG_NAME }}.app" 2>/dev/null || true
-          codesign --force --deep --sign - --entitlements entitlements.plist "dist/OCCM_Web_${{ env.TAG_NAME }}.app" 2>/dev/null || true
 
       - name: 打包 ZIP
         run: |
           cd dist
-          zip -r "OCCM_Web_${{ env.TAG_NAME }}-macOS.zip" "OCCM_Web_${{ env.TAG_NAME }}.app"
+          zip -r "OCCM_Web_${{ env.TAG_NAME }}-macOS.zip" "OCCM_Web_${{ env.TAG_NAME }}/"
 
       - uses: actions/upload-artifact@v4
         with:
