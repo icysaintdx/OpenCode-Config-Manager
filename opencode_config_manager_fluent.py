@@ -10069,10 +10069,10 @@ class ProviderDialog(BaseDialog):
             if hasattr(self.main_window, "provider_page") and not getattr(
                 service, "_provider_page_connected", False
             ):
-                service.fetch_finished.connect(
-                    self.main_window.provider_page._on_models_fetched
-                )
-                service._provider_page_connected = True
+                _pp = self.main_window.provider_page
+                if hasattr(_pp, "_on_models_fetched"):
+                    service.fetch_finished.connect(_pp._on_models_fetched)
+                    service._provider_page_connected = True
 
             service.fetch_async(name, options)
         else:
