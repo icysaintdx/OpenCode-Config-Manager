@@ -1,3 +1,39 @@
+## [v1.8.0] - 2026-02-17
+**版本代号**: Web版发布 & Issue修复版
+
+### 🆕 本次重点
+#### **OCCM Web版** ⭐⭐⭐
+- 全新Web端：基于NiceGUI框架，17个页面全部接入，浏览器访问管理配置
+- 全局CSS设计系统（glassmorphism风格），统一occm-*样式
+- 侧边栏分组导航+图标，完整i18n国际化支持
+- Provider+Model合并为折叠展开页面
+- Permission/Category/Rules改为内联编辑，Monitor合并表格
+- 远程配置管理功能
+- 支持`--config-dir`命令行参数 / `OPENCODE_CONFIG_DIR`环境变量
+- 启动时自动打开浏览器（可通过`--no-browser`禁用）
+
+### 🐛 Bug修复
+- **保存Provider时`_on_models_fetched`报错** (Issue #1) — 添加hasattr守卫
+- **Web端滚动卡顿** — 移除backdrop-filter/blur、scroll-behavior:smooth
+- **多项Web端修复** — ui.select 500错误、Provider字段读取、OMO下拉事件、NiceGUI启动等
+
+### 📦 构建与CI
+- 合并Web构建到build.yml统一发布
+- 桌面版+Web版6个平台产物一次性发布到同一个GitHub Release
+- macOS Web构建改为压缩onedir目录
+
+### 📁 新增文件
+- `occm_web/` — 完整Web端目录（17个页面+布局+CSS+i18n）
+- `occm_web_launcher.py` — PyInstaller入口
+- `requirements_web.txt` — Web版依赖
+
+### 🧾 说明
+- 本版本为重大功能版本，新增完整Web端支持
+- 桌面版同步修复Issue #1（保存Provider崩溃）
+- Issues #2/#4（insertSeparator）和 #5（requests模块）已在v1.7.2修复
+
+---
+
 ## [v1.7.2] - 2026-02-08
 **版本代号**: 稳定性修复版
 

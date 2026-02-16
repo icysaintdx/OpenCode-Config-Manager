@@ -4,6 +4,53 @@
 
 ---
 
+## [v1.8.0] - 2026-02-17
+**版本代号**: Web版发布 & Issue修复版
+
+### 🆕 新增功能
+#### **OCCM Web版** ⭐⭐⭐
+- **全新Web端**：基于NiceGUI框架，支持浏览器访问管理配置
+  - 17个页面全部接入：Provider、Model、MCP、Agent、Permission、Skill、Plugin等
+  - 全局CSS设计系统（glassmorphism风格），统一occm-*样式
+  - 侧边栏分组导航+图标，完整i18n国际化支持
+  - Provider+Model合并为折叠展开页面
+  - Permission/Category/Rules改为内联编辑，Monitor合并表格
+  - 远程配置管理功能
+- **自定义配置路径**：
+  - 支持`--config-dir`命令行参数
+  - 支持`OPENCODE_CONFIG_DIR`环境变量
+  - 启动时自动打开浏览器（可通过`--no-browser`禁用）
+- **跨平台构建**：
+  - Windows exe / macOS zip / Linux tar.gz
+  - 与桌面版统一发布到同一个GitHub Release
+
+### 🐛 Bug修复
+- **保存Provider时`_on_models_fetched`报错修复** (Issue #1)
+  - 添加`hasattr`守卫，防止ProviderPage未定义该方法时崩溃
+- **Web端滚动卡顿修复**
+  - 移除`backdrop-filter: blur()`、`scroll-behavior: smooth`
+  - 精简transition为仅background/color
+- **多项Web端修复**
+  - 修复`ui.select value=''`导致500错误
+  - 修复Provider页面读取npm/sdk和options.apiKey字段
+  - 修复OMO Agent页面provider下拉事件
+  - 修复重复空CLIConfigGenerator类导致cli-export页面500错误
+  - 修复NiceGUI multiprocessing reload启动问题
+
+### 📦 构建与CI
+- 合并Web构建到build.yml统一发布流程
+- macOS Web构建改为压缩onedir目录
+- 删除独立build_web.yml，桌面版+Web版6个平台产物一次性发布
+
+### 📁 文件变更
+- 新增：`occm_web/` 完整Web端目录（17个页面+布局+CSS+i18n）
+- 新增：`occm_web_launcher.py`（PyInstaller入口）
+- 新增：`requirements_web.txt`
+- 更新：`opencode_config_manager_fluent.py`（Issue #1修复+版本号）
+- 更新：`.github/workflows/build.yml`（统一构建流程）
+
+---
+
 ## [v1.7.2] - 2026-02-08
 **版本代号**: 稳定性修复版
 

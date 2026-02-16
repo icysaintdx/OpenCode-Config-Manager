@@ -8,6 +8,53 @@ All version update records.
 
 ---
 
+## [v1.8.0] - 2026-02-17
+**Version Codename**: Web Edition & Issue Fixes
+
+### 🆕 New Features
+#### **OCCM Web Edition** ⭐⭐⭐
+- **Full Web Interface**: Built on NiceGUI framework, manage configurations via browser
+  - All 17 pages integrated: Provider, Model, MCP, Agent, Permission, Skill, Plugin, etc.
+  - Global CSS design system (glassmorphism style) with unified occm-* classes
+  - Sidebar grouped navigation with icons, full i18n internationalization
+  - Provider + Model merged into collapsible page
+  - Permission/Category/Rules switched to inline editing, Monitor tables merged
+  - Remote configuration management
+- **Custom Config Path**:
+  - `--config-dir` CLI argument support
+  - `OPENCODE_CONFIG_DIR` environment variable support
+  - Auto-open browser on startup (disable with `--no-browser`)
+- **Cross-Platform Builds**:
+  - Windows exe / macOS zip / Linux tar.gz
+  - Unified release with desktop builds in same GitHub Release
+
+### 🐛 Bug Fixes
+- **Provider Save `_on_models_fetched` Crash Fix** (Issue #1)
+  - Added `hasattr` guard to prevent crash when ProviderPage lacks the method
+- **Web Scroll Jank Fix**
+  - Removed `backdrop-filter: blur()`, `scroll-behavior: smooth`
+  - Simplified transitions to background/color only
+- **Multiple Web Fixes**
+  - Fixed `ui.select value=''` causing 500 error
+  - Fixed Provider page reading npm/sdk and options.apiKey fields
+  - Fixed OMO Agent page provider dropdown event
+  - Fixed duplicate empty CLIConfigGenerator class causing cli-export 500 error
+  - Fixed NiceGUI multiprocessing reload startup issue
+
+### 📦 Build & CI
+- Merged Web builds into build.yml for unified release
+- macOS Web build changed to compress onedir directory
+- Removed standalone build_web.yml; desktop + web 6-platform artifacts in single release
+
+### 📁 File Changes
+- Added: `occm_web/` full web directory (17 pages + layout + CSS + i18n)
+- Added: `occm_web_launcher.py` (PyInstaller entry point)
+- Added: `requirements_web.txt`
+- Updated: `opencode_config_manager_fluent.py` (Issue #1 fix + version bump)
+- Updated: `.github/workflows/build.yml` (unified build pipeline)
+
+---
+
 ## [v1.7.2] - 2026-02-08
 **Version Codename**: Stability Fix Release
 

@@ -42,28 +42,21 @@
 
 ---
 
-## 🎯 v1.7.2 Latest Version
+## 🎯 v1.8.0 Latest Version
+
+### 🆕 OCCM Web Edition
+- **Full Web Interface** — 17 pages, NiceGUI-based, browser access with glassmorphism CSS design system
+- **Custom Config Path** — `--config-dir` CLI arg / `OPENCODE_CONFIG_DIR` env var / auto-open browser
+- **Cross-Platform Builds** — Windows exe / macOS zip / Linux tar.gz, unified release with desktop
 
 ### 🐛 Key Fixes
-- **Apply Full Configuration Crash Fix**
-  - Replaced unsupported `ComboBox.insertSeparator` with a compatible disabled separator item
-  - Prevented separator selection from triggering invalid group apply logic
-- **Skill Marketplace Installation Fix**
-  - Added PyInstaller hidden imports for `requests` and dependencies (`urllib3`, `certifi`, `charset_normalizer`, `idna`)
-  - Fixed packaged app error: `No module named 'requests'`
-- **MCP Dialog Resize UX Fix**
-  - Enabled vertical resize with size grip support
-  - Fixed collapse behavior so dialog height shrinks correctly after hiding extra fields
-- **GLM / Native Provider Balance Query Safety**
-  - Added provider capability checks for unsupported native balance APIs
-  - Show warning message instead of crashing when query is unsupported
-- **Global Crash Resilience**
-  - Added cross-platform global exception handler for main thread and worker threads
-  - Log unhandled exceptions instead of hard-exiting the application
+- **Provider Save Crash Fix** (Issue #1) — `hasattr` guard for `_on_models_fetched`
+- **Web Scroll Jank Fix** — Removed blur/smooth-scroll, simplified transitions
 
 ### 🎨 Improvements
-- Persisted theme preference to UI config (`~/.config/opencode/occm-ui.json`)
-- Normalized model `limit` structure to avoid invalid empty config output
+- Provider + Model merged into collapsible page
+- Permission/Category/Rules inline editing
+- Sidebar grouped navigation with icons
 
 ---
 
@@ -339,6 +332,11 @@ According to [OpenCode Official Documentation](https://opencode.ai/docs/models/)
 ## 📋 Version History
 
 ### Latest Release
+
+**[v1.8.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.8.0)** - 2026-02-17
+- 🌐 OCCM Web Edition - Full 17-page web interface with NiceGUI, glassmorphism CSS, cross-platform builds
+- 🐛 Issue Fixes - Provider save crash (#1), web scroll jank, multiple web page fixes
+- 📦 Unified CI - Desktop + Web 6-platform artifacts in single GitHub Release
 
 **[v1.7.2](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.2)** - 2026-02-08
 - 🐛 Crash Fixes - Fixed full-config apply crash, GLM balance-query crash, and improved global exception handling

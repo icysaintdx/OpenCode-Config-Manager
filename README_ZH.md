@@ -42,28 +42,21 @@
 
 ---
 
-## 🎯 v1.7.2 最新版本
+## 🎯 v1.8.0 最新版本
+
+### 🆕 OCCM Web版
+- **全新Web端** — 17个页面，基于NiceGUI框架，浏览器访问，glassmorphism风格CSS设计系统
+- **自定义配置路径** — `--config-dir`命令行参数 / `OPENCODE_CONFIG_DIR`环境变量 / 自动打开浏览器
+- **跨平台构建** — Windows exe / macOS zip / Linux tar.gz，与桌面版统一发布
 
 ### 🐛 关键修复
-- **应用完整配置报错修复**
-  - 将不兼容的 `ComboBox.insertSeparator` 改为兼容的禁用分隔项
-  - 分隔项选择不会再触发错误的分组应用逻辑
-- **Skill 市场安装失败修复**
-  - 为 PyInstaller 增加 `requests` 及依赖（`urllib3`、`certifi`、`charset_normalizer`、`idna`）隐藏导入
-  - 修复打包后 `No module named 'requests'` 报错
-- **MCP 对话框缩放体验修复**
-  - 支持纵向缩放并启用尺寸拖拽
-  - 修复附加信息折叠后窗口高度不回缩的问题
-- **GLM / 原生 Provider 余额查询稳定性修复**
-  - 为不支持余额接口的 Provider 增加能力判断
-  - 不再闪退，改为弹窗提示不可查询
-- **全局崩溃兜底增强**
-  - 新增跨平台全局异常处理（主线程 + 子线程）
-  - 未捕获异常将写入日志，避免程序直接退出
+- **保存Provider崩溃修复** (Issue #1) — 添加`hasattr`守卫防止`_on_models_fetched`报错
+- **Web端滚动卡顿修复** — 移除blur/smooth-scroll，精简transition
 
 ### 🎨 体验优化
-- 新增主题偏好持久化（`~/.config/opencode/occm-ui.json`）
-- 规范模型 `limit` 结构，避免写出空对象导致配置异常
+- Provider+Model合并为折叠展开页面
+- Permission/Category/Rules改为内联编辑
+- 侧边栏分组导航+图标
 
 ---
 
@@ -377,6 +370,11 @@ python opencode_config_manager_fluent.py
 ## 📋 版本历史
 
 ### 最新版本
+
+**[v1.8.0](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.8.0)** - 2026-02-17
+- 🌐 OCCM Web版 - 全新17页面Web端，NiceGUI框架，glassmorphism CSS，跨平台构建
+- 🐛 Issue修复 - Provider保存崩溃(#1)、Web滚动卡顿、多项Web页面修复
+- 📦 统一CI - 桌面版+Web版6平台产物统一发布到同一个GitHub Release
 
 **[v1.7.2](https://github.com/icysaintdx/OpenCode-Config-Manager/releases/tag/v1.7.2)** - 2026-02-08
 - 🐛 崩溃修复 - 修复应用完整配置报错、GLM余额查询闪退，并增强全局异常处理
