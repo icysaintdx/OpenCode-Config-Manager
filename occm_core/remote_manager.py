@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
+from .i18n import tr
+
 # paramiko 为可选依赖：如果未安装，远程功能将不可用
 try:
     import paramiko  # pyright: ignore[reportMissingModuleSource]
@@ -107,7 +109,7 @@ class RemoteManager:
         """确保 paramiko 可用。"""
         if paramiko is None:
             raise RuntimeError(
-                "未安装 paramiko，无法使用远程管理功能。请先执行: pip install paramiko"
+                tr("remote_mgr.paramiko_not_installed")
             )
 
     @staticmethod
@@ -116,7 +118,7 @@ class RemoteManager:
         key = (config_type or "").strip().lower()
         if key not in RemoteManager._CONFIG_FILENAME_MAP:
             raise ValueError(
-                f"不支持的配置类型: {config_type}。仅支持 opencode / oh-my-opencode / auth"
+                f"{tr('remote_mgr.unsupported_config_type', config_type=config_type)}"
             )
         return RemoteManager._CONFIG_FILENAME_MAP[key]
 
@@ -124,11 +126,11 @@ class RemoteManager:
         """按鉴权方式建立 SSH 连接。"""
         if server.auth_type == "key":
             if not server.key_path:
-                raise ValueError("使用密钥登录时必须提供 key_path")
+                raise ValueError(tr("remote_mgr.key_path_required"))
 
             key_path = Path(server.key_path).expanduser()
             if not key_path.exists():
-                raise FileNotFoundError(f"私钥文件不存在: {key_path}")
+                raise FileNotFoundError(tr("remote_mgr.key_file_not_found", path=key_path))
 
             client.connect(
                 hostname=server.host,
@@ -143,7 +145,7 @@ class RemoteManager:
 
         if server.auth_type == "password":
             if not server.password:
-                raise ValueError("使用密码登录时必须提供 password")
+                raise ValueError(tr("remote_mgr.password_required"))
 
             client.connect(
                 hostname=server.host,
@@ -156,7 +158,7 @@ class RemoteManager:
             )
             return
 
-        raise ValueError(f"不支持的 auth_type: {server.auth_type}")
+        raise ValueError(tr("remote_mgr.unsupported_auth_type", auth_type=server.auth_type))
 
     def connect(self, server: RemoteServer) -> Tuple[bool, str]:
         """连接远程服务器。"""
@@ -168,20 +170,20 @@ class RemoteManager:
             if key in self._clients:
                 transport = self._clients[key].get_transport()
                 if transport and transport.is_active():
-                    return True, "已连接（复用现有连接）"
+                    return True, tr("remote_mgr.already_connected")
                 self.disconnect(server)
 
             pm = paramiko
             if pm is None:
-                raise RuntimeError("paramiko 不可用")
+                raise RuntimeError(tr("remote_mgr.paramiko_not_installed"))
 
             client = pm.SSHClient()
             client.set_missing_host_key_policy(pm.AutoAddPolicy())
             self._connect_auth(client, server)
             self._clients[key] = client
-            return True, "连接成功"
+            return True, tr("remote_mgr.connect_success")
         except Exception as e:
-            return False, f"连接失败: {e}"
+            return False, tr("remote_mgr.connect_failed", error=e)
 
     def disconnect(self, server: RemoteServer) -> None:
         """断开单个服务器连接。"""
@@ -211,10 +213,10 @@ class RemoteManager:
         try:
             code, out, err = self._exec(server, "echo OCCM_REMOTE_OK")
             if code == 0 and out.strip() == "OCCM_REMOTE_OK":
-                return True, "连接测试成功"
-            return False, f"连接测试失败: {err or out}"
+                return True, tr("remote_mgr.test_success")
+            return False, tr("remote_mgr.test_failed", error=err or out)
         except Exception as e:
-            return False, f"连接测试异常: {e}"
+            return False, tr("remote_mgr.test_exception", error=e)
 
     def _get_client(self, server: RemoteServer) -> Any:
         """获取可用客户端，不可用时自动重连。"""
@@ -262,7 +264,7 @@ class RemoteManager:
         if code2 == 0 and out2.strip():
             return out2.strip()
 
-        raise RuntimeError(f"远程路径展开失败: {err or err2 or out or out2}")
+        raise RuntimeError(tr("remote_mgr.expand_path_failed", error=err or err2 or out or out2))
 
     def _get_remote_config_dir(self, server: RemoteServer) -> str:
         """获取远程配置目录。
@@ -305,18 +307,18 @@ class RemoteManager:
 
             return json.loads(content)
         except FileNotFoundError:
-            raise FileNotFoundError(f"远程配置文件不存在: {config_type}")
+            raise FileNotFoundError(tr("remote_mgr.remote_config_not_found", config_type=config_type))
         except json.JSONDecodeError as e:
-            raise ValueError(f"远程配置文件 JSON 解析失败: {e}")
+            raise ValueError(tr("remote_mgr.remote_config_parse_failed", error=e))
         except Exception as e:
-            raise RuntimeError(f"读取远程配置失败: {e}")
+            raise RuntimeError(tr("remote_mgr.read_remote_config_failed", error=e))
 
     def write_remote_config(
         self, server: RemoteServer, config_type: str, data: Dict[str, Any]
     ) -> bool:
         """写入远程配置文件。"""
         if not isinstance(data, dict):
-            raise ValueError("写入失败：data 必须为 dict")
+            raise ValueError(tr("remote_mgr.write_data_must_be_dict"))
 
         try:
             remote_path = self._get_remote_config_path(server, config_type)
@@ -326,7 +328,7 @@ class RemoteManager:
             mk_cmd = f"mkdir -p {shlex.quote(remote_dir)}"
             code, _, err = self._exec(server, mk_cmd)
             if code != 0:
-                raise RuntimeError(f"创建远程目录失败: {err}")
+                raise RuntimeError(tr("remote_mgr.create_remote_dir_failed", error=err))
 
             payload = json.dumps(data, indent=2, ensure_ascii=False)
             client = self._get_client(server)
@@ -339,7 +341,7 @@ class RemoteManager:
 
             return True
         except Exception as e:
-            raise RuntimeError(f"写入远程配置失败: {e}")
+            raise RuntimeError(tr("remote_mgr.write_remote_config_failed", error=e))
 
     def create_remote_backup(self, server: RemoteServer) -> str:
         """创建远程备份（按时间戳打包当前配置文件）。"""
@@ -359,11 +361,11 @@ class RemoteManager:
             )
             code, _, err = self._exec(server, cmd)
             if code != 0:
-                raise RuntimeError(err or "未知错误")
+                raise RuntimeError(err or tr("remote_mgr.unknown_error"))
 
             return backup_dir
         except Exception as e:
-            raise RuntimeError(f"创建远程备份失败: {e}")
+            raise RuntimeError(tr("remote_mgr.create_remote_backup_failed", error=e))
 
     def list_remote_backups(self, server: RemoteServer) -> List[Dict[str, Any]]:
         """列出远程备份文件。"""
@@ -400,7 +402,7 @@ class RemoteManager:
             finally:
                 sftp.close()
         except Exception as e:
-            raise RuntimeError(f"列出远程备份失败: {e}")
+            raise RuntimeError(tr("remote_mgr.list_remote_backups_failed", error=e))
 
     def get_remote_opencode_status(self, server: RemoteServer) -> Dict[str, Any]:
         """检查远程 OpenCode 运行状态。"""
@@ -449,7 +451,7 @@ class RemoteManager:
             result["process_running"] = len(process_lines) > 0
             return result
         except Exception as e:
-            result["error"] = f"检查远程状态失败: {e}"
+            result["error"] = tr("remote_mgr.check_remote_status_failed", error=e)
             return result
 
 
