@@ -90,7 +90,7 @@ class AuthManager:
 
         if state.lock_until and now < state.lock_until:
             remain = int((state.lock_until - now).total_seconds() // 60) + 1
-            return False, f"登录失败过多，请 {remain} 分钟后再试"
+            return False, tr("auth.login_locked", remain=remain)
 
         stored_hash = self._config.get("password_hash", "")
         if not stored_hash or not self._verify_password(password, stored_hash):
@@ -98,12 +98,12 @@ class AuthManager:
             if state.attempts >= 5:
                 state.lock_until = now + timedelta(minutes=15)
                 state.attempts = 0
-                return False, "登录失败 5 次，已锁定 15 分钟"
-            return False, f"密码错误，还可尝试 {5 - state.attempts} 次"
+                return False, tr("auth.login_failed_locked")
+            return False, tr("auth.password_wrong", remain=5 - state.attempts)
 
         state.attempts = 0
         state.lock_until = None
-        return True, "登录成功"
+        return True, tr("auth.login_success")
 
     def create_token(self, subject: str = "admin") -> str:
         now = datetime.now(UTC)
@@ -137,13 +137,13 @@ class AuthManager:
 
     def change_password(self, old_password: str, new_password: str) -> tuple[bool, str]:
         if len(new_password) < 8:
-            return False, "新密码至少 8 位"
+            return False, tr("auth.new_password_min_length")
         old_hash = self._config.get("password_hash", "")
         if not self._verify_password(old_password, old_hash):
-            return False, "原密码错误"
+            return False, tr("auth.old_password_wrong")
         self._config["password_hash"] = self._hash_password(new_password)
         self._save_config(self._config)
-        return True, "密码修改成功"
+        return True, tr("auth.password_changed")
 
 
 def _extract_request(args: tuple[Any, ...], kwargs: dict[str, Any]) -> Request | None:
@@ -204,7 +204,7 @@ def register_auth_api(auth: AuthManager) -> None:
 
     @app.post("/api/auth/logout")
     async def auth_logout() -> JSONResponse:
-        response = JSONResponse({"ok": True, "message": "已退出登录"})
+        response = JSONResponse({"ok": True, "message": tr("auth.logged_out")})
         auth.clear_auth_cookie(response)
         return response
 
@@ -212,7 +212,7 @@ def register_auth_api(auth: AuthManager) -> None:
     async def auth_change_password(request: Request) -> JSONResponse:
         token = request.cookies.get(COOKIE_NAME, "")
         if not token or not auth.decode_token(token):
-            return JSONResponse({"ok": False, "message": "未登录"}, status_code=401)
+            return JSONResponse({"ok": False, "message": tr("auth.not_logged_in")}, status_code=401)
 
         payload = await request.json()
         old_password = str(payload.get("old_password", ""))
@@ -235,9 +235,9 @@ def register_login_pages(auth: AuthManager) -> None:
         ):
             with ui.card().classes("w-[360px] p-6 gap-4"):
                 title = ui.label(tr("app.title")).classes("text-xl font-bold")
-                subtitle = ui.label("OCCM Web 登录").classes("text-sm text-gray-500")
+                subtitle = ui.label(tr("auth.web_login_subtitle")).classes("text-sm text-gray-500")
                 password = ui.input(
-                    "管理密码", password=True, password_toggle_button=True
+                    tr("auth.admin_password_label"), password=True, password_toggle_button=True
                 ).classes("w-full")
 
                 async def do_login() -> None:
@@ -256,10 +256,10 @@ def register_login_pages(auth: AuthManager) -> None:
                         ui.navigate.to("/")
                     else:
                         ui.notify(
-                            (result or {}).get("message", "登录失败"), type="negative"
+                            (result or {}).get("message", tr("auth.login_failed_fallback")), type="negative"
                         )
 
-                ui.button("登录", on_click=do_login).classes("w-full")
+                ui.button(tr("auth.login_button"), on_click=do_login).classes("w-full")
                 title.update()
                 subtitle.update()
 
@@ -272,10 +272,10 @@ def register_login_pages(auth: AuthManager) -> None:
             with ui.card().classes("w-[420px] p-6 gap-4"):
                 ui.label(tr("common.update")).classes("text-lg font-bold")
                 old_password = ui.input(
-                    "原密码", password=True, password_toggle_button=True
+                    tr("auth.old_password_label"), password=True, password_toggle_button=True
                 ).classes("w-full")
                 new_password = ui.input(
-                    "新密码", password=True, password_toggle_button=True
+                    tr("auth.new_password_label"), password=True, password_toggle_button=True
                 ).classes("w-full")
 
                 async def do_change() -> None:
@@ -296,12 +296,12 @@ def register_login_pages(auth: AuthManager) -> None:
                     result = await ui.run_javascript(script)
                     if result and result.get("ok"):
                         ui.notify(
-                            (result or {}).get("message", "密码已更新"), type="positive"
+                            (result or {}).get("message", tr("auth.password_updated_fallback")), type="positive"
                         )
                         ui.navigate.to("/")
                     else:
                         ui.notify(
-                            (result or {}).get("message", "修改失败"), type="negative"
+                            (result or {}).get("message", tr("auth.change_failed_fallback")), type="negative"
                         )
 
-                ui.button("提交", on_click=do_change).classes("w-full")
+                ui.button(tr("auth.submit_button"), on_click=do_change).classes("w-full")
