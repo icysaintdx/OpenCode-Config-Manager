@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
+from .i18n import tr
 
 
 class ConfigValidator:
@@ -43,14 +44,14 @@ class ConfigValidator:
                 {
                     "level": "error",
                     "path": "root",
-                    "message": "配置文件无法解析或读取失败",
+                    "message": tr("validator.config_parse_failed"),
                 }
             )
             return issues
 
         if not isinstance(config, dict):
             issues.append(
-                {"level": "error", "path": "root", "message": "配置根必须是对象类型"}
+                {"level": "error", "path": "root", "message": tr("validator.root_must_be_object")}
             )
             return issues
 
@@ -59,7 +60,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "root",
-                    "message": "配置为空，尚未添加任何Provider",
+                    "message": tr("validator.config_empty"),
                 }
             )
             return issues
@@ -70,7 +71,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "$schema",
-                    "message": "建议设置 $schema 为 https://opencode.ai/config.json",
+                    "message": tr("validator.schema_recommend"),
                 }
             )
 
@@ -80,7 +81,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "provider",
-                    "message": "未配置任何 Provider",
+                    "message": tr("validator.no_providers"),
                 }
             )
         if not isinstance(providers, dict):
@@ -88,7 +89,7 @@ class ConfigValidator:
                 {
                     "level": "error",
                     "path": "provider",
-                    "message": "provider 必须是对象类型",
+                    "message": tr("validator.provider_must_be_object"),
                 }
             )
             return issues
@@ -101,7 +102,7 @@ class ConfigValidator:
                     {
                         "level": "error",
                         "path": provider_path,
-                        "message": f"Provider '{provider_name}' 的值必须是对象，当前是 {type(provider_data).__name__}",
+                        "message": tr("validator.provider_value_not_object", name=provider_name, type=type(provider_data).__name__),
                     }
                 )
                 continue
@@ -112,7 +113,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": f"{provider_path}.{field}",
-                            "message": f"Provider '{provider_name}' 缺少必需字段 '{field}'",
+                            "message": tr("validator.provider_missing_field", name=provider_name, field=field),
                         }
                     )
                 elif ConfigValidator._is_blank(provider_data.get(field)):
@@ -120,7 +121,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": f"{provider_path}.{field}",
-                            "message": f"Provider '{provider_name}' 的 '{field}' 为空",
+                            "message": tr("validator.provider_field_empty", name=provider_name, field=field),
                         }
                     )
 
@@ -130,7 +131,7 @@ class ConfigValidator:
                     {
                         "level": "warning",
                         "path": f"{provider_path}.npm",
-                        "message": f"Provider '{provider_name}' 的 npm 包 '{npm}' 不在已知列表中",
+                        "message": tr("validator.provider_unknown_npm", name=provider_name, npm=npm),
                     }
                 )
 
@@ -140,7 +141,7 @@ class ConfigValidator:
                     {
                         "level": "error",
                         "path": f"{provider_path}.options",
-                        "message": f"Provider '{provider_name}' 的 options 必须是对象",
+                        "message": tr("validator.provider_options_not_object", name=provider_name),
                     }
                 )
             else:
@@ -150,7 +151,7 @@ class ConfigValidator:
                             {
                                 "level": "warning",
                                 "path": f"{provider_path}.options.{opt_field}",
-                                "message": f"Provider '{provider_name}' 的 options 缺少 '{opt_field}'",
+                                "message": tr("validator.provider_options_missing", name=provider_name, field=opt_field),
                             }
                         )
                     elif ConfigValidator._is_blank(options.get(opt_field)):
@@ -158,7 +159,7 @@ class ConfigValidator:
                             {
                                 "level": "warning",
                                 "path": f"{provider_path}.options.{opt_field}",
-                                "message": f"Provider '{provider_name}' 的 options.{opt_field} 为空",
+                                "message": tr("validator.provider_options_empty", name=provider_name, field=opt_field),
                             }
                         )
 
@@ -168,7 +169,7 @@ class ConfigValidator:
                     {
                         "level": "error",
                         "path": f"{provider_path}.models",
-                        "message": f"Provider '{provider_name}' 的 models 必须是对象",
+                        "message": tr("validator.provider_models_not_object", name=provider_name),
                     }
                 )
             else:
@@ -177,7 +178,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{provider_path}.models",
-                            "message": f"Provider '{provider_name}' 没有配置任何模型",
+                            "message": tr("validator.provider_no_models", name=provider_name),
                         }
                     )
                 for model_id, model_data in models.items():
@@ -187,7 +188,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": model_path,
-                                "message": f"Provider '{provider_name}' 存在空模型ID",
+                                "message": tr("validator.provider_empty_model_id", name=provider_name),
                             }
                         )
                         continue
@@ -196,7 +197,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": model_path,
-                                "message": f"Model '{model_id}' 的值必须是对象",
+                                "message": tr("validator.model_value_not_object", model=model_id),
                             }
                         )
                         continue
@@ -207,7 +208,7 @@ class ConfigValidator:
                             {
                                 "level": "warning",
                                 "path": f"{model_path}.limit",
-                                "message": f"Model '{model_id}' 的 limit 应该是对象",
+                                "message": tr("validator.model_limit_should_be_object", model=model_id),
                             }
                         )
                     elif limit:
@@ -218,7 +219,7 @@ class ConfigValidator:
                                 {
                                     "level": "warning",
                                     "path": f"{model_path}.limit.context",
-                                    "message": f"Model '{model_id}' 的 context 应该是整数",
+                                    "message": tr("validator.model_context_should_be_int", model=model_id),
                                 }
                             )
                         if output is not None and not isinstance(output, int):
@@ -226,14 +227,14 @@ class ConfigValidator:
                                 {
                                     "level": "warning",
                                     "path": f"{model_path}.limit.output",
-                                    "message": f"Model '{model_id}' 的 output 应该是整数",
+                                    "message": tr("validator.model_output_should_be_int", model=model_id),
                                 }
                             )
 
         mcp = config.get("mcp", {})
         if mcp and not isinstance(mcp, dict):
             issues.append(
-                {"level": "error", "path": "mcp", "message": "mcp 必须是对象类型"}
+                {"level": "error", "path": "mcp", "message": tr("validator.mcp_must_be_object")}
             )
         elif isinstance(mcp, dict):
             for mcp_name, mcp_data in mcp.items():
@@ -243,7 +244,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": mcp_path,
-                            "message": f"MCP '{mcp_name}' 的值必须是对象",
+                            "message": tr("validator.mcp_value_not_object", name=mcp_name),
                         }
                     )
                     continue
@@ -254,7 +255,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{mcp_path}.command",
-                            "message": f"Local MCP '{mcp_name}' 缺少 command 字段",
+                            "message": tr("validator.mcp_local_missing_command", name=mcp_name),
                         }
                     )
                 elif mcp_type == "remote" and "url" not in mcp_data:
@@ -262,14 +263,14 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{mcp_path}.url",
-                            "message": f"Remote MCP '{mcp_name}' 缺少 url 字段",
+                            "message": tr("validator.mcp_remote_missing_url", name=mcp_name),
                         }
                     )
 
         agent = config.get("agent", {})
         if agent and not isinstance(agent, dict):
             issues.append(
-                {"level": "error", "path": "agent", "message": "agent 必须是对象类型"}
+                {"level": "error", "path": "agent", "message": tr("validator.agent_must_be_object")}
             )
 
         return issues
@@ -279,23 +280,23 @@ class ConfigValidator:
         issues = []
         if not config:
             issues.append(
-                {"level": "error", "path": "root", "message": "配置文件为空或无法解析"}
+                {"level": "error", "path": "root", "message": tr("validator.config_empty_or_invalid")}
             )
             return issues
         if not isinstance(config, dict):
             issues.append(
-                {"level": "error", "path": "root", "message": "配置根必须是对象类型"}
+                {"level": "error", "path": "root", "message": tr("validator.root_must_be_object")}
             )
             return issues
 
         agents = config.get("agents", {})
         if not agents:
             issues.append(
-                {"level": "warning", "path": "agents", "message": "未配置任何 Agent"}
+                {"level": "warning", "path": "agents", "message": tr("validator.no_agents")}
             )
         if agents and not isinstance(agents, dict):
             issues.append(
-                {"level": "error", "path": "agents", "message": "agents 必须是对象类型"}
+                {"level": "error", "path": "agents", "message": tr("validator.agents_must_be_object")}
             )
             return issues
 
@@ -307,7 +308,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": agent_path,
-                            "message": "Agent 名称为空",
+                            "message": tr("validator.agent_name_empty"),
                         }
                     )
                     continue
@@ -316,7 +317,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": agent_path,
-                            "message": f"Agent '{agent_name}' 的值必须是对象",
+                            "message": tr("validator.agent_value_not_object", name=agent_name),
                         }
                     )
                     continue
@@ -326,7 +327,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{agent_path}.{field}",
-                                "message": f"Agent '{agent_name}' 缺少必需字段 '{field}'",
+                                "message": tr("validator.agent_missing_field", name=agent_name, field=field),
                             }
                         )
                     elif ConfigValidator._is_blank(agent_data.get(field)):
@@ -334,7 +335,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{agent_path}.{field}",
-                                "message": f"Agent '{agent_name}' 的 '{field}' 为空",
+                                "message": tr("validator.agent_field_empty", name=agent_name, field=field),
                             }
                         )
                 if "description" in agent_data and ConfigValidator._is_blank(
@@ -344,7 +345,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{agent_path}.description",
-                            "message": f"Agent '{agent_name}' 的 description 为空",
+                            "message": tr("validator.agent_description_empty", name=agent_name),
                         }
                     )
 
@@ -354,7 +355,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "categories",
-                    "message": "未配置任何 Category",
+                    "message": tr("validator.no_categories"),
                 }
             )
         if categories and not isinstance(categories, dict):
@@ -362,7 +363,7 @@ class ConfigValidator:
                 {
                     "level": "error",
                     "path": "categories",
-                    "message": "categories 必须是对象类型",
+                    "message": tr("validator.categories_must_be_object"),
                 }
             )
             return issues
@@ -375,7 +376,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": category_path,
-                            "message": "Category 名称为空",
+                            "message": tr("validator.category_name_empty"),
                         }
                     )
                     continue
@@ -384,7 +385,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": category_path,
-                            "message": f"Category '{category_name}' 的值必须是对象",
+                            "message": tr("validator.category_value_not_object", name=category_name),
                         }
                     )
                     continue
@@ -394,7 +395,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{category_path}.{field}",
-                                "message": f"Category '{category_name}' 缺少必需字段 '{field}'",
+                                "message": tr("validator.category_missing_field", name=category_name, field=field),
                             }
                         )
                     elif ConfigValidator._is_blank(category_data.get(field)):
@@ -402,7 +403,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{category_path}.{field}",
-                                "message": f"Category '{category_name}' 的 '{field}' 为空",
+                                "message": tr("validator.category_field_empty", name=category_name, field=field),
                             }
                         )
 
@@ -414,7 +415,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{category_path}.temperature",
-                            "message": f"Category '{category_name}' 的 temperature 应该是数字",
+                            "message": tr("validator.category_temperature_should_be_number", name=category_name),
                         }
                     )
                 if "description" in category_data and ConfigValidator._is_blank(
@@ -424,7 +425,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{category_path}.description",
-                            "message": f"Category '{category_name}' 的 description 为空",
+                            "message": tr("validator.category_description_empty", name=category_name),
                         }
                     )
 
@@ -443,14 +444,14 @@ class ConfigValidator:
         fixed_providers = {}
         for provider_name, provider_data in providers.items():
             if not isinstance(provider_data, dict):
-                fixes.append(f"跳过无效 Provider '{provider_name}' (值不是对象)")
+                fixes.append(tr("validator.fix_skip_invalid_provider", name=provider_name))
                 continue
 
             fixed_provider = dict(provider_data)
 
             if "npm" not in fixed_provider:
                 fixed_provider["npm"] = "@ai-sdk/openai"
-                fixes.append(f"Provider '{provider_name}': 添加默认 npm 字段")
+                fixes.append(tr("validator.fix_add_default_npm", name=provider_name))
 
             if "options" not in fixed_provider or not isinstance(
                 fixed_provider.get("options"), dict
@@ -458,21 +459,21 @@ class ConfigValidator:
                 fixed_provider["options"] = fixed_provider.get("options", {})
                 if not isinstance(fixed_provider["options"], dict):
                     fixed_provider["options"] = {}
-                fixes.append(f"Provider '{provider_name}': 修复 options 字段")
+                fixes.append(tr("validator.fix_options_field", name=provider_name))
 
             if "baseURL" not in fixed_provider["options"]:
                 fixed_provider["options"]["baseURL"] = ""
-                fixes.append(f"Provider '{provider_name}': 添加空 baseURL")
+                fixes.append(tr("validator.fix_add_empty_baseurl", name=provider_name))
             if "apiKey" not in fixed_provider["options"]:
                 fixed_provider["options"]["apiKey"] = ""
-                fixes.append(f"Provider '{provider_name}': 添加空 apiKey")
+                fixes.append(tr("validator.fix_add_empty_apikey", name=provider_name))
 
             if "models" not in fixed_provider:
                 fixed_provider["models"] = {}
-                fixes.append(f"Provider '{provider_name}': 添加空 models 字段")
+                fixes.append(tr("validator.fix_add_empty_models", name=provider_name))
             elif not isinstance(fixed_provider.get("models"), dict):
                 fixed_provider["models"] = {}
-                fixes.append(f"Provider '{provider_name}': 修复 models 字段为对象")
+                fixes.append(tr("validator.fix_models_to_object", name=provider_name))
 
             for model_id, model_cfg in list(fixed_provider.get("models", {}).items()):
                 if not isinstance(model_cfg, dict):
@@ -484,7 +485,7 @@ class ConfigValidator:
                 if not isinstance(limit, dict):
                     model_cfg.pop("limit", None)
                     fixes.append(
-                        f"Provider '{provider_name}' Model '{model_id}': 移除无效 limit"
+                        tr("validator.fix_remove_invalid_limit", name=provider_name, model=model_id)
                     )
                     continue
 
@@ -499,7 +500,7 @@ class ConfigValidator:
                 else:
                     model_cfg.pop("limit", None)
                     fixes.append(
-                        f"Provider '{provider_name}' Model '{model_id}': 移除空 limit"
+                        tr("validator.fix_remove_empty_limit", name=provider_name, model=model_id)
                     )
 
             ordered_provider = {}
@@ -528,17 +529,17 @@ class ConfigValidator:
 
         lines = []
         if errors:
-            lines.append(f"❌ {len(errors)} 个错误:")
+            lines.append(tr("validator.error_count", count=len(errors)))
             for e in errors[:5]:
                 lines.append(f"  • {e['message']}")
             if len(errors) > 5:
-                lines.append(f"  ... 还有 {len(errors) - 5} 个错误")
+                lines.append(tr("validator.error_more", count=len(errors) - 5))
 
         if warnings:
-            lines.append(f"⚠️ {len(warnings)} 个警告:")
+            lines.append(tr("validator.warning_count", count=len(warnings)))
             for w in warnings[:5]:
                 lines.append(f"  • {w['message']}")
             if len(warnings) > 5:
-                lines.append(f"  ... 还有 {len(warnings) - 5} 个警告")
+                lines.append(tr("validator.warning_more", count=len(warnings) - 5))
 
-        return "\n".join(lines) if lines else "✅ 配置格式正确"
+        return "\n".join(lines) if lines else tr("validator.config_valid")
