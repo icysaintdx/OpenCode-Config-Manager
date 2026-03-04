@@ -14,6 +14,7 @@ from .data_types import (
     ExportResult,
     ValidationResult,
 )
+from .i18n import tr
 
 
 # ==================== CLI 导出模块异常类 ====================
@@ -28,7 +29,7 @@ class ProviderValidationError(CLIExportError):
 
     def __init__(self, missing_fields: List[str]):
         self.missing_fields = missing_fields
-        super().__init__(f"Provider 配置不完整: 缺少 {', '.join(missing_fields)}")
+        super().__init__(tr("cli_export_msg.provider_config_incomplete", fields=", ".join(missing_fields)))
 
 
 class ConfigWriteError(CLIExportError):
@@ -37,7 +38,7 @@ class ConfigWriteError(CLIExportError):
     def __init__(self, path: Path, reason: str):
         self.path = path
         self.reason = reason
-        super().__init__(f"写入配置失败 ({path}): {reason}")
+        super().__init__(tr("cli_export_msg.write_config_failed", path=path, reason=reason))
 
 
 class ConfigParseError(CLIExportError):
@@ -47,7 +48,7 @@ class ConfigParseError(CLIExportError):
         self.path = path
         self.format_type = format_type
         self.reason = reason
-        super().__init__(f"解析 {format_type} 配置失败 ({path}): {reason}")
+        super().__init__(tr("cli_export_msg.parse_config_failed", format=format_type, path=path, reason=reason))
 
 
 class BackupError(CLIExportError):
@@ -56,7 +57,7 @@ class BackupError(CLIExportError):
     def __init__(self, cli_type: str, reason: str):
         self.cli_type = cli_type
         self.reason = reason
-        super().__init__(f"备份 {cli_type} 配置失败: {reason}")
+        super().__init__(tr("cli_export_msg.backup_failed", cli_type=cli_type, reason=reason))
 
 
 class RestoreError(CLIExportError):
@@ -65,7 +66,7 @@ class RestoreError(CLIExportError):
     def __init__(self, backup_path: Path, reason: str):
         self.backup_path = backup_path
         self.reason = reason
-        super().__init__(f"恢复备份失败 ({backup_path}): {reason}")
+        super().__init__(tr("cli_export_msg.restore_failed", path=backup_path, reason=reason))
 
 
 class CLIConfigWriter:
@@ -132,7 +133,7 @@ class CLIConfigWriter:
         except json.JSONDecodeError as e:
             if temp_path.exists():
                 temp_path.unlink()
-            raise ConfigWriteError(path, f"JSON 格式验证失败: {e}")
+            raise ConfigWriteError(path, tr("cli_export_msg.json_validation_failed", error=e))
         except Exception as e:
             if temp_path.exists():
                 temp_path.unlink()
@@ -177,7 +178,7 @@ class CLIConfigWriter:
             try:
                 path.chmod(mode)
             except Exception as e:
-                print(f"设置文件权限失败 ({path}): {e}")
+                print(tr("cli_export_msg.set_permissions_failed", path=path, error=e))
 
     def write_claude_settings(self, config: Dict, merge: bool = True) -> None:
         """写入 Claude settings.json
@@ -339,7 +340,7 @@ class CLIBackupManager:
         """从备份恢复配置"""
         try:
             if not backup_path.exists():
-                raise RestoreError(backup_path, "备份目录不存在")
+                raise RestoreError(backup_path, tr("cli_export_msg.backup_dir_not_found"))
 
             cli_dir = CLIConfigWriter.get_cli_dir(cli_type)
             cli_dir.mkdir(parents=True, exist_ok=True)
@@ -386,7 +387,7 @@ class CLIBackupManager:
             backups.sort(key=lambda x: x.created_at, reverse=True)
 
         except Exception as e:
-            print(f"列出备份失败: {e}")
+            print(tr("cli_export_msg.list_backups_failed", error=e))
 
         return backups
 
@@ -397,7 +398,7 @@ class CLIBackupManager:
             try:
                 shutil.rmtree(backup.path)
             except Exception as e:
-                print(f"删除旧备份失败 ({backup.path}): {e}")
+                print(tr("cli_export_msg.delete_old_backup_failed", path=backup.path, error=e))
 
 
 class CLIConfigGenerator:
@@ -531,17 +532,17 @@ class CLIExportManager:
             "baseURL", ""
         )
         if not base_url or not base_url.strip():
-            errors.append("缺少 API 地址 (baseURL)")
+            errors.append(tr("cli_export_msg.missing_base_url"))
 
         api_key = provider.get("apiKey", "") or provider.get("options", {}).get(
             "apiKey", ""
         )
         if not api_key or not api_key.strip():
-            errors.append("缺少 API 密钥 (apiKey)")
+            errors.append(tr("cli_export_msg.missing_api_key"))
 
         models = provider.get("models", {})
         if not models:
-            warnings.append("未配置任何模型")
+            warnings.append(tr("cli_export_msg.no_models_configured"))
 
         if errors:
             return ValidationResult.failure(errors, warnings)
@@ -566,7 +567,7 @@ class CLIExportManager:
         except CLIExportError as e:
             return ExportResult.fail(cli_type, str(e), backup_path)
         except Exception as e:
-            return ExportResult.fail(cli_type, f"导出失败: {e}", backup_path)
+            return ExportResult.fail(cli_type, tr("cli_export_msg.export_failed", error=e), backup_path)
 
     def export_to_codex(self, provider: Dict, model: str) -> ExportResult:
         cli_type = "codex"
@@ -595,7 +596,7 @@ class CLIExportManager:
         except CLIExportError as e:
             return ExportResult.fail(cli_type, str(e), backup_path)
         except Exception as e:
-            return ExportResult.fail(cli_type, f"导出失败: {e}", backup_path)
+            return ExportResult.fail(cli_type, tr("cli_export_msg.export_failed", error=e), backup_path)
 
     def export_to_gemini(self, provider: Dict, model: str) -> ExportResult:
         cli_type = "gemini"
@@ -623,7 +624,7 @@ class CLIExportManager:
         except CLIExportError as e:
             return ExportResult.fail(cli_type, str(e), backup_path)
         except Exception as e:
-            return ExportResult.fail(cli_type, f"导出失败: {e}", backup_path)
+            return ExportResult.fail(cli_type, tr("cli_export_msg.export_failed", error=e), backup_path)
 
     def batch_export(
         self, provider: Dict, models: Dict[str, str], targets: List[str]
@@ -642,9 +643,9 @@ class CLIExportManager:
                 elif cli_type == "gemini":
                     result = self.export_to_gemini(provider, model)
                 else:
-                    result = ExportResult.fail(cli_type, f"未知的 CLI 类型: {cli_type}")
+                    result = ExportResult.fail(cli_type, tr("cli_export_msg.unknown_cli_type", cli_type=cli_type))
             except Exception as e:
-                result = ExportResult.fail(cli_type, f"导出异常: {e}")
+                result = ExportResult.fail(cli_type, tr("cli_export_msg.export_exception", error=e))
 
             results.append(result)
 
@@ -665,83 +666,83 @@ class CLIExportManager:
         if cli_type == "claude":
             settings_path = cli_dir / "settings.json"
             if not settings_path.exists():
-                errors.append("settings.json 文件不存在")
+                errors.append(tr("cli_export_msg.settings_json_not_found"))
             else:
                 try:
                     with open(settings_path, "r", encoding="utf-8") as f:
                         config = json.load(f)
                     if "env" not in config:
-                        errors.append("settings.json 缺少 env 字段")
+                        errors.append(tr("cli_export_msg.settings_json_missing_env"))
                     else:
                         env = config["env"]
                         if "ANTHROPIC_BASE_URL" not in env:
-                            errors.append("缺少 ANTHROPIC_BASE_URL")
+                            errors.append(tr("cli_export_msg.missing_anthropic_base_url"))
                         if "ANTHROPIC_AUTH_TOKEN" not in env:
-                            errors.append("缺少 ANTHROPIC_AUTH_TOKEN")
+                            errors.append(tr("cli_export_msg.missing_anthropic_auth_token"))
                 except json.JSONDecodeError as e:
-                    errors.append(f"settings.json 格式错误: {e}")
+                    errors.append(tr("cli_export_msg.settings_json_format_error", error=e))
                 except Exception as e:
-                    errors.append(f"读取 settings.json 失败: {e}")
+                    errors.append(tr("cli_export_msg.read_settings_json_failed", error=e))
 
         elif cli_type == "codex":
             auth_path = cli_dir / "auth.json"
             config_path = cli_dir / "config.toml"
 
             if not auth_path.exists():
-                errors.append("auth.json 文件不存在")
+                errors.append(tr("cli_export_msg.auth_json_not_found"))
             else:
                 try:
                     with open(auth_path, "r", encoding="utf-8") as f:
                         auth = json.load(f)
                     if "OPENAI_API_KEY" not in auth:
-                        errors.append("auth.json 缺少 OPENAI_API_KEY")
+                        errors.append(tr("cli_export_msg.auth_json_missing_key"))
                 except json.JSONDecodeError as e:
-                    errors.append(f"auth.json 格式错误: {e}")
+                    errors.append(tr("cli_export_msg.auth_json_format_error", error=e))
                 except Exception as e:
-                    errors.append(f"读取 auth.json 失败: {e}")
+                    errors.append(tr("cli_export_msg.read_auth_json_failed", error=e))
 
             if not config_path.exists():
-                errors.append("config.toml 文件不存在")
+                errors.append(tr("cli_export_msg.config_toml_not_found"))
             else:
                 try:
                     with open(config_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     if "model_provider" not in content:
-                        errors.append("config.toml 缺少 model_provider")
+                        errors.append(tr("cli_export_msg.config_toml_missing_provider"))
                     if "model =" not in content:
-                        errors.append("config.toml 缺少 model")
+                        errors.append(tr("cli_export_msg.config_toml_missing_model"))
                 except Exception as e:
-                    errors.append(f"读取 config.toml 失败: {e}")
+                    errors.append(tr("cli_export_msg.read_config_toml_failed", error=e))
 
         elif cli_type == "gemini":
             env_path = cli_dir / ".env"
             settings_path = cli_dir / "settings.json"
 
             if not env_path.exists():
-                errors.append(".env 文件不存在")
+                errors.append(tr("cli_export_msg.env_file_not_found"))
             else:
                 try:
                     with open(env_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     if "GEMINI_API_KEY" not in content:
-                        errors.append(".env 缺少 GEMINI_API_KEY")
+                        errors.append(tr("cli_export_msg.env_missing_api_key"))
                     if "GOOGLE_GEMINI_BASE_URL" not in content:
-                        errors.append(".env 缺少 GOOGLE_GEMINI_BASE_URL")
+                        errors.append(tr("cli_export_msg.env_missing_base_url"))
                 except Exception as e:
-                    errors.append(f"读取 .env 失败: {e}")
+                    errors.append(tr("cli_export_msg.read_env_failed", error=e))
 
             if not settings_path.exists():
-                warnings.append("settings.json 文件不存在")
+                warnings.append(tr("cli_export_msg.settings_json_not_found_warn"))
             else:
                 try:
                     with open(settings_path, "r", encoding="utf-8") as f:
                         config = json.load(f)
                     if "security" not in config:
-                        warnings.append("settings.json 缺少 security 字段")
+                        warnings.append(tr("cli_export_msg.settings_json_missing_security"))
                 except json.JSONDecodeError as e:
-                    errors.append(f"settings.json 格式错误: {e}")
+                    errors.append(tr("cli_export_msg.settings_json_format_error_gemini", error=e))
                 except Exception as e:
-                    errors.append(f"读取 settings.json 失败: {e}")
+                    errors.append(tr("cli_export_msg.read_settings_json_failed_gemini", error=e))
 
         if errors:
             return ValidationResult.failure(errors, warnings)
