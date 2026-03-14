@@ -5,6 +5,7 @@ from __future__ import annotations
 # pyright: reportMissingImports=false
 
 import json
+import urllib.request
 from typing import Any
 
 from fastapi import Request
@@ -27,6 +28,69 @@ from ..layout import render_layout
 
 def _safe_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _build_model_list_urls(base_url: str) -> list[str]:
+    base = base_url.strip().rstrip("/")
+    if not base:
+        return []
+    if base.endswith("/v1"):
+        return [f"{base}/models"]
+    return [f"{base}/v1/models", f"{base}/models"]
+
+
+def _extract_model_ids(data: Any) -> list[str]:
+    model_ids: list[str] = []
+    if isinstance(data, dict):
+        items = None
+        if isinstance(data.get("data"), list):
+            items = data.get("data")
+        elif isinstance(data.get("models"), list):
+            items = data.get("models")
+        elif isinstance(data.get("result"), list):
+            items = data.get("result")
+        if items is not None:
+            for item in items:
+                if isinstance(item, dict):
+                    model_id = item.get("id") or item.get("name") or ""
+                    if model_id:
+                        model_ids.append(str(model_id))
+                elif isinstance(item, str):
+                    model_ids.append(item)
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict):
+                model_id = item.get("id") or item.get("name") or ""
+                if model_id:
+                    model_ids.append(str(model_id))
+            elif isinstance(item, str):
+                model_ids.append(item)
+    # 去重并保持顺序
+    return list(dict.fromkeys(model_ids))
+
+
+def _fetch_model_ids(base_url: str, api_key: str) -> tuple[list[str], str]:
+    urls = _build_model_list_urls(base_url)
+    if not urls:
+        return [], "未配置模型列表地址"
+
+    headers = {"User-Agent": "OpenCode-Config-Manager"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    last_error = ""
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            model_ids = _extract_model_ids(payload)
+            if model_ids:
+                return model_ids, ""
+            last_error = "未返回可用模型列表"
+        except Exception as exc:
+            last_error = str(exc)
+    return [], last_error or "获取失败"
 
 
 def register_page(auth: WebAuth | None) -> None:
@@ -187,6 +251,53 @@ def register_page(auth: WebAuth | None) -> None:
                     ).classes("w-full")
                     if edit_model:
                         mid_in.disable()
+                    fetched_select = ui.select(
+                        label=tr("provider.fetch_models"),
+                        options=[],
+                        value=None,
+                    ).classes("w-full")
+
+                    def on_model_selected(e: Any) -> None:
+                        selected = str(e.value or "").strip()
+                        if selected:
+                            mid_in.value = selected
+
+                    fetched_select.on_value_change(on_model_selected)
+
+                    def do_fetch_models() -> None:
+                        pm = _safe_dict(config.get("provider"))
+                        pcfg = _safe_dict(pm.get(pkey))
+                        opts = _safe_dict(pcfg.get("options"))
+                        base_url = str(opts.get("baseURL") or "").strip()
+                        auth_info = _safe_dict(auth_manager.get_provider_auth(pkey) or {})
+                        api_key = str(opts.get("apiKey") or auth_info.get("apiKey") or "").strip()
+                        if not base_url:
+                            ui.notify(tr("provider.no_base_url"), type="warning")
+                            return
+                        model_ids, error = _fetch_model_ids(base_url, api_key)
+                        if error:
+                            ui.notify(
+                                tr("provider.fetch_failed", error=error),
+                                type="warning",
+                            )
+                            return
+                        if not model_ids:
+                            ui.notify(tr("provider.no_models_found"), type="warning")
+                            return
+                        fetched_select.options = model_ids
+                        fetched_select.value = model_ids[0]
+                        fetched_select.update()
+                        mid_in.value = model_ids[0]
+                        ui.notify(
+                            tr("provider.models_added", count=len(model_ids)),
+                            type="positive",
+                        )
+
+                    ui.button(
+                        tr("provider.fetch_models"),
+                        icon="sync",
+                        on_click=do_fetch_models,
+                    ).props("outline")
                     ctx_in = ui.number(
                         label="Context Window", value=int(limit.get("context") or 0)
                     ).classes("w-full")
