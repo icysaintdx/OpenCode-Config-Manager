@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+from .i18n import tr
 
 
 class ConfigManager:
@@ -92,12 +93,12 @@ class ConfigManager:
                     except json.JSONDecodeError as e2:
                         # 详细记录解析失败原因
                         print(f"Load failed {path}:")
-                        print(f"  - 标准JSON解析失败: {e1}")
-                        print(f"  - JSONC解析失败: {e2}")
-                        print(f"  - 文件大小: {len(content)} 字节")
-                        # 打印前200个字符用于调试
+                        print(f"  - {tr('config_mgr.json_parse_failed', error=str(e1))}")
+                        print(f"  - {tr('config_mgr.jsonc_parse_failed', error=str(e2))}")
+                        print(f"  - {tr('config_mgr.file_size', size=len(content))}")
+                        # Print first 200 chars for debugging
                         preview = content[:200].replace("\n", "\\n")
-                        print(f"  - 文件预览: {preview}...")
+                        print(f"  - {tr('config_mgr.file_preview', preview=preview)}")
                         return None
         except Exception as e:
             print(f"Load failed {path}: {e}")

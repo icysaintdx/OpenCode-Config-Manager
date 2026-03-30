@@ -229,7 +229,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="zhipuai",
-        name="Zhipu AI (智谱GLM)",
+        name="Zhipu AI",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, ""),
@@ -248,7 +248,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="zhipuai-coding-plan",
-        name="Zhipu AI Coding Plan (智谱GLM编码套餐)",
+        name="Zhipu AI Coding Plan",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, ""),
@@ -305,7 +305,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="qwen",
-        name="千问 Qwen",
+        name="Qwen",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, "sk-..."),
@@ -339,7 +339,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="yi",
-        name="零一万物 Yi",
+        name="Yi",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, ""),

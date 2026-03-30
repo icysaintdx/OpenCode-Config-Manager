@@ -44,19 +44,19 @@ class SkillDiscovery:
     @staticmethod
     def validate_skill_name(name: str) -> Tuple[bool, str]:
         if not name:
-            return False, "名称不能为空"
+            return False, tr("skill_manager.name_empty")
         if len(name) > 64:
-            return False, "名称不能超过 64 字符"
+            return False, tr("skill_manager.name_too_long")
         if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
-            return False, "名称格式错误：只能使用小写字母、数字、单连字符分隔"
+            return False, tr("skill_manager.name_format_error")
         return True, ""
 
     @staticmethod
     def validate_description(desc: str) -> Tuple[bool, str]:
         if not desc:
-            return False, "描述不能为空"
+            return False, tr("skill_manager.desc_empty")
         if len(desc) > 1024:
-            return False, "描述不能超过 1024 字符"
+            return False, tr("skill_manager.desc_too_long")
         return True, ""
 
     @staticmethod
@@ -164,10 +164,10 @@ class SkillDiscovery:
                             skills.append(skill)
                             seen_names.add(skill.name)
                     except Exception as e:
-                        print(f"解析 skill 失败 {skill_dir.name}: {e}")
+                        print(tr("skill_manager.parse_failed", name=skill_dir.name, error=e))
                         continue
             except Exception as e:
-                print(f"遍历目录失败 {base_path}: {e}")
+                print(tr("skill_manager.scan_dir_failed", path=base_path, error=e))
                 continue
 
         return skills
@@ -420,7 +420,7 @@ class SkillSecurityScanner:
                         "line": 0,
                         "code": "",
                         "level": "critical",
-                        "description": f"扫描失败: {str(e)}",
+                        "description": tr("skill_manager.scan_failed", error=str(e)),
                     }
                 ],
                 "level": "unknown",
@@ -494,7 +494,7 @@ class SkillInstaller:
         if os.path.exists(source):
             return "local", {"path": source}
 
-        raise ValueError(f"无法识别的来源格式: {source}")
+        raise ValueError(tr("skill_manager.unrecognized_source", source=source))
 
     @staticmethod
     def install_from_github(
@@ -513,7 +513,7 @@ class SkillInstaller:
 
         try:
             if progress_callback:
-                progress_callback("正在下载...")
+                progress_callback(tr("skill_manager.downloading"))
 
             zip_url = (
                 f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
@@ -522,11 +522,11 @@ class SkillInstaller:
 
             if response.status_code == 404:
                 if progress_callback:
-                    progress_callback("检测分支...")
+                    progress_callback(tr("skill_manager.detecting_branch"))
                 detected_branch = SkillInstaller.detect_default_branch(owner, repo)
                 if detected_branch != branch:
                     if progress_callback:
-                        progress_callback(f"使用分支: {detected_branch}")
+                        progress_callback(tr("skill_manager.using_branch", branch=detected_branch))
                     branch = detected_branch
                     zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
                     response = requests.get(zip_url, stream=True, timeout=30)
@@ -534,7 +534,7 @@ class SkillInstaller:
             response.raise_for_status()
 
             if progress_callback:
-                progress_callback("正在解压...")
+                progress_callback(tr("skill_manager.extracting"))
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 zip_path = Path(temp_dir) / "skill.zip"
@@ -550,7 +550,7 @@ class SkillInstaller:
                 if subdir:
                     skill_dir = extracted_dir / subdir
                     if not skill_dir.exists():
-                        return False, f"子目录不存在: {subdir}"
+                        return False, tr("skill_manager.subdir_not_found", subdir=subdir)
                 else:
                     skill_dir = extracted_dir
 
@@ -564,15 +564,15 @@ class SkillInstaller:
                 if not skill_file:
                     return (
                         False,
-                        f"未找到 SKILL.md 或 SKILL.txt 文件{f' (在 {subdir} 中)' if subdir else ''}",
+                        tr("skill_manager.skill_file_not_found_in_subdir", subdir=subdir) if subdir else tr("skill_manager.skill_file_not_found"),
                     )
 
                 skill = SkillDiscovery.parse_skill_file(skill_file)
                 if not skill:
-                    return False, "SKILL 文件格式错误"
+                    return False, tr("skill_manager.skill_file_format_error")
 
                 if progress_callback:
-                    progress_callback("正在安装...")
+                    progress_callback(tr("skill_manager.installing"))
 
                 skill_target = target_dir / skill.name
                 if skill_target.exists():
@@ -609,14 +609,14 @@ class SkillInstaller:
                     json.dump(meta, f, indent=2, ensure_ascii=False)
 
                 if progress_callback:
-                    progress_callback("安装完成！")
+                    progress_callback(tr("skill_manager.install_complete"))
 
-                return True, f"Skill '{skill.name}' 安装成功"
+                return True, tr("skill_manager.install_success", name=skill.name)
 
         except requests.exceptions.RequestException as e:
-            return False, f"网络错误: {str(e)}"
+            return False, tr("skill_manager.network_error", error=str(e))
         except Exception as e:
-            return False, f"安装失败: {str(e)}"
+            return False, tr("skill_manager.install_failed", error=str(e))
 
     @staticmethod
     def install_from_local(
@@ -627,18 +627,18 @@ class SkillInstaller:
         try:
             source = Path(source_path)
             if not source.exists():
-                return False, f"路径不存在: {source_path}"
+                return False, tr("skill_manager.path_not_found", path=source_path)
 
             skill_md = source / "SKILL.md"
             if not skill_md.exists():
-                return False, "未找到 SKILL.md 文件"
+                return False, tr("skill_manager.skill_md_not_found")
 
             skill = SkillDiscovery.parse_skill_file(skill_md)
             if not skill:
-                return False, "SKILL.md 格式错误"
+                return False, tr("skill_manager.skill_md_format_error")
 
             if progress_callback:
-                progress_callback("正在复制...")
+                progress_callback(tr("skill_manager.copying"))
 
             skill_target = target_dir / skill.name
             if skill_target.exists():
@@ -657,12 +657,12 @@ class SkillInstaller:
                 json.dump(meta, f, indent=2, ensure_ascii=False)
 
             if progress_callback:
-                progress_callback("安装完成！")
+                progress_callback(tr("skill_manager.install_complete"))
 
-            return True, f"Skill '{skill.name}' 安装成功"
+            return True, tr("skill_manager.install_success", name=skill.name)
 
         except Exception as e:
-            return False, f"安装失败: {str(e)}"
+            return False, tr("skill_manager.install_failed", error=str(e))
 
 
 class SkillUpdater:
@@ -685,7 +685,7 @@ class SkillUpdater:
                         "current_commit": None,
                         "latest_commit": None,
                         "meta": None,
-                        "status": "本地",
+                        "status": tr("skill_manager.status_local"),
                     }
                 )
                 continue
@@ -702,7 +702,7 @@ class SkillUpdater:
                             "current_commit": None,
                             "latest_commit": None,
                             "meta": meta,
-                            "status": "本地",
+                            "status": tr("skill_manager.status_local"),
                         }
                     )
                     continue
@@ -728,15 +728,15 @@ class SkillUpdater:
                         "has_update": has_update,
                         "current_commit": current_commit[:7]
                         if current_commit
-                        else "未知",
+                        else tr("skill_manager.status_unknown"),
                         "latest_commit": latest_commit[:7],
                         "meta": meta,
-                        "status": "有更新" if has_update else "最新",
+                        "status": tr("skill_manager.status_has_update") if has_update else tr("skill_manager.status_latest"),
                     }
                 )
 
             except Exception as e:
-                print(f"检查更新失败 {skill.name}: {e}")
+                print(tr("skill_manager.check_update_failed", name=skill.name, error=e))
                 updates.append(
                     {
                         "skill": skill,
@@ -744,7 +744,7 @@ class SkillUpdater:
                         "current_commit": None,
                         "latest_commit": None,
                         "meta": meta if "meta" in locals() else None,
-                        "status": "检查失败",
+                        "status": tr("skill_manager.status_check_failed"),
                     }
                 )
 
@@ -755,7 +755,7 @@ class SkillUpdater:
         skill: DiscoveredSkill, meta: dict, progress_callback=None
     ) -> Tuple[bool, str]:
         if meta.get("source") != "github":
-            return False, "仅支持更新从 GitHub 安装的 Skills"
+            return False, tr("skill_manager.update_github_only")
 
         try:
             target_dir = skill.path.parent.parent
@@ -773,4 +773,4 @@ class SkillUpdater:
             return success, message
 
         except Exception as e:
-            return False, f"更新失败: {str(e)}"
+            return False, tr("skill_manager.update_failed", error=str(e))

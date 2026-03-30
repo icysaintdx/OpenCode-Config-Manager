@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
+from .i18n import tr
+
 
 @dataclass
 class PluginConfig:
@@ -88,7 +90,7 @@ class PluginManager:
             return True
 
         except Exception as e:
-            print(f"安装插件失败: {e}")
+            print(tr("plugin_mgr.install_failed", error=e))
             return False
 
     @staticmethod
@@ -111,7 +113,7 @@ class PluginManager:
             return False
 
         except Exception as e:
-            print(f"卸载插件失败: {e}")
+            print(tr("plugin_mgr.uninstall_failed", error=e))
             return False
 
     @staticmethod
@@ -126,6 +128,6 @@ class PluginManager:
                 data = response.json()
                 return data.get("version", "")
         except Exception as e:
-            print(f"检查版本失败: {e}")
+            print(tr("plugin_mgr.check_version_failed", error=e))
 
         return ""

@@ -26,12 +26,12 @@ if not _is_mp_child:
         "--config-dir",
         type=str,
         default="",
-        help="自定义配置目录路径 (默认 ~/.config/opencode/)",
+        help="Custom config directory path (default ~/.config/opencode/)",
     )
     _parser.add_argument(
         "--no-browser",
         action="store_true",
-        help="启动时不自动打开浏览器",
+        help="Don't auto-open browser on startup",
     )
     _args = _parser.parse_args()
     os.environ["_OCCM_MP_CHILD"] = "1"
@@ -67,14 +67,14 @@ auth_manager = configure_app(no_auth=_no_auth, debug=_debug)
 if not _is_mp_child and auth_manager is not None:
     generated_password = auth_manager.ensure_admin_password()
     if generated_password:
-        print("\n[OCCM Web] 首次启动已生成管理密码，请立即保存：")
-        print(f"[OCCM Web] 管理员密码: {generated_password}\n")
+        print("\n[OCCM Web] Admin password generated on first run, please save immediately:")
+        print(f"[OCCM Web] Admin password: {generated_password}\n")
 
 if not _is_mp_child:
     from occm_core import ConfigPaths as _CP  # type: ignore
 
-    print(f"[OCCM Web] 配置目录: {_CP.get_config_base_dir()}")
-    print(f"[OCCM Web] 访问地址: http://{_host}:{_port}")
+    print(f"[OCCM Web] Config directory: {_CP.get_config_base_dir()}")
+    print(f"[OCCM Web] Access URL: http://{_host}:{_port}")
 
 # 自动打开浏览器
 if not _is_mp_child and not _no_browser:

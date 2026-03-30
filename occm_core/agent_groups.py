@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from .i18n import tr
 
 
 class AgentGroupManager:
@@ -184,7 +185,7 @@ class AgentGroupManager:
                     "default_group_id": None,
                 }
         except Exception as e:
-            print(f"加载分组配置失败: {e}")
+            print(tr("agent_groups.load_failed", error=str(e)))
             self.groups_data = {
                 "version": "1.0.0",
                 "groups": [],
@@ -210,7 +211,7 @@ class AgentGroupManager:
             with open(self.groups_file, "w", encoding="utf-8") as f:
                 json.dump(self.groups_data, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"保存分组配置失败: {e}")
+            print(tr("agent_groups.save_failed", error=str(e)))
             raise
 
     def backup_groups(self) -> Optional[Path]:
@@ -238,7 +239,7 @@ class AgentGroupManager:
 
                 return backup_file
         except Exception as e:
-            print(f"备份分组配置失败: {e}")
+            print(tr("agent_groups.backup_failed", error=str(e)))
             return None
 
     def _cleanup_old_backups(self, keep_count: int = 10) -> None:
@@ -259,7 +260,7 @@ class AgentGroupManager:
             for backup_file in backup_files[keep_count:]:
                 backup_file.unlink()
         except Exception as e:
-            print(f"清理旧备份失败: {e}")
+            print(tr("agent_groups.cleanup_failed", error=str(e)))
 
     # ========== 分组CRUD操作 ==========
 
@@ -372,10 +373,9 @@ class AgentGroupManager:
         if include_presets:
             # 添加预设模板（标记为preset类型）
             for preset in self.PRESETS:
-                preset_copy = preset.copy()
+                preset_copy = self._localize_preset(preset)
                 preset_copy["type"] = "preset"
                 groups.append(preset_copy)
-
         return groups
 
     # ========== 分组应用 ==========
@@ -509,13 +509,37 @@ class AgentGroupManager:
 
     # ========== 预设模板 ==========
 
+    # Mapping from preset id to locale key prefix
+    _PRESET_LOCALE_MAP = {
+        "preset-minimal": "preset_minimal",
+        "preset-standard": "preset_standard",
+        "preset-full": "preset_common",
+        "preset-complete": "preset_complete",
+        "preset-frontend": "preset_frontend",
+        "preset-backend": "preset_backend",
+    }
+
+    @staticmethod
+    def _localize_preset(preset: Dict) -> Dict:
+        """Return a copy of the preset with localized name/description."""
+        p = preset.copy()
+        key = AgentGroupManager._PRESET_LOCALE_MAP.get(preset["id"])
+        if key:
+            localized_name = tr(f"agent_groups.{key}")
+            if localized_name != f"agent_groups.{key}":
+                p["name"] = localized_name
+            localized_desc = tr(f"agent_groups.{key}_desc")
+            if localized_desc != f"agent_groups.{key}_desc":
+                p["description"] = localized_desc
+        return p
+
     def get_presets(self) -> List[Dict]:
         """获取所有预设模板
 
         Returns:
             List[Dict]: 预设模板列表
         """
-        return self.PRESETS.copy()
+        return [self._localize_preset(p) for p in self.PRESETS]
 
     def create_from_preset(
         self, preset_id: str, name: str, description: Optional[str] = None
@@ -582,7 +606,7 @@ class AgentGroupManager:
 
             return True
         except Exception as e:
-            print(f"导出分组失败: {e}")
+            print(tr("agent_groups.export_failed", error=str(e)))
             return False
 
     def import_group(self, file_path: Path, overwrite: bool = False) -> Optional[str]:
@@ -602,7 +626,7 @@ class AgentGroupManager:
 
             # 验证格式
             if "group" not in import_data:
-                print("导入文件格式错误：缺少group字段")
+                print(tr("agent_groups.import_format_error"))
                 return None
 
             group = import_data["group"]
@@ -615,7 +639,7 @@ class AgentGroupManager:
                     break
 
             if existing_group and not overwrite:
-                print(f"分组 '{group['name']}' 已存在")
+                print(tr("agent_groups.import_exists", name=group['name']))
                 return None
 
             if existing_group and overwrite:
@@ -637,7 +661,7 @@ class AgentGroupManager:
                     icon=group.get("icon", "📁"),
                 )
         except Exception as e:
-            print(f"导入分组失败: {e}")
+            print(tr("agent_groups.import_failed", error=str(e)))
             return None
 
     # ========== 统计信息 ==========

@@ -29,7 +29,7 @@ def _register_middlewares() -> None:
 def _register_exception_handler(debug: bool) -> None:
     @app.exception_handler(Exception)
     async def _global_exception_handler(_: Request, exc: Exception) -> JSONResponse:
-        logger.exception("未处理异常: %s", exc)
+        logger.exception("Unhandled exception: %s", exc)
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
 
 

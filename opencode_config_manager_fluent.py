@@ -56,18 +56,27 @@ def setup_global_crash_handler():
             from PyQt5.QtWidgets import QMessageBox, QApplication
 
             app = QApplication.instance() or QApplication(sys.argv)
+            try:
+                title = tr("crash.title")
+                msg = tr("crash.message", log_file=crash_log_file)
+            except Exception:
+                title = "OCCM Crash"
+                msg = (f"The application encountered an error and needs to close.\n\n"
+                       f"Error log saved to:\n{crash_log_file}\n\n"
+                       f"Please send this log file to the developer.\n\n"
+                       f"GitHub: https://github.com/icysaintdx/OpenCode-Config-Manager/issues")
             QMessageBox.critical(
                 None,
-                "OCCM 崩溃",
-                f"应用程序遇到错误并需要关闭。\n\n"
-                f"错误日志已保存到:\n{crash_log_file}\n\n"
-                f"请将此日志文件发送给开发者以帮助修复问题。\n\n"
-                f"GitHub: https://github.com/icysaintdx/OpenCode-Config-Manager/issues",
+                title,
+                msg,
             )
         except:
-            # 如果 GUI 无法显示,至少打印到控制台
+            try:
+                console_msg = tr("crash.console_msg", log_file=crash_log_file)
+            except Exception:
+                console_msg = f"OCCM Crash - log saved to: {crash_log_file}"
             print(f"\n{'=' * 80}")
-            print(f"OCCM 崩溃 - 日志已保存到: {crash_log_file}")
+            print(console_msg)
             print(f"{'=' * 80}\n")
 
         # 不再调用默认处理器，避免 GUI 进程直接退出
@@ -297,7 +306,7 @@ class ProviderValidationError(CLIExportError):
 
     def __init__(self, missing_fields: List[str]):
         self.missing_fields = missing_fields
-        super().__init__(f"Provider 配置不完整: 缺少 {', '.join(missing_fields)}")
+        super().__init__(tr("cli_exception.provider_incomplete", fields=', '.join(missing_fields)))
 
 
 class ConfigWriteError(CLIExportError):
@@ -306,7 +315,7 @@ class ConfigWriteError(CLIExportError):
     def __init__(self, path: Path, reason: str):
         self.path = path
         self.reason = reason
-        super().__init__(f"写入配置失败 ({path}): {reason}")
+        super().__init__(tr("cli_exception.write_failed", path=path, reason=reason))
 
 
 class ConfigParseError(CLIExportError):
@@ -316,7 +325,7 @@ class ConfigParseError(CLIExportError):
         self.path = path
         self.format_type = format_type
         self.reason = reason
-        super().__init__(f"解析 {format_type} 配置失败 ({path}): {reason}")
+        super().__init__(tr("cli_exception.parse_failed", format_type=format_type, path=path, reason=reason))
 
 
 class BackupError(CLIExportError):
@@ -325,7 +334,7 @@ class BackupError(CLIExportError):
     def __init__(self, cli_type: str, reason: str):
         self.cli_type = cli_type
         self.reason = reason
-        super().__init__(f"备份 {cli_type} 配置失败: {reason}")
+        super().__init__(tr("cli_exception.backup_failed", cli_type=cli_type, reason=reason))
 
 
 class RestoreError(CLIExportError):
@@ -334,7 +343,7 @@ class RestoreError(CLIExportError):
     def __init__(self, backup_path: Path, reason: str):
         self.backup_path = backup_path
         self.reason = reason
-        super().__init__(f"恢复备份失败 ({backup_path}): {reason}")
+        super().__init__(tr("cli_exception.restore_failed", backup_path=backup_path, reason=reason))
 
 
 # ==================== Agent 分组管理 ====================
@@ -516,7 +525,7 @@ class AgentGroupManager:
                     "default_group_id": None,
                 }
         except Exception as e:
-            print(f"加载分组配置失败: {e}")
+            print(f"{tr('agent_group_mgr.load_failed')}: {e}")
             self.groups_data = {
                 "version": "1.0.0",
                 "groups": [],
@@ -542,7 +551,7 @@ class AgentGroupManager:
             with open(self.groups_file, "w", encoding="utf-8") as f:
                 json.dump(self.groups_data, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"保存分组配置失败: {e}")
+            print(f"{tr('agent_group_mgr.save_failed')}: {e}")
             raise
 
     def backup_groups(self) -> Optional[Path]:
@@ -570,7 +579,7 @@ class AgentGroupManager:
 
                 return backup_file
         except Exception as e:
-            print(f"备份分组配置失败: {e}")
+            print(f"{tr('agent_group_mgr.backup_failed')}: {e}")
             return None
 
     def _cleanup_old_backups(self, keep_count: int = 10) -> None:
@@ -591,7 +600,7 @@ class AgentGroupManager:
             for backup_file in backup_files[keep_count:]:
                 backup_file.unlink()
         except Exception as e:
-            print(f"清理旧备份失败: {e}")
+            print(f"{tr('agent_group_mgr.cleanup_failed')}: {e}")
 
     # ========== 分组CRUD操作 ==========
 
@@ -914,7 +923,7 @@ class AgentGroupManager:
 
             return True
         except Exception as e:
-            print(f"导出分组失败: {e}")
+            print(f"{tr('agent_group_mgr.export_failed')}: {e}")
             return False
 
     def import_group(self, file_path: Path, overwrite: bool = False) -> Optional[str]:
@@ -934,7 +943,7 @@ class AgentGroupManager:
 
             # 验证格式
             if "group" not in import_data:
-                print("导入文件格式错误：缺少group字段")
+                print(tr('agent_group_mgr.import_format_error'))
                 return None
 
             group = import_data["group"]
@@ -947,7 +956,7 @@ class AgentGroupManager:
                     break
 
             if existing_group and not overwrite:
-                print(f"分组 '{group['name']}' 已存在")
+                print(tr('agent_group_mgr.group_exists', name=group['name']))
                 return None
 
             if existing_group and overwrite:
@@ -969,7 +978,7 @@ class AgentGroupManager:
                     icon=group.get("icon", "📁"),
                 )
         except Exception as e:
-            print(f"导入分组失败: {e}")
+            print(tr("agent_group_mgr.import_failed", error=str(e)))
             return None
 
     # ========== 统计信息 ==========
@@ -1379,7 +1388,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="zhipuai",
-        name="Zhipu AI (智谱GLM)",
+        name="Zhipu AI",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, ""),
@@ -1398,7 +1407,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="zhipuai-coding-plan",
-        name="Zhipu AI Coding Plan (智谱GLM编码套餐)",
+        name="Zhipu AI Coding Plan",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, ""),
@@ -1455,7 +1464,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="qwen",
-        name="千问 Qwen",
+        name="Qwen",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, "sk-..."),
@@ -1489,7 +1498,7 @@ NATIVE_PROVIDERS: List[NativeProviderConfig] = [
     ),
     NativeProviderConfig(
         id="yi",
-        name="零一万物 Yi",
+        name="Yi",
         sdk="@ai-sdk/openai-compatible",
         auth_fields=[
             AuthField("apiKey", "API Key", "password", True, ""),
@@ -2961,9 +2970,19 @@ OpenCode会自动检测上下文使用情况，
 
 
 def get_tooltip(key: str) -> str:
-    """获取tooltip文本，如果不存在返回空字符串"""
+    """Get tooltip text from locale, fall back to TOOLTIPS dict"""
+    translated = tr(f"tooltip.{key}")
+    if translated != f"tooltip.{key}":
+        return translated
     return TOOLTIPS.get(key, "")
 
+
+def _tr_preset(section: str, key: str, fallback: str = "") -> str:
+    """Translate a preset description, falling back to the dict value."""
+    translated = tr(f"preset_desc.{section}.{key}")
+    if translated != f"preset_desc.{section}.{key}":
+        return translated
+    return fallback
 
 # ==================== 预设常用模型（含完整配置） ====================
 # 根据 OpenCode 官方文档 (https://opencode.ai/docs/models/)
@@ -3536,7 +3555,7 @@ class ConfigPaths:
         return {
             "exists": True,
             "size": stat.st_size,
-            "size_str": f"{stat.st_size:,} 字节",
+            "size_str": tr("cli_export_msg.file_size_bytes", size=f"{stat.st_size:,}"),
             "mtime": datetime.fromtimestamp(stat.st_mtime),
             "mtime_str": datetime.fromtimestamp(stat.st_mtime).strftime(
                 "%Y-%m-%d %H:%M:%S"
@@ -3967,12 +3986,12 @@ class ConfigManager:
                     except json.JSONDecodeError as e2:
                         # 详细记录解析失败原因
                         print(f"Load failed {path}:")
-                        print(f"  - 标准JSON解析失败: {e1}")
-                        print(f"  - JSONC解析失败: {e2}")
-                        print(f"  - 文件大小: {len(content)} 字节")
+                        print(f"  - {tr('config_mgr.json_parse_failed', error=str(e1))}")
+                        print(f"  - {tr('config_mgr.jsonc_parse_failed', error=str(e2))}")
+                        print(f"  - {tr('cli_export_msg.file_size_bytes', size=str(len(content)))}")
                         # 打印前200个字符用于调试
                         preview = content[:200].replace("\n", "\\n")
-                        print(f"  - 文件预览: {preview}...")
+                        print(f"  - {tr('config_mgr.file_preview', preview=preview)}")
                         return None
         except Exception as e:
             print(f"Load failed {path}: {e}")
@@ -4253,7 +4272,7 @@ class CLIConfigWriter:
         except json.JSONDecodeError as e:
             if temp_path.exists():
                 temp_path.unlink()
-            raise ConfigWriteError(path, f"JSON 格式验证失败: {e}")
+            raise ConfigWriteError(path, f"{tr('cli_export_msg.json_validation_failed', error=str(e))}")
         except Exception as e:
             if temp_path.exists():
                 temp_path.unlink()
@@ -4298,7 +4317,7 @@ class CLIConfigWriter:
             try:
                 path.chmod(mode)
             except Exception as e:
-                print(f"设置文件权限失败 ({path}): {e}")
+                print(f"{tr('cli_export_msg.set_permissions_failed', path=str(path), error=str(e))}")
 
     def write_claude_settings(self, config: Dict, merge: bool = True) -> None:
         """写入 Claude settings.json
@@ -4486,7 +4505,7 @@ class CLIBackupManager:
         """
         try:
             if not backup_path.exists():
-                raise RestoreError(backup_path, "备份目录不存在")
+                raise RestoreError(backup_path, tr("cli_export_msg.restore_backup_dir_missing"))
 
             cli_dir = CLIConfigWriter.get_cli_dir(cli_type)
             cli_dir.mkdir(parents=True, exist_ok=True)
@@ -4545,7 +4564,7 @@ class CLIBackupManager:
             backups.sort(key=lambda x: x.created_at, reverse=True)
 
         except Exception as e:
-            print(f"列出备份失败: {e}")
+            print(f"{tr('cli_export_msg.list_backups_failed', error=str(e))}")
 
         return backups
 
@@ -4562,7 +4581,7 @@ class CLIBackupManager:
             try:
                 shutil.rmtree(backup.path)
             except Exception as e:
-                print(f"删除旧备份失败 ({backup.path}): {e}")
+                print(f"{tr('cli_export_msg.delete_old_backup_failed', path=str(backup.path), error=str(e))}")
 
 
 class CLIConfigGenerator:
@@ -4750,19 +4769,19 @@ class CLIExportManager:
             "baseURL", ""
         )
         if not base_url or not base_url.strip():
-            errors.append("缺少 API 地址 (baseURL)")
+            errors.append(tr("cli_export_msg.missing_base_url"))
 
         # 检查 apiKey
         api_key = provider.get("apiKey", "") or provider.get("options", {}).get(
             "apiKey", ""
         )
         if not api_key or not api_key.strip():
-            errors.append("缺少 API 密钥 (apiKey)")
+            errors.append(tr("cli_export_msg.missing_api_key"))
 
         # 检查 Model 配置
         models = provider.get("models", {})
         if not models:
-            warnings.append("未配置任何模型")
+            warnings.append(tr("cli_export_msg.no_models_configured"))
 
         if errors:
             return ValidationResult.failure(errors, warnings)
@@ -4802,7 +4821,7 @@ class CLIExportManager:
         except CLIExportError as e:
             return ExportResult.fail(cli_type, str(e), backup_path)
         except Exception as e:
-            return ExportResult.fail(cli_type, f"导出失败: {e}", backup_path)
+            return ExportResult.fail(cli_type, f"{tr('cli_export_msg.export_failed', error=str(e))}", backup_path)
 
     def export_to_codex(self, provider: Dict, model: str) -> ExportResult:
         """导出到 Codex CLI
@@ -4844,7 +4863,7 @@ class CLIExportManager:
         except CLIExportError as e:
             return ExportResult.fail(cli_type, str(e), backup_path)
         except Exception as e:
-            return ExportResult.fail(cli_type, f"导出失败: {e}", backup_path)
+            return ExportResult.fail(cli_type, f"{tr('cli_export_msg.export_failed', error=str(e))}", backup_path)
 
     def export_to_gemini(self, provider: Dict, model: str) -> ExportResult:
         """导出到 Gemini CLI
@@ -4886,7 +4905,7 @@ class CLIExportManager:
         except CLIExportError as e:
             return ExportResult.fail(cli_type, str(e), backup_path)
         except Exception as e:
-            return ExportResult.fail(cli_type, f"导出失败: {e}", backup_path)
+            return ExportResult.fail(cli_type, f"{tr('cli_export_msg.export_failed', error=str(e))}", backup_path)
 
     def batch_export(
         self, provider: Dict, models: Dict[str, str], targets: List[str]
@@ -4914,9 +4933,9 @@ class CLIExportManager:
                 elif cli_type == "gemini":
                     result = self.export_to_gemini(provider, model)
                 else:
-                    result = ExportResult.fail(cli_type, f"未知的 CLI 类型: {cli_type}")
+                    result = ExportResult.fail(cli_type, f"{tr('cli_export_msg.unknown_cli_type', cli_type=cli_type)}")
             except Exception as e:
-                result = ExportResult.fail(cli_type, f"导出异常: {e}")
+                result = ExportResult.fail(cli_type, f"{tr('cli_export_msg.export_exception', error=str(e))}")
 
             results.append(result)
 
@@ -4944,83 +4963,83 @@ class CLIExportManager:
         if cli_type == "claude":
             settings_path = cli_dir / "settings.json"
             if not settings_path.exists():
-                errors.append("settings.json 文件不存在")
+                errors.append(tr("cli_export_msg.settings_json_not_found"))
             else:
                 try:
                     with open(settings_path, "r", encoding="utf-8") as f:
                         config = json.load(f)
                     if "env" not in config:
-                        errors.append("settings.json 缺少 env 字段")
+                        errors.append(tr("cli_export_msg.settings_json_missing_env"))
                     else:
                         env = config["env"]
                         if "ANTHROPIC_BASE_URL" not in env:
-                            errors.append("缺少 ANTHROPIC_BASE_URL")
+                            errors.append(tr("cli_export_msg.missing_anthropic_base_url"))
                         if "ANTHROPIC_AUTH_TOKEN" not in env:
-                            errors.append("缺少 ANTHROPIC_AUTH_TOKEN")
+                            errors.append(tr("cli_export_msg.missing_anthropic_auth_token"))
                 except json.JSONDecodeError as e:
-                    errors.append(f"settings.json 格式错误: {e}")
+                    errors.append(f"{tr('cli_export_msg.settings_json_format_error', error=str(e))}")
                 except Exception as e:
-                    errors.append(f"读取 settings.json 失败: {e}")
+                    errors.append(f"{tr('cli_export_msg.read_settings_json_failed', error=str(e))}")
 
         elif cli_type == "codex":
             auth_path = cli_dir / "auth.json"
             config_path = cli_dir / "config.toml"
 
             if not auth_path.exists():
-                errors.append("auth.json 文件不存在")
+                errors.append(tr("cli_export_msg.auth_json_not_found"))
             else:
                 try:
                     with open(auth_path, "r", encoding="utf-8") as f:
                         auth = json.load(f)
                     if "OPENAI_API_KEY" not in auth:
-                        errors.append("auth.json 缺少 OPENAI_API_KEY")
+                        errors.append(tr("cli_export_msg.auth_json_missing_key"))
                 except json.JSONDecodeError as e:
-                    errors.append(f"auth.json 格式错误: {e}")
+                    errors.append(f"{tr('cli_export_msg.auth_json_format_error', error=str(e))}")
                 except Exception as e:
-                    errors.append(f"读取 auth.json 失败: {e}")
+                    errors.append(f"{tr('cli_export_msg.read_auth_json_failed', error=str(e))}")
 
             if not config_path.exists():
-                errors.append("config.toml 文件不存在")
+                errors.append(tr("cli_export_msg.config_toml_not_found"))
             else:
                 try:
                     with open(config_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     if "model_provider" not in content:
-                        errors.append("config.toml 缺少 model_provider")
+                        errors.append(tr("cli_export_msg.config_toml_missing_provider"))
                     if "model =" not in content:
-                        errors.append("config.toml 缺少 model")
+                        errors.append(tr("cli_export_msg.config_toml_missing_model"))
                 except Exception as e:
-                    errors.append(f"读取 config.toml 失败: {e}")
+                    errors.append(f"{tr('cli_export_msg.read_config_toml_failed', error=str(e))}")
 
         elif cli_type == "gemini":
             env_path = cli_dir / ".env"
             settings_path = cli_dir / "settings.json"
 
             if not env_path.exists():
-                errors.append(".env 文件不存在")
+                errors.append(tr("cli_export_msg.dot_env_not_found"))
             else:
                 try:
                     with open(env_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     if "GEMINI_API_KEY" not in content:
-                        errors.append(".env 缺少 GEMINI_API_KEY")
+                        errors.append(tr("cli_export_msg.dot_env_missing_gemini_key"))
                     if "GOOGLE_GEMINI_BASE_URL" not in content:
-                        errors.append(".env 缺少 GOOGLE_GEMINI_BASE_URL")
+                        errors.append(tr("cli_export_msg.dot_env_missing_gemini_url"))
                 except Exception as e:
-                    errors.append(f"读取 .env 失败: {e}")
+                    errors.append(f"{tr('cli_export_msg.read_dot_env_failed', error=str(e))}")
 
             if not settings_path.exists():
-                warnings.append("settings.json 文件不存在")
+                warnings.append(tr("cli_export_msg.settings_json_warning_not_found"))
             else:
                 try:
                     with open(settings_path, "r", encoding="utf-8") as f:
                         config = json.load(f)
                     if "security" not in config:
-                        warnings.append("settings.json 缺少 security 字段")
+                        warnings.append(tr("cli_export_msg.settings_json_missing_security"))
                 except json.JSONDecodeError as e:
-                    errors.append(f"settings.json 格式错误: {e}")
+                    errors.append(f"{tr('cli_export_msg.settings_json_format_error', error=str(e))}")
                 except Exception as e:
-                    errors.append(f"读取 settings.json 失败: {e}")
+                    errors.append(f"{tr('cli_export_msg.read_settings_json_failed', error=str(e))}")
 
         if errors:
             return ValidationResult.failure(errors, warnings)
@@ -5077,14 +5096,14 @@ class ConfigValidator:
                 {
                     "level": "error",
                     "path": "root",
-                    "message": "配置文件无法解析或读取失败",
+                    "message": tr("validator.config_parse_failed"),
                 }
             )
             return issues
 
         if not isinstance(config, dict):
             issues.append(
-                {"level": "error", "path": "root", "message": "配置根必须是对象类型"}
+                {"level": "error", "path": "root", "message": tr("validator.root_must_be_object")}
             )
             return issues
 
@@ -5094,7 +5113,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "root",
-                    "message": "配置为空，尚未添加任何Provider",
+                    "message": tr("validator.config_empty"),
                 }
             )
             return issues
@@ -5106,7 +5125,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "$schema",
-                    "message": "建议设置 $schema 为 https://opencode.ai/config.json",
+                    "message": tr("validator.schema_recommend"),
                 }
             )
 
@@ -5117,7 +5136,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "provider",
-                    "message": "未配置任何 Provider",
+                    "message": tr("validator.no_providers"),
                 }
             )
         if not isinstance(providers, dict):
@@ -5125,7 +5144,7 @@ class ConfigValidator:
                 {
                     "level": "error",
                     "path": "provider",
-                    "message": "provider 必须是对象类型",
+                    "message": tr("validator.provider_must_be_object"),
                 }
             )
             return issues
@@ -5139,7 +5158,7 @@ class ConfigValidator:
                     {
                         "level": "error",
                         "path": provider_path,
-                        "message": f"Provider '{provider_name}' 的值必须是对象，当前是 {type(provider_data).__name__}",
+                        "message": tr("validator.provider_value_not_object", name=provider_name, type=type(provider_data).__name__),
                     }
                 )
                 continue
@@ -5151,7 +5170,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": f"{provider_path}.{field}",
-                            "message": f"Provider '{provider_name}' 缺少必需字段 '{field}'",
+                            "message": tr("validator.provider_missing_field", name=provider_name, field=field),
                         }
                     )
                 elif ConfigValidator._is_blank(provider_data.get(field)):
@@ -5159,7 +5178,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": f"{provider_path}.{field}",
-                            "message": f"Provider '{provider_name}' 的 '{field}' 为空",
+                            "message": tr("validator.provider_field_empty", name=provider_name, field=field),
                         }
                     )
 
@@ -5170,7 +5189,7 @@ class ConfigValidator:
                     {
                         "level": "warning",
                         "path": f"{provider_path}.npm",
-                        "message": f"Provider '{provider_name}' 的 npm 包 '{npm}' 不在已知列表中",
+                        "message": tr("validator.provider_unknown_npm", name=provider_name, npm=npm),
                     }
                 )
 
@@ -5181,7 +5200,7 @@ class ConfigValidator:
                     {
                         "level": "error",
                         "path": f"{provider_path}.options",
-                        "message": f"Provider '{provider_name}' 的 options 必须是对象",
+                        "message": tr("validator.provider_options_not_object", name=provider_name),
                     }
                 )
             else:
@@ -5191,7 +5210,7 @@ class ConfigValidator:
                             {
                                 "level": "warning",
                                 "path": f"{provider_path}.options.{opt_field}",
-                                "message": f"Provider '{provider_name}' 的 options 缺少 '{opt_field}'",
+                                "message": tr("validator.provider_options_missing", name=provider_name, field=opt_field),
                             }
                         )
                     elif ConfigValidator._is_blank(options.get(opt_field)):
@@ -5199,7 +5218,7 @@ class ConfigValidator:
                             {
                                 "level": "warning",
                                 "path": f"{provider_path}.options.{opt_field}",
-                                "message": f"Provider '{provider_name}' 的 options.{opt_field} 为空",
+                                "message": tr("validator.provider_options_empty", name=provider_name, field=opt_field),
                             }
                         )
 
@@ -5210,7 +5229,7 @@ class ConfigValidator:
                     {
                         "level": "error",
                         "path": f"{provider_path}.models",
-                        "message": f"Provider '{provider_name}' 的 models 必须是对象",
+                        "message": tr("validator.provider_models_not_object", name=provider_name),
                     }
                 )
             else:
@@ -5219,7 +5238,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{provider_path}.models",
-                            "message": f"Provider '{provider_name}' 没有配置任何模型",
+                            "message": tr("validator.provider_no_models", name=provider_name),
                         }
                     )
                 for model_id, model_data in models.items():
@@ -5229,7 +5248,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": model_path,
-                                "message": f"Provider '{provider_name}' 存在空模型ID",
+                                "message": tr("validator.provider_empty_model_id", name=provider_name),
                             }
                         )
                         continue
@@ -5238,7 +5257,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": model_path,
-                                "message": f"Model '{model_id}' 的值必须是对象",
+                                "message": tr("validator.model_value_not_object", name=model_id),
                             }
                         )
                         continue
@@ -5250,7 +5269,7 @@ class ConfigValidator:
                             {
                                 "level": "warning",
                                 "path": f"{model_path}.limit",
-                                "message": f"Model '{model_id}' 的 limit 应该是对象",
+                                "message": tr("validator.model_limit_should_be_object", name=model_id),
                             }
                         )
                     elif limit:
@@ -5261,7 +5280,7 @@ class ConfigValidator:
                                 {
                                     "level": "warning",
                                     "path": f"{model_path}.limit.context",
-                                    "message": f"Model '{model_id}' 的 context 应该是整数",
+                                    "message": tr("validator.model_context_should_be_int", name=model_id),
                                 }
                             )
                         if output is not None and not isinstance(output, int):
@@ -5269,7 +5288,7 @@ class ConfigValidator:
                                 {
                                     "level": "warning",
                                     "path": f"{model_path}.limit.output",
-                                    "message": f"Model '{model_id}' 的 output 应该是整数",
+                                    "message": tr("validator.model_output_should_be_int", name=model_id),
                                 }
                             )
 
@@ -5277,7 +5296,7 @@ class ConfigValidator:
         mcp = config.get("mcp", {})
         if mcp and not isinstance(mcp, dict):
             issues.append(
-                {"level": "error", "path": "mcp", "message": "mcp 必须是对象类型"}
+                {"level": "error", "path": "mcp", "message": tr("validator.mcp_must_be_object")}
             )
         elif isinstance(mcp, dict):
             for mcp_name, mcp_data in mcp.items():
@@ -5287,7 +5306,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": mcp_path,
-                            "message": f"MCP '{mcp_name}' 的值必须是对象",
+                            "message": tr("validator.mcp_value_not_object", name=mcp_name),
                         }
                     )
                     continue
@@ -5298,7 +5317,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{mcp_path}.command",
-                            "message": f"Local MCP '{mcp_name}' 缺少 command 字段",
+                            "message": tr("validator.mcp_local_missing_command", name=mcp_name),
                         }
                     )
                 elif mcp_type == "remote" and "url" not in mcp_data:
@@ -5306,7 +5325,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{mcp_path}.url",
-                            "message": f"Remote MCP '{mcp_name}' 缺少 url 字段",
+                            "message": tr("validator.mcp_remote_missing_url", name=mcp_name),
                         }
                     )
 
@@ -5314,7 +5333,7 @@ class ConfigValidator:
         agent = config.get("agent", {})
         if agent and not isinstance(agent, dict):
             issues.append(
-                {"level": "error", "path": "agent", "message": "agent 必须是对象类型"}
+                {"level": "error", "path": "agent", "message": tr("validator.agent_must_be_object")}
             )
 
         return issues
@@ -5328,23 +5347,23 @@ class ConfigValidator:
         issues = []
         if not config:
             issues.append(
-                {"level": "error", "path": "root", "message": "配置文件为空或无法解析"}
+                {"level": "error", "path": "root", "message": tr("validator.config_empty_or_unparseable")}
             )
             return issues
         if not isinstance(config, dict):
             issues.append(
-                {"level": "error", "path": "root", "message": "配置根必须是对象类型"}
+                {"level": "error", "path": "root", "message": tr("validator.omo_root_must_be_object")}
             )
             return issues
 
         agents = config.get("agents", {})
         if not agents:
             issues.append(
-                {"level": "warning", "path": "agents", "message": "未配置任何 Agent"}
+                {"level": "warning", "path": "agents", "message": tr("validator.no_agents")}
             )
         if agents and not isinstance(agents, dict):
             issues.append(
-                {"level": "error", "path": "agents", "message": "agents 必须是对象类型"}
+                {"level": "error", "path": "agents", "message": tr("validator.agents_must_be_object")}
             )
             return issues
 
@@ -5356,7 +5375,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": agent_path,
-                            "message": "Agent 名称为空",
+                            "message": tr("validator.agent_name_empty"),
                         }
                     )
                     continue
@@ -5365,7 +5384,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": agent_path,
-                            "message": f"Agent '{agent_name}' 的值必须是对象",
+                            "message": tr("validator.agent_value_not_object", name=agent_name),
                         }
                     )
                     continue
@@ -5375,7 +5394,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{agent_path}.{field}",
-                                "message": f"Agent '{agent_name}' 缺少必需字段 '{field}'",
+                                "message": tr("validator.agent_missing_field", name=agent_name, field=field),
                             }
                         )
                     elif ConfigValidator._is_blank(agent_data.get(field)):
@@ -5383,7 +5402,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{agent_path}.{field}",
-                                "message": f"Agent '{agent_name}' 的 '{field}' 为空",
+                                "message": tr("validator.agent_field_empty", name=agent_name, field=field),
                             }
                         )
                 if "description" in agent_data and ConfigValidator._is_blank(
@@ -5393,7 +5412,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{agent_path}.description",
-                            "message": f"Agent '{agent_name}' 的 description 为空",
+                            "message": tr("validator.agent_desc_empty", name=agent_name),
                         }
                     )
 
@@ -5403,7 +5422,7 @@ class ConfigValidator:
                 {
                     "level": "warning",
                     "path": "categories",
-                    "message": "未配置任何 Category",
+                    "message": tr("validator.no_categories"),
                 }
             )
         if categories and not isinstance(categories, dict):
@@ -5411,7 +5430,7 @@ class ConfigValidator:
                 {
                     "level": "error",
                     "path": "categories",
-                    "message": "categories 必须是对象类型",
+                    "message": tr("validator.categories_must_be_object"),
                 }
             )
             return issues
@@ -5424,7 +5443,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": category_path,
-                            "message": "Category 名称为空",
+                            "message": tr("validator.category_name_empty"),
                         }
                     )
                     continue
@@ -5433,7 +5452,7 @@ class ConfigValidator:
                         {
                             "level": "error",
                             "path": category_path,
-                            "message": f"Category '{category_name}' 的值必须是对象",
+                            "message": tr("validator.category_value_not_object", name=category_name),
                         }
                     )
                     continue
@@ -5443,7 +5462,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{category_path}.{field}",
-                                "message": f"Category '{category_name}' 缺少必需字段 '{field}'",
+                                "message": tr("validator.category_missing_field", name=category_name, field=field),
                             }
                         )
                     elif ConfigValidator._is_blank(category_data.get(field)):
@@ -5451,7 +5470,7 @@ class ConfigValidator:
                             {
                                 "level": "error",
                                 "path": f"{category_path}.{field}",
-                                "message": f"Category '{category_name}' 的 '{field}' 为空",
+                                "message": tr("validator.category_field_empty", name=category_name, field=field),
                             }
                         )
 
@@ -5463,7 +5482,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{category_path}.temperature",
-                            "message": f"Category '{category_name}' 的 temperature 应该是数字",
+                            "message": tr("validator.category_temp_not_number", name=category_name),
                         }
                     )
                 if "description" in category_data and ConfigValidator._is_blank(
@@ -5473,7 +5492,7 @@ class ConfigValidator:
                         {
                             "level": "warning",
                             "path": f"{category_path}.description",
-                            "message": f"Category '{category_name}' 的 description 为空",
+                            "message": tr("validator.category_desc_empty", name=category_name),
                         }
                     )
 
@@ -5496,7 +5515,7 @@ class ConfigValidator:
         fixed_providers = {}
         for provider_name, provider_data in providers.items():
             if not isinstance(provider_data, dict):
-                fixes.append(f"跳过无效 Provider '{provider_name}' (值不是对象)")
+                fixes.append(tr("validator.fix_skip_invalid_provider", name=provider_name))
                 continue
 
             # 确保必需字段存在
@@ -5505,7 +5524,7 @@ class ConfigValidator:
             # 确保 npm 字段存在
             if "npm" not in fixed_provider:
                 fixed_provider["npm"] = "@ai-sdk/openai"
-                fixes.append(f"Provider '{provider_name}': 添加默认 npm 字段")
+                fixes.append(tr("validator.fix_add_default_npm", name=provider_name))
 
             # 确保 options 字段存在且为对象
             if "options" not in fixed_provider or not isinstance(
@@ -5514,23 +5533,23 @@ class ConfigValidator:
                 fixed_provider["options"] = fixed_provider.get("options", {})
                 if not isinstance(fixed_provider["options"], dict):
                     fixed_provider["options"] = {}
-                fixes.append(f"Provider '{provider_name}': 修复 options 字段")
+                fixes.append(tr("validator.fix_options_field", name=provider_name))
 
             # 确保 options 中有 baseURL 和 apiKey
             if "baseURL" not in fixed_provider["options"]:
                 fixed_provider["options"]["baseURL"] = ""
-                fixes.append(f"Provider '{provider_name}': 添加空 baseURL")
+                fixes.append(tr("validator.fix_add_empty_baseurl", name=provider_name))
             if "apiKey" not in fixed_provider["options"]:
                 fixed_provider["options"]["apiKey"] = ""
-                fixes.append(f"Provider '{provider_name}': 添加空 apiKey")
+                fixes.append(tr("validator.fix_add_empty_apikey", name=provider_name))
 
             # 确保 models 字段存在且为对象
             if "models" not in fixed_provider:
                 fixed_provider["models"] = {}
-                fixes.append(f"Provider '{provider_name}': 添加空 models 字段")
+                fixes.append(tr("validator.fix_add_empty_models", name=provider_name))
             elif not isinstance(fixed_provider.get("models"), dict):
                 fixed_provider["models"] = {}
-                fixes.append(f"Provider '{provider_name}': 修复 models 字段为对象")
+                fixes.append(tr("validator.fix_models_to_object", name=provider_name))
 
             # 规范化 models.limit，避免写入 limit: {} 触发上游校验失败
             for model_id, model_cfg in list(fixed_provider.get("models", {}).items()):
@@ -5543,7 +5562,7 @@ class ConfigValidator:
                 if not isinstance(limit, dict):
                     model_cfg.pop("limit", None)
                     fixes.append(
-                        f"Provider '{provider_name}' Model '{model_id}': 移除无效 limit"
+                        tr("validator.fix_remove_invalid_limit", name=provider_name, model=model_id)
                     )
                     continue
 
@@ -5558,7 +5577,7 @@ class ConfigValidator:
                 else:
                     model_cfg.pop("limit", None)
                     fixes.append(
-                        f"Provider '{provider_name}' Model '{model_id}': 移除空 limit"
+                        tr("validator.fix_remove_empty_limit", name=provider_name, model=model_id)
                     )
 
             # 规范化字段顺序: npm, name, options, models
@@ -5589,20 +5608,20 @@ class ConfigValidator:
 
         lines = []
         if errors:
-            lines.append(f"❌ {len(errors)} 个错误:")
+            lines.append(tr("validator.errors_count", count=len(errors)))
             for e in errors[:5]:  # 最多显示5个
                 lines.append(f"  • {e['message']}")
             if len(errors) > 5:
-                lines.append(f"  ... 还有 {len(errors) - 5} 个错误")
+                lines.append(tr("validator.more_errors", count=len(errors) - 5))
 
         if warnings:
-            lines.append(f"⚠️ {len(warnings)} 个警告:")
+            lines.append(tr("validator.warnings_count", count=len(warnings)))
             for w in warnings[:5]:
                 lines.append(f"  • {w['message']}")
             if len(warnings) > 5:
-                lines.append(f"  ... 还有 {len(warnings) - 5} 个警告")
+                lines.append(tr("validator.more_warnings", count=len(warnings) - 5))
 
-        return "\n".join(lines) if lines else "✅ 配置格式正确"
+        return "\n".join(lines) if lines else tr("validator.config_ok")
 
 
 class ModelRegistry:
@@ -6192,7 +6211,7 @@ class ModelFetchService(QObject):
     def _fetch_models(self, provider_name: str, options: Dict[str, Any]) -> None:
         urls = self._build_urls(options)
         if not urls:
-            self.fetch_finished.emit(provider_name, [], "未配置模型列表地址")
+            self.fetch_finished.emit(provider_name, [], tr("model_fetch.no_model_list_url"))
             return
 
         api_key = (options.get("apiKey") or "").strip()
@@ -6210,11 +6229,11 @@ class ModelFetchService(QObject):
                 if model_ids:
                     self.fetch_finished.emit(provider_name, model_ids, "")
                     return
-                last_error = "未返回可用模型列表"
+                last_error = tr("model_fetch.no_models_returned")
             except Exception as e:
                 last_error = str(e)
 
-        self.fetch_finished.emit(provider_name, [], last_error or "获取失败")
+        self.fetch_finished.emit(provider_name, [], last_error or tr("model_fetch.fetch_failed"))
 
 
 class VersionChecker(QObject):
@@ -6278,7 +6297,7 @@ class VersionChecker(QObject):
             error_msg = ""
             if e.code == 403:
                 # GitHub API 速率限制
-                error_msg = f"GitHub API速率限制（403），将在6小时后重试"
+                error_msg = tr("version_checker.rate_limited")
                 print(f"Version check failed: {error_msg}")
                 # 增加冷却时间到 6 小时
                 self.check_interval = 21600
@@ -6287,7 +6306,7 @@ class VersionChecker(QObject):
                 print(f"Version check failed: {error_msg}")
             self.check_failed.emit(error_msg)
         except urllib.error.URLError as e:
-            error_msg = f"网络错误 - {e.reason}"
+            error_msg = tr("version_checker.network_error", reason=str(e.reason))
             print(f"Version check failed: {error_msg}")
             self.check_failed.emit(error_msg)
         except Exception as e:
@@ -6578,7 +6597,7 @@ class HomePage(BasePage):
         oc_layout.addWidget(self.oc_path_label, 1)
 
         oc_view_btn = ToolButton(FIF.VIEW, paths_card)
-        oc_view_btn.setToolTip("查看配置文件")
+        oc_view_btn.setToolTip(tr("config_viewer.view_config"))
         oc_view_btn.clicked.connect(
             lambda: self._view_config_file(ConfigPaths.get_opencode_config())
         )
@@ -6614,7 +6633,7 @@ class HomePage(BasePage):
         ohmy_layout.addWidget(self.ohmy_path_label, 1)
 
         ohmy_view_btn = ToolButton(FIF.VIEW, paths_card)
-        ohmy_view_btn.setToolTip("查看配置文件")
+        ohmy_view_btn.setToolTip(tr("config_viewer.view_config"))
         ohmy_view_btn.clicked.connect(
             lambda: self._view_config_file(ConfigPaths.get_ohmyopencode_config())
         )
@@ -6651,7 +6670,7 @@ class HomePage(BasePage):
         auth_layout.addWidget(self.auth_path_label, 1)
 
         auth_view_btn = ToolButton(FIF.VIEW, paths_card)
-        auth_view_btn.setToolTip("查看认证文件")
+        auth_view_btn.setToolTip(tr("config_viewer.view_auth"))
         auth_view_btn.clicked.connect(
             lambda: self._view_config_file(auth_manager.auth_path)
         )
@@ -6854,7 +6873,7 @@ class HomePage(BasePage):
 
             # 创建对话框
             dialog = QDialog(self)
-            dialog.setWindowTitle(f"查看配置文件 - {config_path.name}")
+            dialog.setWindowTitle(f"{tr('config_viewer.view_config')} - {config_path.name}")
             dialog.resize(900, 700)
 
             # 应用对话框主题样式
@@ -6934,14 +6953,14 @@ class HomePage(BasePage):
             btn_layout.addStretch()
 
             # 保存按钮（初始禁用）- 先创建以便在lambda中引用
-            save_btn = PrimaryPushButton("保存", dialog)
+            save_btn = PrimaryPushButton(tr("common.save"), dialog)
             save_btn.setEnabled(False)
             save_btn.clicked.connect(
                 lambda: self._save_config_file(text_edit, config_path, dialog)
             )
 
             # 编辑按钮
-            edit_btn = PushButton("编辑", dialog)
+            edit_btn = PushButton(tr("common.edit"), dialog)
 
             # 使用闭包捕获变量
             def on_edit_clicked():
@@ -6953,7 +6972,7 @@ class HomePage(BasePage):
             btn_layout.addWidget(save_btn)
 
             # 关闭按钮
-            close_btn = PushButton("关闭", dialog)
+            close_btn = PushButton(tr("common.close"), dialog)
             close_btn.clicked.connect(dialog.accept)
             btn_layout.addWidget(close_btn)
 
@@ -6962,7 +6981,7 @@ class HomePage(BasePage):
             dialog.exec_()
 
         except Exception as e:
-            self.show_error("错误", f"无法读取配置文件: {str(e)}")
+            self.show_error(tr("common.error"), tr("config_viewer.cannot_read", error=str(e)))
 
     def _enable_edit_mode(
         self,
@@ -6975,9 +6994,9 @@ class HomePage(BasePage):
         # 自动备份
         try:
             self.main_window.backup_manager.backup(config_path, tag="before_edit")
-            InfoBar.success("已备份", "已自动备份配置文件", parent=self)
+            InfoBar.success(tr("config_viewer.backed_up"), tr("config_viewer.backed_up"), parent=self)
         except Exception as e:
-            self.show_warning("备份失败", f"无法备份配置文件: {str(e)}")
+            self.show_warning(tr("config_viewer.backup_failed"), tr("config_viewer.backup_failed", error=str(e)))
             return
 
         # 启用编辑
@@ -7022,7 +7041,7 @@ class HomePage(BasePage):
 
                 json.loads(content)
             except json.JSONDecodeError as e:
-                self.show_error("JSON格式错误", f"配置文件格式不正确:\n{str(e)}")
+                self.show_error(tr("config_viewer.json_format_error"), tr("config_viewer.json_invalid", error=str(e)))
                 return
 
             # 保存文件
@@ -7037,12 +7056,12 @@ class HomePage(BasePage):
                     config_path
                 )
 
-            self.show_success("保存成功", "配置文件已保存")
+            self.show_success(tr("config_viewer.save_success"), tr("config_viewer.config_saved"))
             self.main_window.notify_config_changed()
             dialog.accept()
 
         except Exception as e:
-            self.show_error("保存失败", f"无法保存配置文件: {str(e)}")
+            self.show_error(tr("config_viewer.save_failed"), tr("config_viewer.cannot_save", error=str(e)))
 
     def _copy_to_clipboard(self, text: str):
         """复制文本到剪贴板"""
@@ -7325,12 +7344,12 @@ class ProviderPage(BasePage):
     def _custom_resolve_model_category(self, model_id: str) -> str:
         lower = model_id.lower()
         if "claude" in lower:
-            return tr("provider.claude_series")
+            return "Claude 系列"
         if "gemini" in lower:
-            return tr("provider.gemini_series")
+            return "Gemini 系列"
         if any(token in lower for token in ("gpt", "openai", "codex", "o1")):
-            return tr("provider.openai_series")
-        return tr("provider.other_models")
+            return "OpenAI/Codex 系列"
+        return "其他模型"
 
     def _custom_get_preset_for_category(
         self, category: str, preset_name: str
@@ -7360,13 +7379,13 @@ class ProviderPage(BasePage):
             "thinking": False,
             "variants": False,
         }
-        if category == tr("provider.claude_series_short"):
+        if category == "Claude 系列":
             support["thinking"] = True
             support["variants"] = True
-        elif category == tr("provider.openai_series_short"):
+        elif category == "OpenAI/Codex 系列":
             support["options"] = True
             support["variants"] = True
-        elif category == tr("provider.gemini_series_short"):
+        elif category == "Gemini 系列":
             support["thinking"] = True
             support["variants"] = True
 
@@ -7375,7 +7394,7 @@ class ProviderPage(BasePage):
             return result
 
         base_preset = self._custom_get_preset_for_category(
-            category, MODEL_PRESET_DEFAULT.get(category, "基础")
+            category, MODEL_PRESET_DEFAULT.get(category, tr("home.base_preset"))
         )
 
         for key in (
@@ -7850,7 +7869,7 @@ class ProviderPage(BasePage):
         except Exception as openai_error:
             # 两种方式都失败，抛出错误
             raise Exception(
-                f"余额查询失败。NewAPI: {str(newapi_error)[:50]}... OpenAI API: {str(openai_error)[:50]}..."
+                tr("balance.query_failed_both", newapi=str(newapi_error)[:50], openai=str(openai_error)[:50])
             )
 
     def _custom_query_newapi_usage(self, base_url: str, api_key: str) -> Dict[str, Any]:
@@ -7868,13 +7887,13 @@ class ProviderPage(BasePage):
                 response_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"NewAPI 查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.newapi_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"NewAPI 请求失败: {str(e)}")
+            raise Exception(tr("balance.newapi_request_failed", error=str(e)))
 
         # 解析 NewAPI 响应
         if not response_data.get("code") or "data" not in response_data:
-            raise Exception("NewAPI 响应格式不正确")
+            raise Exception(tr("balance.newapi_invalid_response"))
 
         usage_data = response_data["data"]
 
@@ -7931,9 +7950,9 @@ class ProviderPage(BasePage):
                 subscription_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"订阅信息查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.subscription_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"请求订阅信息失败: {str(e)}")
+            raise Exception(tr("balance.subscription_request_failed", error=str(e)))
 
         total_balance = subscription_data.get("hard_limit_usd", 0.0)
         access_until = subscription_data.get("access_until", 0)
@@ -7955,9 +7974,9 @@ class ProviderPage(BasePage):
                 usage_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"使用情况查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.usage_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"请求使用情况失败: {str(e)}")
+            raise Exception(tr("balance.usage_request_failed", error=str(e)))
 
         # total_usage 是以美分为单位，需要除以100转换为美元
         total_usage_cents = usage_data.get("total_usage", 0.0)
@@ -7991,9 +8010,9 @@ class ProviderPage(BasePage):
                 subscription_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"订阅信息查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.subscription_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"请求订阅信息失败: {str(e)}")
+            raise Exception(tr("balance.subscription_request_failed", error=str(e)))
 
         total_balance = subscription_data.get("hard_limit_usd", 0.0)
         access_until = subscription_data.get("access_until", 0)
@@ -8015,9 +8034,9 @@ class ProviderPage(BasePage):
                 usage_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"使用情况查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.usage_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"请求使用情况失败: {str(e)}")
+            raise Exception(tr("balance.usage_request_failed", error=str(e)))
 
         # total_usage 是以美分为单位，需要除以100转换为美元
         total_usage_cents = usage_data.get("total_usage", 0.0)
@@ -8204,7 +8223,7 @@ class ProviderPage(BasePage):
         test_url = base_url.rstrip("/") + provider.test_endpoint
 
         # 执行测试
-        self.show_warning("测试中", "正在测试连接...")
+        self.show_warning(tr("common.testing"), tr("balance.testing_connection"))
 
         start_time = time.time()
         try:
@@ -8243,8 +8262,8 @@ class ProviderPage(BasePage):
 
         # 确认删除
         msg_box = FluentMessageBox(
-            "确认删除",
-            f"确定要删除 {provider.name} 的配置吗？\n这将删除认证信息和选项配置。",
+            tr("native_provider.confirm_delete_title"),
+            tr("native_provider.confirm_delete_msg", name=provider.name),
             self,
         )
         if msg_box.exec_():
@@ -8276,10 +8295,10 @@ class ProviderPage(BasePage):
                     break
 
         if detected:
-            msg = "检测到以下已配置的 Provider:\n\n" + "\n".join(detected)
-            self.show_success("检测完成", msg)
+            msg = tr("native_provider.detected_providers", list="\n".join(detected))
+            self.show_success(tr("native_provider.detect_complete"), msg)
         else:
-            self.show_warning("检测完成", "未检测到已配置的 Provider")
+            self.show_warning(tr("native_provider.detect_complete"), tr("native_provider.no_provider_detected"))
 
     def _is_balance_query_supported(
         self, provider_id: str, base_url: str
@@ -8297,11 +8316,11 @@ class ProviderPage(BasePage):
         if provider_id in unsupported_ids:
             return (
                 False,
-                "当前 Provider 暂不支持通用余额接口查询（仅支持兼容 NewAPI/OpenAI 计费接口的服务）。",
+                tr("balance.not_supported"),
             )
 
         if not base_url:
-            return False, "未配置可用的 baseURL，无法查询余额。"
+            return False, tr("balance.no_base_url")
 
         return True, ""
 
@@ -8360,7 +8379,7 @@ class ProviderPage(BasePage):
 
         supported, reason = self._is_balance_query_supported(provider.id, base_url)
         if not supported:
-            self.show_warning("余额查询不可用", reason)
+            self.show_warning(tr("balance.not_available"), reason)
             return
 
         # 显示加载提示
@@ -8451,14 +8470,14 @@ class BalanceResultDialog(BaseDialog):
         # API 类型（如果是 NewAPI）
         api_type = self.usage_data.get("api_type", "openai")
         if api_type == "newapi":
-            api_type_label = CaptionLabel(f"API 类型: NewAPI / One-API", self)
+            api_type_label = CaptionLabel(tr("balance.api_type_newapi"), self)
             api_type_label.setStyleSheet("color: #888888;")
             layout.addWidget(api_type_label)
 
             # Token 名称
             token_name = self.usage_data.get("token_name", "")
             if token_name:
-                token_label = CaptionLabel(f"Token 名称: {token_name}", self)
+                token_label = CaptionLabel(tr("balance.token_name", name=token_name), self)
                 token_label.setStyleSheet("color: #888888;")
                 layout.addWidget(token_label)
 
@@ -8484,7 +8503,7 @@ class BalanceResultDialog(BaseDialog):
         key_quota_layout = QHBoxLayout()
         key_quota_layout.addWidget(BodyLabel(tr("provider.key_quota") + ":", self))
         if is_unlimited:
-            key_quota_value = BodyLabel("🔓 无限", self)
+            key_quota_value = BodyLabel(f"🔓 {tr('common.unlimited')}", self)
             key_quota_value.setStyleSheet(
                 "font-weight: bold; color: #107c10; font-size: 15px;"
             )
@@ -8503,7 +8522,7 @@ class BalanceResultDialog(BaseDialog):
         key_balance_layout = QHBoxLayout()
         key_balance_layout.addWidget(BodyLabel(tr("provider.key_balance") + ":", self))
         if is_unlimited:
-            key_balance_value = BodyLabel("🔓 无限", self)
+            key_balance_value = BodyLabel(f"🔓 {tr('common.unlimited')}", self)
             key_balance_value.setStyleSheet(
                 "font-weight: bold; color: #107c10; font-size: 15px;"
             )
@@ -8734,7 +8753,7 @@ class ModelPresetCustomDialog(BaseDialog):
         # 验证 Provider 是否存在且结构完整
         if self.provider_name not in config["provider"]:
             InfoBar.error(
-                "错误",
+                tr("common.error"),
                 f'Provider "{self.provider_name}" 不存在，请先在 Provider 管理页面创建',
                 parent=self,
             )
@@ -8745,7 +8764,7 @@ class ModelPresetCustomDialog(BaseDialog):
         # 检查 Provider 结构是否完整
         if "npm" not in provider or "options" not in provider:
             InfoBar.error(
-                "错误",
+                tr("common.error"),
                 f'Provider "{self.provider_name}" 配置不完整，请先在 Provider 管理页面完善配置',
                 parent=self,
             )
@@ -8905,7 +8924,7 @@ class NativeProviderPage(BasePage):
                 # 两者都有：绿色，显示"已配置"
                 status_text = tr("native_provider.configured")
                 status_color = "#4CAF50"  # 绿色
-                status_tooltip = "auth.json + 环境变量"
+                status_tooltip = tr("native_provider.status_auth_and_env")
             elif has_auth:
                 # 只有auth.json：绿色，显示"已配置"
                 status_text = tr("native_provider.configured")
@@ -8915,7 +8934,7 @@ class NativeProviderPage(BasePage):
                 # 只有环境变量：蓝色，显示"已配置(环境变量)"
                 status_text = tr("native_provider.configured") + "(ENV)"
                 status_color = "#2196F3"  # 蓝色
-                status_tooltip = "环境变量已配置，但未保存到auth.json"
+                status_tooltip = tr("native_provider.status_env_only")
             else:
                 # 都没有：灰色，显示"未配置"
                 status_text = tr("native_provider.not_configured")
@@ -8999,7 +9018,7 @@ class NativeProviderPage(BasePage):
         if not api_key:
             self.show_error(
                 tr("provider.test_failed"),
-                tr("provider.api_key_not_found") + "。请先配置Provider或设置环境变量。",
+                tr("provider.api_key_hint"),
             )
             return
 
@@ -9051,7 +9070,7 @@ class NativeProviderPage(BasePage):
         test_url = base_url.rstrip("/") + provider.test_endpoint
 
         # 执行测试
-        InfoBar.info("测试中", f"正在测试连接: {test_url}", parent=self)
+        InfoBar.info(tr("common.testing"), tr("native_provider.testing_url", url=test_url), parent=self)
 
         start_time = time.time()
         try:
@@ -9090,8 +9109,8 @@ class NativeProviderPage(BasePage):
 
         # 确认删除
         msg_box = FluentMessageBox(
-            "确认删除",
-            f"确定要删除 {provider.name} 的配置吗？\n这将删除认证信息和选项配置。",
+            tr("native_provider.confirm_delete_title"),
+            tr("native_provider.confirm_delete_msg", name=provider.name),
             self,
         )
         if msg_box.exec_() != QMessageBox.Yes:
@@ -9101,7 +9120,7 @@ class NativeProviderPage(BasePage):
         try:
             self.auth_manager.delete_provider_auth(provider.id)
         except Exception as e:
-            self.show_error("删除失败", f"无法删除认证配置: {e}")
+            self.show_error(tr("native_provider.delete_failed"), tr("native_provider.cannot_delete_auth", error=str(e)))
             return
 
         # 删除选项
@@ -9114,7 +9133,7 @@ class NativeProviderPage(BasePage):
                 self.main_window.opencode_config = config
                 self.main_window.save_opencode_config()
 
-        self.show_success("删除成功", f"{provider.name} 配置已删除")
+        self.show_success(tr("native_provider.delete_success"), tr("native_provider.config_deleted_msg", name=provider.name))
         self._load_data()
 
     def _on_detect_configured(self):
@@ -9146,24 +9165,24 @@ class NativeProviderPage(BasePage):
             message = ""
 
             if auth_providers:
-                message += f"📁 auth.json中已配置 ({len(auth_providers)}个):\n"
+                message += tr("native_provider.auth_json_count", count=len(auth_providers)) + "\n"
                 message += "\n".join([f"  ✓ {name}" for name in auth_providers])
                 message += "\n\n"
 
             if env_providers:
-                message += f"🔧 环境变量已配置 ({len(env_providers)}个):\n"
+                message += tr("native_provider.env_var_count", count=len(env_providers)) + "\n"
                 message += "\n".join([f"  ✓ {name}" for name in env_providers])
-                message += "\n\n💡 提示: 环境变量配置的Provider可以直接使用，"
-                message += '但建议点击"配置Provider"保存到auth.json以便管理'
+                message += tr("native_provider.env_var_hint")
+                message += tr("native_provider.env_var_hint2")
 
             # 显示结果对话框
-            w = FluentMessageBox("检测结果", message.strip(), self)
+            w = FluentMessageBox(tr("native_provider.detect_result"), message.strip(), self)
             w.exec_()
 
             # 刷新列表
             self._load_data()
         else:
-            InfoBar.info("检测结果", "未检测到已配置的原生Provider", parent=self)
+            InfoBar.info(tr("native_provider.detect_result"), tr("native_provider.no_native_detected"), parent=self)
 
     def _is_balance_query_supported(
         self, provider_id: str, base_url: str
@@ -9181,11 +9200,11 @@ class NativeProviderPage(BasePage):
         if provider_id in unsupported_ids:
             return (
                 False,
-                "当前 Provider 暂不支持通用余额接口查询（仅支持兼容 NewAPI/OpenAI 计费接口的服务）。",
+                tr("balance.not_supported"),
             )
 
         if not base_url:
-            return False, "未配置可用的 baseURL，无法查询余额。"
+            return False, tr("balance.no_base_url")
 
         return True, ""
 
@@ -9224,7 +9243,7 @@ class NativeProviderPage(BasePage):
 
         supported, reason = self._is_balance_query_supported(provider.id, base_url)
         if not supported:
-            self.show_warning("余额查询不可用", reason)
+            self.show_warning(tr("balance.not_available"), reason)
             return
 
         # 显示加载提示
@@ -9282,7 +9301,7 @@ class NativeProviderPage(BasePage):
         except Exception as openai_error:
             # 两种方式都失败，抛出错误
             raise Exception(
-                f"余额查询失败。NewAPI: {str(newapi_error)[:50]}... OpenAI API: {str(openai_error)[:50]}..."
+                tr("balance.query_failed_both", newapi=str(newapi_error)[:50], openai=str(openai_error)[:50])
             )
 
     def _query_newapi_usage(self, base_url: str, api_key: str) -> Dict[str, Any]:
@@ -9300,13 +9319,13 @@ class NativeProviderPage(BasePage):
                 response_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"NewAPI 查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.newapi_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"NewAPI 请求失败: {str(e)}")
+            raise Exception(tr("balance.newapi_request_failed", error=str(e)))
 
         # 解析 NewAPI 响应
         if not response_data.get("code") or "data" not in response_data:
-            raise Exception("NewAPI 响应格式不正确")
+            raise Exception(tr("balance.newapi_invalid_response"))
 
         usage_data = response_data["data"]
 
@@ -9360,9 +9379,9 @@ class NativeProviderPage(BasePage):
                 subscription_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"订阅信息查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.subscription_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"请求订阅信息失败: {str(e)}")
+            raise Exception(tr("balance.subscription_request_failed", error=str(e)))
 
         total_balance = subscription_data.get("hard_limit_usd", 0.0)
         access_until = subscription_data.get("access_until", 0)
@@ -9384,9 +9403,9 @@ class NativeProviderPage(BasePage):
                 usage_data = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise Exception(f"使用情况查询失败: {e.code} - {error_body}")
+            raise Exception(tr("balance.usage_query_failed", code=str(e.code), body=error_body))
         except Exception as e:
-            raise Exception(f"请求使用情况失败: {str(e)}")
+            raise Exception(tr("balance.usage_request_failed", error=str(e)))
 
         # total_usage 是以美分为单位，需要除以100转换为美元
         total_usage_cents = usage_data.get("total_usage", 0.0)
@@ -9667,14 +9686,14 @@ class ModelSelectDialog(BaseDialog):
 
     def _get_group_key(self, model_id: str, mode: str) -> str:
         lower = model_id.lower()
-        if mode == "前缀分组":
+        if mode == tr("provider.group_prefix"):
             if "-" in model_id:
                 return model_id.split("-", 1)[0]
             if "/" in model_id:
                 return model_id.split("/", 1)[0]
-            return model_id[:1].upper() if model_id else "其他"
-        if mode == "首字母":
-            return model_id[:1].upper() if model_id else "其他"
+            return model_id[:1].upper() if model_id else tr("provider.other_models_short")
+        if mode == tr("provider.group_letter"):
+            return model_id[:1].upper() if model_id else tr("provider.other_models_short")
         # 厂商识别
         if "claude" in lower:
             return tr("provider.claude_series_short")
@@ -9685,7 +9704,14 @@ class ModelSelectDialog(BaseDialog):
         return tr("provider.other_models_short")
 
     def _resolve_category_for_preset(self, model_id: str) -> str:
-        return self._get_group_key(model_id, "厂商识别")
+        lower = model_id.lower()
+        if "claude" in lower:
+            return "Claude 系列"
+        if "gemini" in lower:
+            return "Gemini 系列"
+        if any(token in lower for token in ("gpt", "openai", "codex", "o1")):
+            return "OpenAI/Codex 系列"
+        return "其他模型"
 
     def _refresh_preset_combo(self):
         return
@@ -9694,16 +9720,16 @@ class ModelSelectDialog(BaseDialog):
         names = list(MODEL_PRESET_PACKS.get(category, {}).keys())
         names += list(MODEL_PRESET_CUSTOM.get(category, {}).keys())
         if not names:
-            names.append("基础")
+            names.append(tr("home.base_preset"))
         return names
 
     def _get_default_preset_for_category(self, category: str) -> Dict[str, Any]:
-        preset_name = MODEL_PRESET_DEFAULT.get(category, "基础")
+        preset_name = MODEL_PRESET_DEFAULT.get(category, tr("home.base_preset"))
         return self._get_preset(category, preset_name)
 
     def _get_bulk_category(self) -> str:
         if not self._visible_model_ids:
-            return tr("provider.other_models_short")
+            return "其他模型"
         return self._resolve_category_for_preset(self._visible_model_ids[0])
 
     def _get_category_bulk_support(self, category: str) -> Dict[str, bool]:
@@ -9715,13 +9741,13 @@ class ModelSelectDialog(BaseDialog):
             "thinking": False,
             "variants": False,
         }
-        if category == tr("provider.claude_series_short"):
+        if category == "Claude 系列":
             support["thinking"] = True
             support["variants"] = True
-        elif category == tr("provider.openai_series_short"):
+        elif category == "OpenAI/Codex 系列":
             support["options"] = True
             support["variants"] = True
-        elif category == tr("provider.gemini_series_short"):
+        elif category == "Gemini 系列":
             support["thinking"] = True
             support["variants"] = True
         return support
@@ -9829,7 +9855,7 @@ class ModelSelectDialog(BaseDialog):
         match_mode = self.match_mode_combo.currentText()
         pattern = keyword.lower()
         regex = None
-        if pattern and match_mode == "正则":
+        if pattern and match_mode == tr("match_mode.regex"):
             try:
                 regex = re.compile(pattern, re.IGNORECASE)
             except re.error:
@@ -9843,13 +9869,13 @@ class ModelSelectDialog(BaseDialog):
                 ):
                     continue
             if pattern:
-                if match_mode == "包含":
+                if match_mode == tr("match_mode.contains"):
                     if pattern not in model_id.lower():
                         continue
-                elif match_mode == "前缀":
+                elif match_mode == tr("match_mode.prefix"):
                     if not model_id.lower().startswith(pattern):
                         continue
-                elif match_mode == "正则":
+                elif match_mode == tr("match_mode.regex"):
                     if not regex or not regex.search(model_id):
                         continue
             self._build_model_row(model_id)
@@ -10078,7 +10104,7 @@ class ProviderDialog(BaseDialog):
         else:
             InfoBar.warning(
                 tr("common.info"),
-                tr("provider.no_base_url") + "，跳过自动拉取",
+                tr("provider.no_base_url") + tr("provider.no_base_url_skip"),
                 parent=self,
             )
 
@@ -10210,7 +10236,7 @@ class NativeProviderDialog(BaseDialog):
                         input_widget.setCurrentText(current_value)
                 else:
                     input_widget = LineEdit(option_card)
-                    input_widget.setPlaceholderText(field.default or "可选")
+                    input_widget.setPlaceholderText(field.default or tr("common.optional"))
                     input_widget.setText(str(current_options.get(field.key, "")))
 
                 field_layout.addWidget(input_widget, 1)
@@ -10259,8 +10285,8 @@ class NativeProviderDialog(BaseDialog):
         if self.provider.id in custom_providers:
             if custom_providers[self.provider.id].get("npm"):
                 msg_box = FluentMessageBox(
-                    "配置冲突",
-                    f"已存在同名的自定义 Provider '{self.provider.id}'。\n继续保存？",
+                    tr("provider_dialog.config_conflict"),
+                    tr("provider_dialog.conflict_msg", id=self.provider.id),
                     self,
                 )
                 if msg_box.exec_() != QMessageBox.Yes:
@@ -10275,14 +10301,14 @@ class NativeProviderDialog(BaseDialog):
                 if value:
                     auth_data[field.key] = value
                 elif field.required:
-                    QMessageBox.warning(self, "验证失败", f"{field.label} 是必填项")
+                    QMessageBox.warning(self, tr("provider_dialog.validation_required"), tr("provider_dialog.field_required", label=field.label))
                     return
 
         # 保存认证
         try:
             self.auth_manager.set_provider_auth(self.provider.id, auth_data)
         except Exception as e:
-            QMessageBox.critical(self, "保存失败", f"无法保存认证配置: {e}")
+            QMessageBox.critical(self, tr("provider_dialog.save_failed"), tr("provider_dialog.cannot_save_auth", error=str(e)))
             return
 
         # 保存选项
@@ -10580,7 +10606,7 @@ class ModelPage(BasePage):
             if provider_name in UNSUPPORTED_FETCH_PROVIDERS:
                 self.show_warning(
                     tr("provider.fetch_failed"),
-                    f"{native_provider.name} 不支持通过API获取模型列表。\n请手动添加模型或参考官方文档。",
+                    tr("model_fetch.unsupported_fetch", name=native_provider.name),
                 )
                 return
 
@@ -10614,14 +10640,14 @@ class ModelPage(BasePage):
         if not base_url:
             self.show_error(
                 tr("provider.fetch_failed"),
-                "无法确定API地址。请先配置Provider的baseURL。",
+                tr("model_fetch.cannot_determine_url"),
             )
             return
 
         # 构建模型列表API URL
         models_url = base_url.rstrip("/") + "/models"
 
-        InfoBar.info("获取中", f"正在从 {models_url} 获取模型列表...", parent=self)
+        InfoBar.info(tr("common.loading"), tr("model_fetch.fetching", url=models_url), parent=self)
 
         try:
             req = urllib.request.Request(models_url)
@@ -10645,7 +10671,7 @@ class ModelPage(BasePage):
                     models = data
 
                 if not models:
-                    self.show_warning("获取完成", "API返回的模型列表为空")
+                    self.show_warning(tr("common.success"), tr("model_fetch.empty_list"))
                     return
 
                 # 显示模型选择对话框
@@ -10654,16 +10680,16 @@ class ModelPage(BasePage):
                 )
                 if dialog.exec_():
                     self._load_models(provider_name)
-                    self.show_success("添加成功", f"已添加 {dialog.added_count} 个模型")
+                    self.show_success(tr("common.success"), tr("model_fetch.models_added", count=dialog.added_count))
 
         except urllib.error.HTTPError as e:
             if e.code in (401, 403):
                 # 认证失败
                 if not api_key:
-                    error_msg = f"HTTP {e.code}: {e.reason}\n\n该API需要认证。请先配置Provider的API Key。"
+                    error_msg = tr("model_fetch.auth_required", code=e.code, reason=e.reason)
                 else:
                     error_msg = (
-                        f"HTTP {e.code}: {e.reason}\n\nAPI Key可能无效或已过期。"
+                        tr("model_fetch.key_invalid", code=e.code, reason=e.reason)
                     )
             else:
                 error_msg = f"HTTP {e.code}: {e.reason}"
@@ -10788,7 +10814,7 @@ class ModelDialog(BaseDialog):
         id_layout = QHBoxLayout()
         id_layout.addWidget(BodyLabel(tr("model.model_id") + ":", self))
         self.id_edit = LineEdit(self)
-        self.id_edit.setPlaceholderText("如: claude-sonnet-4-5-20250929")
+        self.id_edit.setPlaceholderText(tr("model_dialog.placeholder_model_id"))
         self.id_edit.setToolTip(get_tooltip("model_id"))
         if self.is_edit:
             self.id_edit.setEnabled(False)
@@ -11174,7 +11200,7 @@ class ModelDialog(BaseDialog):
         options["thinking"] = {"type": "enabled", "budgetTokens": 16000}
         self._refresh_options_table()
         InfoBar.success(
-            "成功", "已添加 Claude Thinking 配置", parent=self, duration=2000
+            tr("common.success"), tr("model_dialog.thinking_added"), parent=self, duration=2000
         )
 
     def _add_gemini_thinking_config(self, budget):
@@ -11259,7 +11285,7 @@ class ModelDialog(BaseDialog):
         try:
             config = json.loads(self.variant_config_edit.toPlainText().strip() or "{}")
         except json.JSONDecodeError as e:
-            InfoBar.error("错误", f"JSON 格式错误: {e}", parent=self)
+            InfoBar.error(tr("common.error"), tr("model_dialog.json_error", error=str(e)), parent=self)
             return
         self.current_model_data.setdefault("variants", {})[name] = config
         self._refresh_variants_table()
@@ -11339,7 +11365,7 @@ class ModelDialog(BaseDialog):
         """保存模型"""
         model_id = self.id_edit.text().strip()
         if not model_id:
-            InfoBar.error("错误", "请输入模型 ID", parent=self)
+            InfoBar.error(tr("common.error"), tr("model_dialog.enter_model_id"), parent=self)
             return
 
         config = self.main_window.opencode_config
@@ -11353,7 +11379,7 @@ class ModelDialog(BaseDialog):
         # 验证 Provider 是否存在且结构完整
         if self.provider_name not in config["provider"]:
             InfoBar.error(
-                "错误",
+                tr("common.error"),
                 f'Provider "{self.provider_name}" 不存在，请先在 Provider 管理页面创建',
                 parent=self,
             )
@@ -11364,7 +11390,7 @@ class ModelDialog(BaseDialog):
         # 检查 Provider 结构是否完整
         if "npm" not in provider or "options" not in provider:
             InfoBar.error(
-                "错误",
+                tr("common.error"),
                 f'Provider "{self.provider_name}" 配置不完整，请先在 Provider 管理页面完善配置',
                 parent=self,
             )
@@ -11378,7 +11404,7 @@ class ModelDialog(BaseDialog):
 
         # 检查名称冲突
         if not self.is_edit and model_id in models:
-            InfoBar.error("错误", f'模型 "{model_id}" 已存在', parent=self)
+            InfoBar.error(tr("common.error"), tr("model_dialog.model_exists", id=model_id), parent=self)
             return
 
         # 保存数据
@@ -11428,8 +11454,8 @@ class ModelDialog(BaseDialog):
         if errors:
             msg = "\n".join(f"• {e['message']}" for e in errors[:8])
             if len(errors) > 8:
-                msg += f"\n... 还有 {len(errors) - 8} 个错误"
-            InfoBar.error("错误", f"配置校验失败：\n{msg}", parent=self)
+                msg += tr("model_dialog.validation_more_errors", count=len(errors) - 8)
+            InfoBar.error(tr("common.error"), tr("model_dialog.validation_failed", msg=msg), parent=self)
             return
 
         options = self.current_model_data.get("options", {})
@@ -11465,17 +11491,17 @@ class FetchedModelsDialog(BaseDialog):
 
         # 标题
         title = SubtitleLabel(
-            f"从 {self.provider_name} 获取到 {len(self.models)} 个模型", self
+            tr("model_fetch.fetched_count", count=len(self.models), provider=self.provider_name), self
         )
         layout.addWidget(title)
 
         # 全选/取消全选
         select_layout = QHBoxLayout()
-        self.select_all_btn = PushButton("全选", self)
+        self.select_all_btn = PushButton(tr("common.select_all"), self)
         self.select_all_btn.clicked.connect(self._select_all)
         select_layout.addWidget(self.select_all_btn)
 
-        self.deselect_all_btn = PushButton("取消全选", self)
+        self.deselect_all_btn = PushButton(tr("common.deselect_all"), self)
         self.deselect_all_btn.clicked.connect(self._deselect_all)
         select_layout.addWidget(self.deselect_all_btn)
 
@@ -11485,7 +11511,7 @@ class FetchedModelsDialog(BaseDialog):
         # 模型列表表格
         self.table = TableWidget(self)
         self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["选择", "模型ID", "创建时间"])
+        self.table.setHorizontalHeaderLabels([tr("model_dialog.select_column_check"), tr("model_dialog.select_column_id"), tr("model_dialog.select_column_time")])
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
@@ -11570,7 +11596,7 @@ class FetchedModelsDialog(BaseDialog):
                     selected_models.append(model_id)
 
         if not selected_models:
-            InfoBar.warning("提示", "请至少选择一个模型", parent=self)
+            InfoBar.warning(tr("common.info"), tr("model_dialog.select_at_least_one"), parent=self)
             return
 
         # 添加到配置
@@ -11699,8 +11725,8 @@ class PresetModelDialog(BaseDialog):
         # 验证 Provider 是否存在且结构完整
         if self.provider_name not in config["provider"]:
             InfoBar.error(
-                "错误",
-                f'Provider "{self.provider_name}" 不存在，请先在 Provider 管理页面创建',
+                tr("common.error"),
+                tr("model_dialog.provider_not_found", name=self.provider_name),
                 parent=self,
             )
             return
@@ -11710,8 +11736,8 @@ class PresetModelDialog(BaseDialog):
         # 检查 Provider 结构是否完整
         if "npm" not in provider or "options" not in provider:
             InfoBar.error(
-                "错误",
-                f'Provider "{self.provider_name}" 配置不完整，请先在 Provider 管理页面完善配置',
+                tr("common.error"),
+                tr("model_dialog.provider_incomplete", name=self.provider_name),
                 parent=self,
             )
             return
@@ -12181,7 +12207,7 @@ class MCPDialog(BaseDialog):
             "type": "local",
             "command": ["uvx", "mcp-server-fetch"],
             "environment": {},
-            "description": "抓取网页内容与资源的基础 MCP 服务器",
+            "description": tr("mcp.preset_fetch"),
             "tags": ["stdio", "http", "web"],
             "homepage": "https://github.com/modelcontextprotocol/servers",
             "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch",
@@ -12191,7 +12217,7 @@ class MCPDialog(BaseDialog):
             "type": "local",
             "command": ["npx", "-y", "@modelcontextprotocol/server-time"],
             "environment": {},
-            "description": "提供时间相关工具的轻量 MCP 服务器",
+            "description": tr("mcp.preset_time"),
             "tags": ["stdio", "time", "utility"],
             "homepage": "https://github.com/modelcontextprotocol/servers",
             "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/time",
@@ -12201,7 +12227,7 @@ class MCPDialog(BaseDialog):
             "type": "local",
             "command": ["npx", "-y", "@modelcontextprotocol/server-memory"],
             "environment": {},
-            "description": "提供记忆图谱能力的 MCP 服务器",
+            "description": tr("mcp.preset_memory"),
             "tags": ["stdio", "memory", "graph"],
             "homepage": "https://github.com/modelcontextprotocol/servers",
             "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/memory",
@@ -12215,7 +12241,7 @@ class MCPDialog(BaseDialog):
                 "@modelcontextprotocol/server-sequential-thinking",
             ],
             "environment": {},
-            "description": "结构化推理与分步思考的 MCP 服务器",
+            "description": tr("mcp.preset_thinking"),
             "tags": ["stdio", "thinking", "reasoning"],
             "homepage": "https://github.com/modelcontextprotocol/servers",
             "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking",
@@ -12225,7 +12251,7 @@ class MCPDialog(BaseDialog):
             "type": "local",
             "command": ["npx", "-y", "@upstash/context7-mcp"],
             "environment": {},
-            "description": "提供最新文档检索的 Context7 MCP",
+            "description": tr("mcp.preset_context7"),
             "tags": ["stdio", "docs", "search"],
             "homepage": "https://context7.com",
             "docs": "https://github.com/upstash/context7/blob/master/README.md",
@@ -12235,7 +12261,7 @@ class MCPDialog(BaseDialog):
             "type": "local",
             "command": ["npx", "-y", "chrome-devtools-mcp@latest"],
             "environment": {},
-            "description": "连接 Chrome DevTools 的调试 MCP 服务器",
+            "description": tr("mcp.preset_chrome"),
             "tags": ["stdio", "browser", "devtools"],
             "homepage": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
             "docs": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
@@ -12245,7 +12271,7 @@ class MCPDialog(BaseDialog):
             "type": "local",
             "command": ["npx", "-y", "open-web-mcp"],
             "environment": {},
-            "description": "开放网页搜索与打开页面的 MCP 服务器",
+            "description": tr("mcp.preset_websearch"),
             "tags": ["stdio", "web", "search"],
             "homepage": "https://github.com/modelcontextprotocol/servers",
             "docs": "https://github.com/modelcontextprotocol/servers",
@@ -12263,7 +12289,7 @@ class MCPDialog(BaseDialog):
                 "ide-assistant",
             ],
             "environment": {},
-            "description": "提供本地项目理解与指令执行的 Serena MCP",
+            "description": tr("mcp.preset_serena"),
             "tags": ["stdio", "local", "automation"],
             "homepage": "https://github.com/oraios/serena",
             "docs": "https://oraios.github.io/serena/",
@@ -13605,7 +13631,7 @@ class AgentGroupEditDialog(QDialog):
 
             # 如果配置中没有描述，使用预设描述
             if not description:
-                description = PRESET_AGENTS.get(agent_id, "")
+                description = _tr_preset('omo_agents', agent_id, PRESET_AGENTS.get(agent_id, ''))
 
             desc_item = QTableWidgetItem(description)
             self.omo_table.setItem(i, 2, desc_item)
@@ -13851,7 +13877,7 @@ class OpenCodeAgentPage(BasePage):
             )
             desc = data.get("description", "")
             if not desc:
-                desc = PRESET_OPENCODE_AGENTS.get(name, {}).get("description", "")
+                desc = _tr_preset('opencode_agents', name, PRESET_OPENCODE_AGENTS.get(name, {}).get('description', ''))
             desc_item = QTableWidgetItem(desc[:50] + "..." if len(desc) > 50 else desc)
             desc_item.setToolTip(desc)
             self.table.setItem(row, 3, desc_item)
@@ -13949,7 +13975,7 @@ class OpenCodeAgentPage(BasePage):
                     ),
                 )
         except Exception as e:
-            self.show_error(tr("common.error"), f"应用分组失败: {str(e)}")
+            self.show_error(tr("common.error"), tr("agent_group.apply_failed", error=str(e)))
 
 
 class OpenCodeAgentDialog(BaseDialog):
@@ -14237,7 +14263,7 @@ class OpenCodeAgentDialog(BaseDialog):
 
         desc = self.desc_edit.text().strip()
         if not desc:
-            InfoBar.error(tr("common.error"), "请输入 Agent 描述", parent=self)
+            InfoBar.error(tr("common.error"), tr("agent.enter_description"), parent=self)
             return
 
         config = self.main_window.opencode_config
@@ -14304,7 +14330,7 @@ class OpenCodeAgentDialog(BaseDialog):
                     agent_data["permission"] = permission
             except json.JSONDecodeError as e:
                 InfoBar.error(
-                    tr("common.error"), f"权限配置 JSON 格式错误: {e}", parent=self
+                    tr("common.error"), tr("agent.permission_json_error", error=str(e)), parent=self
                 )
                 return
 
@@ -14338,7 +14364,8 @@ class PresetOpenCodeAgentDialog(BaseDialog):
         self.agent_list = ListWidget(self)
         self.agent_list.setSelectionMode(QAbstractItemView.MultiSelection)
         for name, data in PRESET_OPENCODE_AGENTS.items():
-            self.agent_list.addItem(f"{name} - {data.get('description', '')[:40]}")
+            translated_desc = _tr_preset('opencode_agents', name, data.get('description', ''))
+            self.agent_list.addItem(f"{name} - {translated_desc[:40]}")
         layout.addWidget(self.agent_list)
 
         # 按钮
@@ -14378,7 +14405,7 @@ class PresetOpenCodeAgentDialog(BaseDialog):
                 preset = PRESET_OPENCODE_AGENTS[name]
                 config["agent"][name] = {
                     "mode": preset.get("mode", "subagent"),
-                    "description": preset.get("description", ""),
+                    "description": _tr_preset('opencode_agents', name, preset.get('description', '')),
                 }
                 if "tools" in preset:
                     config["agent"][name]["tools"] = preset["tools"]
@@ -15256,8 +15283,8 @@ class MainWindow(FluentWindow):
             if jsonc_warning and not getattr(self, "_opencode_jsonc_warned", False):
                 self._opencode_jsonc_warned = True
                 InfoBar.warning(
-                    title="JSONC 注释已丢失",
-                    content="原配置文件包含注释，保存后注释已丢失。已自动备份原文件。",
+                    title=tr("config_reload.jsonc_comments_lost_title"),
+                    content=tr("config_reload.jsonc_comments_lost_msg"),
                     orient=Qt.Orientation.Horizontal,
                     isClosable=True,
                     position=InfoBarPosition.TOP_RIGHT,
@@ -15279,8 +15306,8 @@ class MainWindow(FluentWindow):
             if jsonc_warning and not getattr(self, "_ohmyopencode_jsonc_warned", False):
                 self._ohmyopencode_jsonc_warned = True
                 InfoBar.warning(
-                    title="JSONC 注释已丢失",
-                    content="原配置文件包含注释，保存后注释已丢失。已自动备份原文件。",
+                    title=tr("config_reload.jsonc_comments_lost_title"),
+                    content=tr("config_reload.jsonc_comments_lost_msg"),
                     orient=Qt.Orientation.Horizontal,
                     isClosable=True,
                     position=InfoBarPosition.TOP_RIGHT,
@@ -15413,12 +15440,7 @@ class MainWindow(FluentWindow):
 
     def _handle_external_change(self, config_name: str, path: Path):
         """处理外部修改提示"""
-        msg = (
-            f"检测到 {config_name} 配置文件已被外部修改。\n\n"
-            "请选择如何处理：\n"
-            "• 点击【确定】重新加载文件内容（可能覆盖当前界面数据）\n"
-            "• 点击【取消】保留当前界面数据（文件保持外部修改）"
-        )
+        msg = tr("config_reload.external_change_msg", name=config_name)
         dialog = FluentMessageBox(tr("dialog.config_file_changed"), msg, self)
         if dialog.exec_():
             # 重新加载并刷新哈希
@@ -15429,7 +15451,7 @@ class MainWindow(FluentWindow):
                 if errors:
                     msg = "\n".join(f"• {e['message']}" for e in errors[:8])
                     if len(errors) > 8:
-                        msg += f"\n... 还有 {len(errors) - 8} 个错误"
+                        msg += tr("config_reload.more_errors_summary", count=len(errors) - 8)
                     InfoBar.error(
                         tr("common.error"),
                         tr("dialog.reload_failed", msg=msg),
@@ -15444,8 +15466,8 @@ class MainWindow(FluentWindow):
             if hasattr(self, "home_page"):
                 self.home_page._load_stats()
             InfoBar.success(
-                title="已重新加载",
-                content=f"已加载 {config_name} 最新配置",
+                title=tr("config_reload.reloaded_title"),
+                content=tr("config_reload.reloaded_msg", name=config_name),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
@@ -15463,8 +15485,8 @@ class MainWindow(FluentWindow):
                     path, self.ohmyopencode_config, tag="external-keep"
                 )
             InfoBar.warning(
-                title="保持当前数据",
-                content=f"未重新加载 {config_name}，当前界面数据保持不变",
+                title=tr("config_reload.keep_current_title"),
+                content=tr("config_reload.keep_current_msg", name=config_name),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
@@ -15528,21 +15550,18 @@ class MainWindow(FluentWindow):
             json_info = ConfigPaths.get_config_file_info(json_path)
             jsonc_info = ConfigPaths.get_config_file_info(jsonc_path)
 
-            msg = f"""检测到 {config_name} 同时存在两个配置文件：
-
-📄 {json_path.name}
-   大小: {json_info.get("size_str", "未知")}
-   修改时间: {json_info.get("mtime_str", "未知")}
-
-📄 {jsonc_path.name}
-   大小: {jsonc_info.get("size_str", "未知")}
-   修改时间: {jsonc_info.get("mtime_str", "未知")}
-
-⚠️ 当前程序会优先加载 .jsonc 文件。
-
-请选择要使用的配置文件：
-• 点击「确定」使用 .json 文件（删除 .jsonc）
-• 点击「取消」使用 .jsonc 文件（保持现状）"""
+            unknown = tr("common.unknown") if "common.unknown" != tr("common.unknown") else "N/A"
+            msg = (
+                tr("config_reload.dual_config_detected", name=config_name)
+                + f"\n\n📄 {json_path.name}"
+                + f"\n   {tr('config_reload.size_label', size=json_info.get('size_str', unknown))}"
+                + f"\n   {tr('config_reload.mtime_label', mtime=json_info.get('mtime_str', unknown))}"
+                + f"\n\n📄 {jsonc_path.name}"
+                + f"\n   {tr('config_reload.size_label', size=jsonc_info.get('size_str', unknown))}"
+                + f"\n   {tr('config_reload.mtime_label', mtime=jsonc_info.get('mtime_str', unknown))}"
+                + tr("config_reload.dual_config_warning")
+                + tr("config_reload.dual_config_prompt")
+            )
 
             dialog = FluentMessageBox(
                 tr("dialog.config_file_conflict", config_name=config_name), msg, self
@@ -15556,8 +15575,8 @@ class MainWindow(FluentWindow):
                     # 删除 .jsonc
                     jsonc_path.unlink()
                     InfoBar.success(
-                        title="已切换配置",
-                        content=f"已删除 {jsonc_path.name}，将使用 {json_path.name}",
+                        title=tr("config_reload.switched_title"),
+                        content=tr("config_reload.switched_msg", jsonc=jsonc_path.name, json=json_path.name),
                         orient=Qt.Orientation.Horizontal,
                         isClosable=True,
                         position=InfoBarPosition.TOP_RIGHT,
@@ -15566,8 +15585,8 @@ class MainWindow(FluentWindow):
                     )
                 except Exception as e:
                     InfoBar.error(
-                        title="删除失败",
-                        content=f"无法删除 {jsonc_path.name}: {e}",
+                        title=tr("config_reload.delete_failed_title"),
+                        content=tr("config_reload.delete_failed_msg", file=jsonc_path.name, error=str(e)),
                         orient=Qt.Orientation.Horizontal,
                         isClosable=True,
                         position=InfoBarPosition.TOP_RIGHT,
@@ -15577,8 +15596,8 @@ class MainWindow(FluentWindow):
             else:
                 # 用户选择保持现状（使用 .jsonc）
                 InfoBar.info(
-                    title="保持现状",
-                    content=f"将继续使用 {jsonc_path.name}",
+                    title=tr("config_reload.keep_status_title"),
+                    content=tr("config_reload.keep_status_msg", file=jsonc_path.name),
                     orient=Qt.Orientation.Horizontal,
                     isClosable=True,
                     position=InfoBarPosition.TOP_RIGHT,
@@ -15660,14 +15679,13 @@ class MainWindow(FluentWindow):
             self.save_opencode_config()
 
             # 显示修复结果
-            fix_msg = f"已完成 {len(fixes)} 项修复：\n" + "\n".join(
-                f"• {f}" for f in fixes[:10]
-            )
+            fix_list = "\n".join(f"\u2022 {f}" for f in fixes[:10])
+            fix_msg = tr("config_reload.fix_msg", count=len(fixes), fixes=fix_list)
             if len(fixes) > 10:
-                fix_msg += f"\n... 还有 {len(fixes) - 10} 项"
+                fix_msg += tr("config_reload.fix_more", count=len(fixes) - 10)
 
             InfoBar.success(
-                title="配置已修复",
+                title=tr("config_reload.fix_complete"),
                 content=fix_msg,
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
@@ -15681,8 +15699,8 @@ class MainWindow(FluentWindow):
                 self.home_page._load_stats()
         else:
             InfoBar.info(
-                title="无需修复",
-                content="配置结构已经正确",
+                title=tr("config_reload.no_fix_needed_title"),
+                content=tr("config_reload.no_fix_needed_msg"),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
@@ -15817,7 +15835,7 @@ class OhMyAgentPage(BasePage):
             # 描述列添加 tooltip 显示全部
             desc = data.get("description", "")
             if not desc:
-                desc = PRESET_AGENTS.get(name, "")
+                desc = _tr_preset('omo_agents', name, PRESET_AGENTS.get(name, ''))
             desc_item = QTableWidgetItem(desc[:50] + "..." if len(desc) > 50 else desc)
             desc_item.setToolTip(desc)
             self.table.setItem(row, 2, desc_item)
@@ -15970,7 +15988,7 @@ class OhMyAgentPage(BasePage):
                     ),
                 )
         except Exception as e:
-            self.show_error(tr("common.error"), f"应用分组失败: {str(e)}")
+            self.show_error(tr("common.error"), tr("agent_group.apply_failed", error=str(e)))
 
 
 class OhMyAgentDialog(BaseDialog):
@@ -16110,7 +16128,8 @@ class PresetOhMyAgentDialog(BaseDialog):
         # 预设列表
         self.list_widget = ListWidget(self)
         for name, desc in PRESET_AGENTS.items():
-            self.list_widget.addItem(f"{name} - {desc}")
+            translated_desc = _tr_preset('omo_agents', name, desc)
+            self.list_widget.addItem(f"{name} - {translated_desc}")
         layout.addWidget(self.list_widget)
 
         # 绑定模型
@@ -16154,7 +16173,7 @@ class PresetOhMyAgentDialog(BaseDialog):
         # 解析选中的预设
         text = current.text()
         name = text.split(" - ")[0]
-        desc = PRESET_AGENTS.get(name, "")
+        desc = _tr_preset('omo_agents', name, PRESET_AGENTS.get(name, ''))
 
         config = self.main_window.ohmyopencode_config
         if config is None:
@@ -16290,7 +16309,7 @@ class CategoryPage(BasePage):
             # 描述列添加 tooltip 显示全部
             desc = data.get("description", "")
             if not desc:
-                desc = PRESET_CATEGORIES.get(name, {}).get("description", "")
+                desc = _tr_preset('categories', name, PRESET_CATEGORIES.get(name, {}).get('description', ''))
             desc_item = QTableWidgetItem(desc[:30] + "..." if len(desc) > 30 else desc)
             desc_item.setToolTip(desc)
             self.table.setItem(row, 3, desc_item)
@@ -16403,7 +16422,7 @@ class CategoryDialog(BaseDialog):
         self.is_edit = category_name is not None
 
         self.setWindowTitle(
-            "编辑 Category" if self.is_edit else tr("category.add_category")
+            tr("category.edit_title") if self.is_edit else tr("category.add_category")
         )
         self.setMinimumWidth(450)
         self._setup_ui()
@@ -16514,7 +16533,7 @@ class CategoryDialog(BaseDialog):
             config["categories"] = {}
 
         if not self.is_edit and name in config["categories"]:
-            InfoBar.error("错误", f'Category "{name}" 已存在', parent=self)
+            InfoBar.error(tr("common.error"), tr("category.already_exists", name=name), parent=self)
             return
 
         config["categories"][name] = {
@@ -16548,7 +16567,7 @@ class PresetCategoryDialog(BaseDialog):
         self.list_widget = ListWidget(self)
         for name, data in PRESET_CATEGORIES.items():
             temp = data.get("temperature", 0.7)
-            desc = data.get("description", "")
+            desc = _tr_preset('categories', name, data.get('description', ''))
             self.list_widget.addItem(f"{name} (temp={temp}) - {desc}")
         layout.addWidget(self.list_widget)
 
@@ -16667,11 +16686,11 @@ class SkillDiscovery:
             (是否有效, 错误信息)
         """
         if not name:
-            return False, "名称不能为空"
+            return False, tr("skill_ui.name_empty")
         if len(name) > 64:
-            return False, "名称不能超过 64 字符"
+            return False, tr("skill_ui.name_too_long")
         if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
-            return False, "名称格式错误：只能使用小写字母、数字、单连字符分隔"
+            return False, tr("skill_ui.name_format_error")
         return True, ""
 
     @staticmethod
@@ -16681,9 +16700,9 @@ class SkillDiscovery:
         规则：1-1024 字符
         """
         if not desc:
-            return False, "描述不能为空"
+            return False, tr("skill_ui.desc_empty")
         if len(desc) > 1024:
-            return False, "描述不能超过 1024 字符"
+            return False, tr("skill_ui.desc_too_long")
         return True, ""
 
     @staticmethod
@@ -16813,11 +16832,11 @@ class SkillDiscovery:
                             seen_names.add(skill.name)
                     except Exception as e:
                         # 解析单个skill失败，记录但继续处理其他skills
-                        print(f"解析 skill 失败 {skill_dir.name}: {e}")
+                        print(tr("skill_ui.parse_failed", name=skill_dir.name, error=str(e)))
                         continue
             except Exception as e:
                 # 遍历目录失败，记录但继续处理其他路径
-                print(f"遍历目录失败 {base_path}: {e}")
+                print(tr("skill_ui.scan_dir_failed", path=str(base_path), error=str(e)))
                 continue
 
         return skills
@@ -17045,7 +17064,7 @@ class SkillMarketDialog(MessageBoxBase):
         skillsmp_label = HyperlinkLabel(self.widget)
         skillsmp_label.setUrl("https://skillsmp.com/")
         skillsmp_label.setText("🌐 SkillsMP.com")
-        skillsmp_label.setToolTip("访问 SkillsMP.com 浏览更多社区技能")
+        skillsmp_label.setToolTip(tr("skill_ui.visit_skillsmp"))
         browse_more_layout.addWidget(skillsmp_label)
 
         browse_more_layout.addSpacing(20)
@@ -17054,7 +17073,7 @@ class SkillMarketDialog(MessageBoxBase):
         composio_label = HyperlinkLabel(self.widget)
         composio_label.setUrl("https://github.com/ComposioHQ/awesome-claude-skills")
         composio_label.setText("🌐 ComposioHQ Skills")
-        composio_label.setToolTip("访问 ComposioHQ 浏览更多社区技能")
+        composio_label.setToolTip(tr("skill_ui.visit_composio"))
         browse_more_layout.addWidget(composio_label)
 
         browse_more_layout.addStretch()
@@ -17230,7 +17249,7 @@ class SkillSecurityScanner:
                         "line": 0,
                         "code": "",
                         "level": "critical",
-                        "description": f"扫描失败: {str(e)}",
+                        "description": tr("skill_ui.scan_failed_desc", error=str(e)),
                     }
                 ],
                 "level": "unknown",
@@ -17433,7 +17452,7 @@ class SkillInstaller:
         if os.path.exists(source):
             return "local", {"path": source}
 
-        raise ValueError(f"无法识别的来源格式: {source}")
+        raise ValueError(tr("skill_ui.unrecognized_source", source=source))
 
     @staticmethod
     def install_from_github(
@@ -17465,7 +17484,7 @@ class SkillInstaller:
         try:
             # 1. 下载 ZIP
             if progress_callback:
-                progress_callback("正在下载...")
+                progress_callback(tr("skill_ui.downloading"))
 
             zip_url = (
                 f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
@@ -17475,11 +17494,11 @@ class SkillInstaller:
             # 如果404，尝试检测并使用正确的分支
             if response.status_code == 404:
                 if progress_callback:
-                    progress_callback("检测分支...")
+                    progress_callback(tr("skill_ui.detecting_branch"))
                 detected_branch = SkillInstaller.detect_default_branch(owner, repo)
                 if detected_branch != branch:
                     if progress_callback:
-                        progress_callback(f"使用分支: {detected_branch}")
+                        progress_callback(tr("skill_ui.using_branch", branch=detected_branch))
                     branch = detected_branch
                     zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
                     response = requests.get(zip_url, stream=True, timeout=30)
@@ -17488,7 +17507,7 @@ class SkillInstaller:
 
             # 2. 解压到临时目录
             if progress_callback:
-                progress_callback("正在解压...")
+                progress_callback(tr("skill_ui.extracting"))
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 zip_path = Path(temp_dir) / "skill.zip"
@@ -17506,7 +17525,7 @@ class SkillInstaller:
                 if subdir:
                     skill_dir = extracted_dir / subdir
                     if not skill_dir.exists():
-                        return False, f"子目录不存在: {subdir}"
+                        return False, tr("skill_ui.subdir_not_found", subdir=subdir)
                 else:
                     skill_dir = extracted_dir
 
@@ -17521,17 +17540,17 @@ class SkillInstaller:
                 if not skill_file:
                     return (
                         False,
-                        f"未找到 SKILL.md 或 SKILL.txt 文件{f' (在 {subdir} 中)' if subdir else ''}",
+                        tr("skill_ui.skill_file_not_found_in", subdir=subdir) if subdir else tr("skill_ui.skill_file_not_found"),
                     )
 
                 # 4. 解析 Skill 名称
                 skill = SkillDiscovery.parse_skill_file(skill_file)
                 if not skill:
-                    return False, "SKILL 文件格式错误"
+                    return False, tr("skill_ui.skill_format_error")
 
                 # 5. 复制到目标目录
                 if progress_callback:
-                    progress_callback("正在安装...")
+                    progress_callback(tr("skill_ui.installing"))
 
                 skill_target = target_dir / skill.name
                 if skill_target.exists():
@@ -17571,14 +17590,14 @@ class SkillInstaller:
                     json.dump(meta, f, indent=2, ensure_ascii=False)
 
                 if progress_callback:
-                    progress_callback("安装完成！")
+                    progress_callback(tr("skill_ui.install_complete"))
 
-                return True, f"Skill '{skill.name}' 安装成功"
+                return True, tr("skill_ui.install_success", name=skill.name)
 
         except requests.exceptions.RequestException as e:
-            return False, f"网络错误: {str(e)}"
+            return False, tr("skill_ui.network_error", error=str(e))
         except Exception as e:
-            return False, f"安装失败: {str(e)}"
+            return False, tr("skill_ui.install_failed", error=str(e))
 
     @staticmethod
     def install_from_local(
@@ -17599,21 +17618,21 @@ class SkillInstaller:
         try:
             source = Path(source_path)
             if not source.exists():
-                return False, f"路径不存在: {source_path}"
+                return False, tr("skill_ui.path_not_found", path=str(source_path))
 
             # 查找 SKILL.md
             skill_md = source / "SKILL.md"
             if not skill_md.exists():
-                return False, "未找到 SKILL.md 文件"
+                return False, tr("skill_ui.skill_md_not_found")
 
             # 解析 Skill
             skill = SkillDiscovery.parse_skill_file(skill_md)
             if not skill:
-                return False, "SKILL.md 格式错误"
+                return False, tr("skill_ui.skill_md_format_error")
 
             # 复制到目标目录
             if progress_callback:
-                progress_callback("正在复制...")
+                progress_callback(tr("skill_ui.copying"))
 
             skill_target = target_dir / skill.name
             if skill_target.exists():
@@ -17633,12 +17652,12 @@ class SkillInstaller:
                 json.dump(meta, f, indent=2, ensure_ascii=False)
 
             if progress_callback:
-                progress_callback("安装完成！")
+                progress_callback(tr("skill_ui.install_complete"))
 
-            return True, f"Skill '{skill.name}' 安装成功"
+            return True, tr("skill_ui.install_success", name=skill.name)
 
         except Exception as e:
-            return False, f"安装失败: {str(e)}"
+            return False, tr("skill_ui.install_failed", error=str(e))
 
 
 # ==================== Skill 更新器 ====================
@@ -17671,7 +17690,7 @@ class SkillUpdater:
                         "current_commit": None,
                         "latest_commit": None,
                         "meta": None,
-                        "status": "本地",
+                        "status": tr("common.local"),
                     }
                 )
                 continue
@@ -17689,7 +17708,7 @@ class SkillUpdater:
                             "current_commit": None,
                             "latest_commit": None,
                             "meta": meta,
-                            "status": "本地",
+                            "status": tr("common.local"),
                         }
                     )
                     continue
@@ -17716,15 +17735,15 @@ class SkillUpdater:
                         "has_update": has_update,
                         "current_commit": current_commit[:7]
                         if current_commit
-                        else "未知",
+                        else tr("common.unknown"),
                         "latest_commit": latest_commit[:7],
                         "meta": meta,
-                        "status": "有更新" if has_update else "最新",
+                        "status": tr("common.has_update") if has_update else tr("common.latest"),
                     }
                 )
 
             except Exception as e:
-                print(f"检查更新失败 {skill.name}: {e}")
+                print(tr("skill_ui.check_update_failed", name=skill.name, error=str(e)))
                 updates.append(
                     {
                         "skill": skill,
@@ -17732,7 +17751,7 @@ class SkillUpdater:
                         "current_commit": None,
                         "latest_commit": None,
                         "meta": meta if "meta" in locals() else None,
-                        "status": "检查失败",
+                        "status": tr("common.check_failed"),
                     }
                 )
 
@@ -17753,7 +17772,7 @@ class SkillUpdater:
             (是否成功, 消息)
         """
         if meta.get("source") != "github":
-            return False, "仅支持更新从 GitHub 安装的 Skills"
+            return False, tr("skill_ui.github_only_update")
 
         try:
             # 重新安装
@@ -17774,7 +17793,7 @@ class SkillUpdater:
             return success, message
 
         except Exception as e:
-            return False, f"更新失败: {str(e)}"
+            return False, tr("skill_ui.update_failed", error=str(e))
 
 
 # ==================== Skill 安装对话框 ====================
@@ -18240,7 +18259,7 @@ class SkillPage(BasePage):
             else ""
         )
         self.detail_compat.setText(
-            f"兼容: {skill.compatibility}" if skill.compatibility else ""
+            tr("skill_ui.compatibility", value=skill.compatibility) if skill.compatibility else ""
         )
         self.detail_path.setText(f"{tr('skill.skill_path')}: {skill.path}")
         self.detail_content.setText(skill.content)
@@ -18270,17 +18289,17 @@ class SkillPage(BasePage):
         path_str = str(self._current_skill.path)
         if ".claude" in path_str:
             if str(Path.home()) in path_str:
-                self.create_loc_combo.setCurrentText("Claude 全局 (~/.claude/skills/)")
+                self.create_loc_combo.setCurrentText(tr("skill_ui.claude_global_loc"))
             else:
-                self.create_loc_combo.setCurrentText("Claude 项目 (.claude/skills/)")
+                self.create_loc_combo.setCurrentText(tr("skill_ui.claude_project_loc"))
         else:
             if str(Path.home()) in path_str:
                 self.create_loc_combo.setCurrentText(
-                    "OpenCode 全局 (~/.config/opencode/skills/)"
+                    tr("skill_ui.opencode_global_loc")
                 )
             else:
                 self.create_loc_combo.setCurrentText(
-                    "OpenCode 项目 (.opencode/skills/)"
+                    tr("skill_ui.opencode_project_loc")
                 )
 
     def _on_delete_skill(self):
@@ -18307,7 +18326,7 @@ class SkillPage(BasePage):
                 self._refresh_skill_list()
                 self._clear_detail()
             except Exception as e:
-                self.show_error("错误", f"删除失败: {e}")
+                self.show_error(tr("common.error"), tr("skill_ui.delete_failed", error=str(e)))
 
     def _on_open_skill_folder(self):
         """打开 Skill 所在目录"""
@@ -18451,21 +18470,21 @@ class SkillPage(BasePage):
         # 验证
         valid, msg = SkillDiscovery.validate_skill_name(name)
         if not valid:
-            self.show_error("名称错误", msg)
+            self.show_error(tr("skill_ui.name_error"), msg)
             return
 
         valid, msg = SkillDiscovery.validate_description(desc)
         if not valid:
-            self.show_error("描述错误", msg)
+            self.show_error(tr("skill_ui.desc_error"), msg)
             return
 
         # 确定保存路径
         loc_text = self.create_loc_combo.currentText()
-        if "OpenCode 全局" in loc_text:
+        if tr("skill_ui.opencode_global_loc") in loc_text:
             base_path = Path.home() / ".config" / "opencode" / "skills"
-        elif "OpenCode 项目" in loc_text:
+        elif tr("skill_ui.opencode_project_loc") in loc_text:
             base_path = Path.cwd() / ".opencode" / "skills"
-        elif "Claude 全局" in loc_text:
+        elif tr("skill_ui.claude_global_loc") in loc_text:
             base_path = Path.home() / ".claude" / "skills"
         else:
             base_path = Path.cwd() / ".claude" / "skills"
@@ -18487,7 +18506,7 @@ class SkillPage(BasePage):
 
         # 默认内容
         if not content:
-            content = "## What I do\n\n- 描述功能\n\n## Instructions\n\n- 具体指令"
+            content = tr("skill_ui.default_content")
 
         skill_content = f"---\n{frontmatter}\n---\n\n{content}\n"
 
@@ -18503,7 +18522,7 @@ class SkillPage(BasePage):
             self._refresh_skill_list()
             self._on_clear_create_form()
         except Exception as e:
-            self.show_error("错误", f"保存失败: {e}")
+            self.show_error(tr("common.error"), tr("skill_ui.save_failed", error=str(e)))
 
     def _on_clear_create_form(self):
         """清空创建表单"""
@@ -18910,7 +18929,7 @@ class SkillPage(BasePage):
                         branch = SkillInstaller.detect_default_branch(owner, repo_name)
 
                         # 更新进度提示
-                        install_dialog.update_progress(f"正在安装 {skill['name']}...")
+                        install_dialog.update_progress(tr("skill_ui.installing_skill", name=skill["name"]))
 
                         success, message = SkillInstaller.install_from_github(
                             owner,
@@ -18922,13 +18941,13 @@ class SkillPage(BasePage):
                         )
 
                         if success:
-                            self.show_success("成功", message)
+                            self.show_success(tr("common.success"), message)
                             self._refresh_skill_list()
                         else:
-                            self.show_error("失败", message)
+                            self.show_error(tr("common.failed"), message)
 
                     except Exception as e:
-                        self.show_error("错误", f"安装失败: {str(e)}")
+                        self.show_error(tr("common.error"), tr("skill_ui.install_failed", error=str(e)))
 
     def _on_scan_skill(self):
         """扫描选中的 Skill"""
@@ -18944,7 +18963,7 @@ class SkillPage(BasePage):
             dialog.exec_()
 
         except Exception as e:
-            self.show_error("错误", f"扫描失败: {str(e)}")
+            self.show_error(tr("common.error"), tr("skill_ui.scan_failed", error=str(e)))
 
     def _on_install_skill(self):
         """安装 Skill"""
@@ -18983,15 +19002,15 @@ class SkillPage(BasePage):
                     )
 
                 if success:
-                    self.show_success("成功", message)
+                    self.show_success(tr("common.success"), message)
                     self._refresh_skill_list()
                 else:
-                    self.show_error("失败", message)
+                    self.show_error(tr("common.failed"), message)
 
             except ValueError as e:
-                self.show_error("错误", str(e))
+                self.show_error(tr("common.error"), str(e))
             except Exception as e:
-                self.show_error("错误", f"安装失败: {str(e)}")
+                self.show_error(tr("common.error"), tr("skill_ui.install_failed", error=str(e)))
 
     def _on_check_updates(self):
         """检查更新"""
@@ -18999,11 +19018,11 @@ class SkillPage(BasePage):
         skills = SkillDiscovery.discover_all()
 
         if not skills:
-            self.show_warning("提示", "未发现任何 Skills")
+            self.show_warning(tr("common.info"), tr("skill_ui.no_skills_found"))
             return
 
         # 显示进度对话框
-        progress = ProgressDialog("正在检查更新...", self)
+        progress = ProgressDialog(tr("skill_ui.checking_updates"), self)
         progress.show()
         QApplication.processEvents()
 
@@ -19019,7 +19038,7 @@ class SkillPage(BasePage):
                 selected = update_dialog.get_selected_updates()
 
                 if not selected:
-                    self.show_warning("提示", "未选择任何 Skills")
+                    self.show_warning(tr("common.info"), tr("skill_ui.no_skills_selected"))
                     return
 
                 # 更新选中的 Skills
@@ -19027,7 +19046,7 @@ class SkillPage(BasePage):
 
         except Exception as e:
             progress.close()
-            self.show_error("错误", f"检查更新失败: {str(e)}")
+            self.show_error(tr("common.error"), tr("skill_ui.check_updates_failed", error=str(e)))
 
     def _update_selected_skills(self, selected_updates: List[Dict[str, Any]]):
         """更新选中的 Skills"""
@@ -19036,7 +19055,7 @@ class SkillPage(BasePage):
         failed_skills = []
 
         # 创建进度对话框
-        progress = ProgressDialog(f"正在更新 Skills (0/{total})...", self)
+        progress = ProgressDialog(tr("skill_ui.updating_skills", total=total), self)
         progress.show()
         QApplication.processEvents()
 
@@ -19044,7 +19063,7 @@ class SkillPage(BasePage):
             skill = update["skill"]
             meta = update["meta"]
 
-            progress.setLabelText(f"正在更新 {skill.name} ({i + 1}/{total})...")
+            progress.setLabelText(tr("skill_ui.updating_skill", name=skill.name, current=i+1, total=total))
             QApplication.processEvents()
 
             success, message = SkillUpdater.update_skill(skill, meta)
@@ -19058,16 +19077,16 @@ class SkillPage(BasePage):
 
         # 显示结果
         if success_count == total:
-            self.show_success("成功", f"成功更新 {success_count} 个 Skills")
+            self.show_success(tr("common.success"), tr("skill_ui.update_success", count=success_count))
         elif success_count > 0:
             failed_msg = "\n".join(failed_skills)
             self.show_warning(
-                "部分成功",
-                f"成功更新 {success_count} 个，失败 {len(failed_skills)} 个\n\n失败详情:\n{failed_msg}",
+                tr("skill_ui.partial_success"),
+                tr("skill_ui.partial_success_msg", success=success_count, failed=len(failed_skills)) + f"\n\n{failed_msg}",
             )
         else:
             failed_msg = "\n".join(failed_skills)
-            self.show_error("失败", f"所有更新均失败\n\n详情:\n{failed_msg}")
+            self.show_error(tr("common.failed"), tr("skill_ui.all_failed", details=failed_msg))
 
         # 刷新列表
         self._refresh_skill_list()
@@ -19079,7 +19098,7 @@ class ProgressDialog(MessageBoxBase):
 
     def __init__(self, message: str, parent=None):
         super().__init__(parent)
-        self.titleLabel = SubtitleLabel("请稍候", self)
+        self.titleLabel = SubtitleLabel(tr("common.please_wait"), self)
 
         self.label = BodyLabel(message, self.widget)
         self.viewLayout.addWidget(self.titleLabel)
@@ -19765,7 +19784,7 @@ class MonitorPage(BasePage):
                 latency_ms=None,
                 ping_ms=None,
                 checked_at=datetime.now(),
-                message="请求超时",
+                message=tr("monitor.request_timeout"),
             )
             self._on_single_result(result)
         if not self._pending_targets:
@@ -19887,26 +19906,26 @@ class MonitorPage(BasePage):
         if not getattr(self, "_chat_test_enabled", True):
             # 对话测试已暂停，根据 Ping 结果判定状态
             if not target.base_url:
-                message = "未配置 baseURL"
+                message = tr("monitor.no_base_url_configured")
             elif ping_ms is not None:
                 status = "operational"
-                message = "对话测试已暂停 (Ping 正常)"
+                message = tr("monitor.chat_test_paused")
             elif origin:
                 status = "error"
-                message = "Ping 失败"
+                message = tr("monitor.ping_failed")
             else:
                 status = "no_config"
-                message = "未配置有效的主机"
+                message = tr("monitor.no_valid_host_configured")
         elif not target.base_url:
-            message = "未配置 baseURL"
+            message = tr("monitor.no_base_url_configured")
         elif not target.api_key:
-            message = "未配置 apiKey"
+            message = tr("monitor.no_apikey_configured")
         else:
             # 发送最小请求
             try:
                 url = _build_chat_url(target.base_url)
                 if not url:
-                    raise ValueError("baseURL 无效")
+                    raise ValueError(tr("monitor.base_url_invalid"))
                 payload = json.dumps(
                     {
                         "model": target.model_id,
@@ -19929,16 +19948,16 @@ class MonitorPage(BasePage):
                 latency_ms = int((time.time() - start) * 1000)
                 if latency_ms <= DEGRADED_THRESHOLD_MS:
                     status = "operational"
-                    message = "正常"
+                    message = tr("monitor.status_normal")
                 else:
                     status = "degraded"
-                    message = f"延迟较高 ({latency_ms}ms)"
+                    message = tr("monitor.latency_high", ms=latency_ms)
             except urllib.error.HTTPError as e:
                 status = "failed"
-                message = "鉴权失败" if e.code in (401, 403) else f"HTTP {e.code}"
+                message = tr("monitor.auth_failed") if e.code in (401, 403) else f"HTTP {e.code}"
             except urllib.error.URLError as e:
                 status = "error"
-                message = f"连接失败: {e.reason}"
+                message = tr("monitor.connection_failed", reason=str(e.reason))
             except Exception as e:
                 status = "error"
                 message = str(e)[:50]
@@ -21501,7 +21520,7 @@ class CLIExportPage(BasePage):
                         tr("cli_export.restored"), tr("cli_export.auto_restored")
                     )
         except Exception as e:
-            self.show_error("导出失败", str(e))
+            self.show_error(tr("export_ui.export_failed"), str(e))
 
     def _on_batch_export(self):
         """批量导出"""
@@ -21631,7 +21650,7 @@ class CLIBackupRestoreDialog(QDialog):
     def __init__(self, backup_manager: CLIBackupManager, parent=None):
         super().__init__(parent)
         self.backup_manager = backup_manager
-        self.setWindowTitle("恢复备份")
+        self.setWindowTitle(tr("export_ui.restore_backup_title"))
         self.setMinimumSize(500, 400)
         self._setup_ui()
         self._load_backups()
@@ -21710,9 +21729,9 @@ class CLIBackupRestoreDialog(QDialog):
             if success:
                 self.accept()
             else:
-                InfoBar.error(title="恢复失败", content="无法恢复备份", parent=self)
+                InfoBar.error(title=tr("export_ui.restore_failed"), content=tr("export_ui.cannot_restore"), parent=self)
         except Exception as e:
-            InfoBar.error(title="恢复失败", content=str(e), parent=self)
+            InfoBar.error(title=tr("export_ui.restore_failed"), content=str(e), parent=self)
 
 
 class CommonConfigEditDialog(QDialog):
@@ -21722,7 +21741,7 @@ class CommonConfigEditDialog(QDialog):
         super().__init__(parent)
         self.cli_type = cli_type
         self.initial_config = initial_config
-        self.setWindowTitle(f"编辑 {cli_type.upper()} 通用配置")
+        self.setWindowTitle(tr("export_ui.edit_config_title", type=cli_type.upper()))
         self.setMinimumSize(600, 450)
         self._setup_ui()
 
@@ -21733,9 +21752,9 @@ class CommonConfigEditDialog(QDialog):
         # 说明
         if self.cli_type == "codex":
             hint_text = (
-                "编辑 Codex 通用配置 (TOML 格式)，这些配置会合并到 config.toml 中"
+                tr("export_ui.edit_codex_hint")
             )
-            placeholder = """# 示例通用配置
+            placeholder = f"""# {tr('export_ui.example_general_config')}
 model_reasoning_effort = "high"
 disable_response_storage = true
 
@@ -21744,8 +21763,8 @@ persistence = true
 max_entries = 1000"""
             language = "toml"
         else:  # gemini
-            hint_text = "编辑 Gemini 通用配置 (ENV 格式)，这些配置会合并到 .env 文件中"
-            placeholder = """# 示例通用配置
+            hint_text = tr("export_ui.edit_gemini_hint")
+            placeholder = f"""# {tr('export_ui.example_general_config')}
 GEMINI_TIMEOUT=30000
 GEMINI_MAX_RETRIES=3"""
             language = "env"
@@ -21872,7 +21891,7 @@ class ImportPage(BasePage):
         )
         preview_layout = preview_card.layout()
         preview_layout.addWidget(
-            BodyLabel("点击“预览转换”在弹窗中查看左右对照。", preview_card)
+            BodyLabel(tr("export_ui.click_preview"), preview_card)
         )
 
         # 按钮
@@ -21910,7 +21929,7 @@ class ImportPage(BasePage):
             path_item = QTableWidgetItem(info["path"])
             path_item.setToolTip(info["path"])
             self.config_table.setItem(row, 1, path_item)
-            status = tr("import.detected") if info["exists"] else "未找到"
+            status = tr("import.detected") if info["exists"] else tr("export_ui.not_found")
             self.config_table.setItem(row, 2, QTableWidgetItem(status))
 
     def _select_manual_file(self):
@@ -21974,7 +21993,7 @@ class ImportPage(BasePage):
             self._last_converted = converted
 
             dialog = BaseDialog(self)
-            dialog.setWindowTitle("配置转换预览")
+            dialog.setWindowTitle(tr("export_ui.preview_title"))
             dialog.setMinimumSize(900, 520)
 
             layout = QVBoxLayout(dialog)
@@ -21984,7 +22003,7 @@ class ImportPage(BasePage):
             columns_layout.setSpacing(12)
 
             left_layout = QVBoxLayout()
-            left_layout.addWidget(SubtitleLabel("原始配置", dialog))
+            left_layout.addWidget(SubtitleLabel(tr("export_ui.original_config"), dialog))
             source_edit = TextEdit(dialog)
             source_edit.setReadOnly(True)
             source_edit.setPlainText(
@@ -22024,7 +22043,7 @@ class ImportPage(BasePage):
             columns_layout.addLayout(right_layout, 1)
             layout.addLayout(columns_layout, 1)
 
-            close_btn = PrimaryPushButton("关闭", dialog)
+            close_btn = PrimaryPushButton(tr("common.close"), dialog)
             close_btn.clicked.connect(dialog.accept)
             layout.addWidget(close_btn, alignment=Qt.AlignRight)
 
@@ -22038,7 +22057,7 @@ class ImportPage(BasePage):
         """导入选中的配置"""
         row = self.config_table.currentRow()
         if row < 0:
-            self.show_warning(tr("common.info"), "请先选择要导入的配置")
+            self.show_warning(tr("common.info"), tr("export_ui.select_config_first"))
             return
 
         source = self.config_table.item(row, 0).text()
@@ -22081,8 +22100,8 @@ class ImportPage(BasePage):
         perm_count = len(converted.get("permission", {}))
 
         w = FluentMessageBox(
-            "确认导入",
-            f"将导入以下配置:\n• Provider: {provider_count} 个\n• 权限: {perm_count} 个\n\n是否继续?",
+            tr("export_ui.confirm_import"),
+            tr("export_ui.import_summary", providers=provider_count, permissions=perm_count),
             self,
         )
         if not w.exec_():
@@ -22097,7 +22116,7 @@ class ImportPage(BasePage):
         for provider_name, provider_data in converted.get("provider", {}).items():
             if provider_name in config.get("provider", {}):
                 w2 = FluentMessageBox(
-                    "冲突", f'Provider "{provider_name}" 已存在，是否覆盖?', self
+                    tr("export_ui.conflict_title"), f'Provider "{provider_name}" 已存在，是否覆盖?', self
                 )
                 if not w2.exec_():
                     continue
@@ -22116,7 +22135,7 @@ class ImportPage(BasePage):
     def _confirm_mapping(self):
         """手动确认映射"""
         if not self._last_converted:
-            self.show_warning(tr("common.info"), "请先预览转换结果")
+            self.show_warning(tr("common.info"), tr("export_ui.preview_first"))
             return
         dialog = ImportMappingDialog(
             self.main_window, self._last_converted, parent=self
@@ -22129,7 +22148,7 @@ class ImportPage(BasePage):
                 self.tr("common.info"), self.tr("common.no_valid_import_config")
             )
             return
-        self._apply_import("手动确认", confirmed)
+        self._apply_import(tr("import.manual_confirm"), confirmed)
 
 
 # ==================== Backup 对话框 ====================
@@ -22142,7 +22161,7 @@ class ImportMappingDialog(BaseDialog):
         self.converted = converted or {}
         self._confirmed: Dict[str, Any] = {}
 
-        self.setWindowTitle("确认导入映射")
+        self.setWindowTitle(tr("export_ui.confirm_mapping_title"))
         self.setMinimumWidth(560)
         self.setFixedHeight(520)
         self._setup_ui()
@@ -22151,7 +22170,7 @@ class ImportMappingDialog(BaseDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        layout.addWidget(SubtitleLabel("请确认必要字段", self))
+        layout.addWidget(SubtitleLabel(tr("export_ui.confirm_fields"), self))
 
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -22217,7 +22236,7 @@ class ImportMappingDialog(BaseDialog):
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        ok_btn = PrimaryPushButton("确认导入", self)
+        ok_btn = PrimaryPushButton(tr("export_ui.confirm_import_btn"), self)
         ok_btn.clicked.connect(self._on_confirm)
         btn_layout.addWidget(ok_btn)
 
@@ -22413,11 +22432,11 @@ class BackupDialog(BaseDialog):
             with open(backup_path, "r", encoding="utf-8") as f:
                 content = f.read()
         except Exception as e:
-            InfoBar.error("错误", f"无法读取备份内容: {e}", parent=self)
+            InfoBar.error(tr("common.error"), tr("export_ui.cannot_read_backup", error=str(e)), parent=self)
             return
 
         dialog = BaseDialog(self)
-        dialog.setWindowTitle("备份内容预览")
+        dialog.setWindowTitle(tr("export_ui.backup_preview_title"))
         dialog.setMinimumSize(700, 500)
         layout = QVBoxLayout(dialog)
         layout.setSpacing(12)
@@ -22425,7 +22444,7 @@ class BackupDialog(BaseDialog):
         text_edit.setReadOnly(True)
         text_edit.setPlainText(content)
         layout.addWidget(text_edit)
-        close_btn = PrimaryPushButton("关闭", dialog)
+        close_btn = PrimaryPushButton(tr("common.close"), dialog)
         close_btn.clicked.connect(dialog.accept)
         layout.addWidget(close_btn)
         dialog.exec_()
@@ -22449,8 +22468,8 @@ class BackupDialog(BaseDialog):
             target_path = ConfigPaths.get_ohmyopencode_config()
 
         w = FluentMessageBox(
-            "确认恢复",
-            f"确定要恢复此备份吗？\n当前配置将被覆盖（会先自动备份）。",
+            tr("export_ui.confirm_restore"),
+            tr("export_ui.confirm_restore_msg"),
             self,
         )
         if w.exec_():
@@ -22596,7 +22615,7 @@ class PluginManager:
             return True
 
         except Exception as e:
-            print(f"安装插件失败: {e}")
+            print(tr("plugin_ui.install_plugin_failed", error=str(e)))
             return False
 
     @staticmethod
@@ -22622,7 +22641,7 @@ class PluginManager:
             return False
 
         except Exception as e:
-            print(f"卸载插件失败: {e}")
+            print(tr("plugin_ui.uninstall_plugin_failed", error=str(e)))
             return False
 
     @staticmethod
@@ -22637,7 +22656,7 @@ class PluginManager:
                 data = response.json()
                 return data.get("version", "")
         except Exception as e:
-            print(f"检查版本失败: {e}")
+            print(tr("plugin_ui.check_version_failed", error=str(e)))
 
         return ""
 
@@ -22647,34 +22666,34 @@ PRESET_PLUGINS = [
     {
         "name": "opencode-skills",
         "display_name": "OpenCode Skills",
-        "description": "自动发现和注册Skills为动态工具，支持Anthropic Agent Skills规范",
+        "description": tr("plugin_ui.plugin_skill_discovery"),
         "npm_package": "opencode-skills",
         "homepage": "https://github.com/malhashemi/opencode-skills",
-        "category": "工具增强",
+        "category": tr("plugin_ui.plugin_category_tools"),
     },
     {
         "name": "opencode-sessions",
         "display_name": "OpenCode Sessions",
-        "description": "多Agent协作和工作流编排，支持回合制讨论和并行探索",
+        "description": tr("plugin_ui.plugin_multi_agent"),
         "npm_package": "opencode-sessions",
         "homepage": "https://github.com/malhashemi/opencode-sessions",
-        "category": "协作增强",
+        "category": tr("plugin_ui.plugin_category_collab"),
     },
     {
         "name": "opencode-helicone-session",
         "display_name": "Helicone Session",
-        "description": "自动注入Helicone会话ID和名称，用于LLM请求分组和追踪",
+        "description": tr("plugin_ui.plugin_helicone"),
         "npm_package": "opencode-helicone-session",
         "homepage": "",
-        "category": "监控追踪",
+        "category": tr("plugin_ui.plugin_category_monitor"),
     },
     {
         "name": "opencode-wakatime",
         "display_name": "WakaTime",
-        "description": "代码时间追踪，自动记录编码时间和项目统计",
+        "description": tr("plugin_ui.plugin_wakatime"),
         "npm_package": "opencode-wakatime",
         "homepage": "",
-        "category": "监控追踪",
+        "category": tr("plugin_ui.plugin_category_monitor"),
     },
 ]
 
@@ -22683,7 +22702,7 @@ class PluginPage(BasePage):
     """Plugin 插件管理页面 - 包含插件管理和Oh My OpenCode管理"""
 
     def __init__(self, main_window, parent=None):
-        super().__init__("Plugin 插件管理", parent)
+        super().__init__(tr("plugin_ui.page_title"), parent)
         self.main_window = main_window
         self._setup_ui()
         self._load_plugins()
@@ -22699,7 +22718,7 @@ class PluginPage(BasePage):
         """初始化UI"""
         # 标签页切换
         self.pivot = Pivot(self)
-        self.pivot.addItem(routeKey="plugins", text="插件管理")
+        self.pivot.addItem(routeKey="plugins", text=tr("plugin_ui.tab_plugins"))
         self.pivot.addItem(routeKey="ohmyopencode", text="Oh My OpenCode")
         self.pivot.setCurrentItem("plugins")
         self.pivot.currentItemChanged.connect(self._on_tab_changed)
@@ -22738,7 +22757,7 @@ class PluginPage(BasePage):
 
         # 搜索框
         self.search_edit = SearchLineEdit(widget)
-        self.search_edit.setPlaceholderText("搜索插件...")
+        self.search_edit.setPlaceholderText(tr("plugin_ui.search_placeholder"))
         self.search_edit.setFixedWidth(300)
         self.search_edit.textChanged.connect(self._on_search)
         btn_layout.addWidget(self.search_edit)
@@ -22746,17 +22765,17 @@ class PluginPage(BasePage):
         btn_layout.addStretch()
 
         # 安装插件按钮
-        self.install_btn = PrimaryPushButton("➕ 安装插件", widget)
+        self.install_btn = PrimaryPushButton(f"➕ {tr('plugin_ui.install_plugin_btn')}", widget)
         self.install_btn.clicked.connect(self._on_install)
         btn_layout.addWidget(self.install_btn)
 
         # 检查更新按钮
-        self.check_update_btn = PushButton("🔄 检查更新", widget)
+        self.check_update_btn = PushButton(f"🔄 {tr('plugin_ui.check_update_btn')}", widget)
         self.check_update_btn.clicked.connect(self._on_check_updates)
         btn_layout.addWidget(self.check_update_btn)
 
         # 插件市场按钮
-        self.market_btn = PushButton("🛒 插件市场", widget)
+        self.market_btn = PushButton(f"🛒 {tr('plugin_ui.market_btn')}", widget)
         self.market_btn.clicked.connect(self._on_open_market)
         btn_layout.addWidget(self.market_btn)
 
@@ -22766,7 +22785,7 @@ class PluginPage(BasePage):
         self.table = TableWidget(widget)
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(
-            ["插件名称", "版本", "类型", "状态", "描述", "操作"]
+            tr("plugin_ui.table_headers").split(",")
         )
         self.table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.Stretch
@@ -22801,22 +22820,22 @@ class PluginPage(BasePage):
 
         # 顶部状态栏
         status_row = QHBoxLayout()
-        self.ohmy_status_label = BodyLabel("检测中...", widget)
+        self.ohmy_status_label = BodyLabel(tr("plugin_ui.detecting"), widget)
         status_row.addWidget(self.ohmy_status_label)
         status_row.addStretch()
 
         # 启用/禁用按钮
-        self.ohmy_enable_btn = PushButton("启用插件", widget)
+        self.ohmy_enable_btn = PushButton(tr("plugin_ui.enable_plugin"), widget)
         self.ohmy_enable_btn.clicked.connect(self._on_toggle_ohmy_enable)
         status_row.addWidget(self.ohmy_enable_btn)
 
         # 刷新按钮
-        self.ohmy_refresh_btn = PushButton(FIF.SYNC, "刷新状态", widget)
+        self.ohmy_refresh_btn = PushButton(FIF.SYNC, tr("plugin_ui.refresh_status"), widget)
         self.ohmy_refresh_btn.clicked.connect(self._on_refresh_ohmy_status)
         status_row.addWidget(self.ohmy_refresh_btn)
 
         # 配置按钮
-        self.ohmy_config_btn = PushButton("打开配置文件", widget)
+        self.ohmy_config_btn = PushButton(tr("plugin_ui.open_config"), widget)
         self.ohmy_config_btn.clicked.connect(self._on_config_ohmy)
         status_row.addWidget(self.ohmy_config_btn)
 
@@ -22884,18 +22903,18 @@ class PluginPage(BasePage):
                     new_plugins.append(plugin)
             config[field_name] = new_plugins
             self.main_window.save_opencode_config()
-            self.show_success("成功", "Oh My OpenCode 已禁用")
+            self.show_success(tr("common.success"), tr("plugin_ui.disabled_success"))
         elif self._ohmy_installed:
             # 已安装但未启用：添加到plugins
             plugins.append("oh-my-opencode")
             config[field_name] = plugins
             self.main_window.save_opencode_config()
-            self.show_success("成功", "Oh My OpenCode 已启用")
+            self.show_success(tr("common.success"), tr("plugin_ui.enabled_success"))
         else:
             # 未安装：提示安装
             self.show_warning(
-                "提示",
-                "请先通过npm安装oh-my-opencode插件:\nnpm install -g oh-my-opencode",
+                tr("common.info"),
+                tr("plugin_ui.npm_install_hint"),
             )
 
         # 刷新状态
@@ -22917,7 +22936,7 @@ class PluginPage(BasePage):
 
         # 刷新显示
         self._load_ohmy_data()
-        self.show_success("成功", "状态已刷新")
+        self.show_success(tr("common.success"), tr("plugin_ui.status_refreshed"))
 
     def _on_ohmy_tab_changed(self, route_key: str):
         """切换Oh My OpenCode标签页"""
@@ -23085,24 +23104,24 @@ class PluginPage(BasePage):
 
         # 根据安装和启用状态显示不同提示
         if ohmy_installed and ohmy_enabled:
-            self.ohmy_status_label.setText("✅ 已安装且已启用")
+            self.ohmy_status_label.setText(f"✅ {tr('plugin_ui.status_installed_enabled')}")
             self.ohmy_status_label.setStyleSheet("color: #4CAF50;")
-            self.ohmy_enable_btn.setText("禁用插件")
+            self.ohmy_enable_btn.setText(tr("plugin_ui.disable_plugin"))
             self.ohmy_enable_btn.setEnabled(True)
         elif ohmy_installed and not ohmy_enabled:
-            self.ohmy_status_label.setText("⚠️ 已安装但未启用")
+            self.ohmy_status_label.setText(f"⚠️ {tr('plugin_ui.status_installed_disabled')}")
             self.ohmy_status_label.setStyleSheet("color: #ff9800;")
-            self.ohmy_enable_btn.setText("启用插件")
+            self.ohmy_enable_btn.setText(tr("plugin_ui.enable_plugin"))
             self.ohmy_enable_btn.setEnabled(True)
         elif not ohmy_installed and ohmy_enabled:
-            self.ohmy_status_label.setText("❌ 配置异常：已启用但配置文件不存在")
+            self.ohmy_status_label.setText(f"❌ {tr('plugin_ui.status_config_error')}")
             self.ohmy_status_label.setStyleSheet("color: #f44336;")
-            self.ohmy_enable_btn.setText("禁用插件")
+            self.ohmy_enable_btn.setText(tr("plugin_ui.disable_plugin"))
             self.ohmy_enable_btn.setEnabled(True)
         else:
-            self.ohmy_status_label.setText("❌ 未安装")
+            self.ohmy_status_label.setText(f"❌ {tr('plugin_ui.status_not_installed')}")
             self.ohmy_status_label.setStyleSheet("color: #f44336;")
-            self.ohmy_enable_btn.setText("安装插件")
+            self.ohmy_enable_btn.setText(tr("plugin_ui.install_plugin_label"))
             self.ohmy_enable_btn.setEnabled(True)
 
         # 保存状态供按钮使用
@@ -23195,7 +23214,7 @@ class PluginPage(BasePage):
 
             desc = data.get("description", "")
             if not desc:
-                desc = PRESET_AGENTS.get(name, "")
+                desc = _tr_preset('omo_agents', name, PRESET_AGENTS.get(name, ''))
             desc_item = QTableWidgetItem(desc[:50] + "..." if len(desc) > 50 else desc)
             desc_item.setToolTip(desc)
             self.ohmy_agent_table.setItem(row, 2, desc_item)
@@ -23257,7 +23276,7 @@ class PluginPage(BasePage):
 
             desc = data.get("description", "")
             if not desc:
-                desc = PRESET_CATEGORIES.get(name, {}).get("description", "")
+                desc = _tr_preset('categories', name, PRESET_CATEGORIES.get(name, {}).get('description', ''))
             desc_item = QTableWidgetItem(desc[:30] + "..." if len(desc) > 30 else desc)
             desc_item.setToolTip(desc)
             self.ohmy_category_table.setItem(row, 3, desc_item)
@@ -23289,7 +23308,7 @@ class PluginPage(BasePage):
             else:
                 subprocess.Popen(["xdg-open", str(config_path)])
         else:
-            self.show_warning("提示", "配置文件不存在，请先安装Oh My OpenCode插件")
+            self.show_warning(tr("common.info"), tr("plugin_ui.config_not_exist"))
 
     def _on_add_ohmy_agent(self):
         """添加Oh My Agent"""
@@ -23418,11 +23437,11 @@ class PluginPage(BasePage):
             self.table.setItem(row, 1, QTableWidgetItem(plugin.version))
 
             # 类型
-            type_text = "npm" if plugin.type == "npm" else "本地"
+            type_text = "npm" if plugin.type == "npm" else tr("plugin_ui.type_local")
             self.table.setItem(row, 2, QTableWidgetItem(type_text))
 
             # 状态
-            status_text = "✅ 已启用" if plugin.enabled else "❌ 已禁用"
+            status_text = f"✅ {tr('plugin_ui.status_enabled')}" if plugin.enabled else f"❌ {tr('plugin_ui.status_disabled')}"
             self.table.setItem(row, 3, QTableWidgetItem(status_text))
 
             # 描述
@@ -23437,7 +23456,7 @@ class PluginPage(BasePage):
             # 卸载按钮
             uninstall_btn = PushButton("🗑️", btn_widget)
             uninstall_btn.setFixedSize(32, 28)
-            uninstall_btn.setToolTip("卸载插件")
+            uninstall_btn.setToolTip(tr("plugin_ui.uninstall_tooltip"))
             uninstall_btn.clicked.connect(
                 lambda checked, p=plugin: self._on_uninstall(p)
             )
@@ -23463,22 +23482,22 @@ class PluginPage(BasePage):
     def _on_uninstall(self, plugin: PluginConfig):
         """卸载插件"""
         w = FluentMessageBox(
-            "确认卸载",
-            f"确定要卸载插件 {plugin.name} 吗？\n\n注意：OpenCode需要重启后才会生效。",
+            tr("plugin_ui.confirm_uninstall"),
+            tr("plugin_ui.confirm_uninstall_msg", name=plugin.name),
             self,
         )
         if w.exec_():
             config = self.main_window.opencode_config or {}
             if PluginManager.uninstall_plugin(config, plugin):
                 self.main_window.save_opencode_config()
-                InfoBar.success("成功", f"插件 {plugin.name} 已卸载", parent=self)
+                InfoBar.success(tr("common.success"), tr("plugin_ui.uninstall_success", name=plugin.name), parent=self)
                 self._load_plugins()
             else:
-                InfoBar.error("失败", "卸载插件失败", parent=self)
+                InfoBar.error(tr("common.failed"), tr("plugin_ui.uninstall_failed"), parent=self)
 
     def _on_check_updates(self):
         """检查更新"""
-        InfoBar.info("提示", "正在检查更新...", parent=self)
+        InfoBar.info(tr("common.info"), tr("plugin_ui.checking_updates"), parent=self)
         # TODO: 实现更新检测逻辑
         pass
 
@@ -23495,7 +23514,7 @@ class PluginInstallDialog(BaseDialog):
     def __init__(self, main_window, parent=None):
         super().__init__(parent)
         self.main_window = main_window
-        self.setWindowTitle("安装插件")
+        self.setWindowTitle(tr("plugin_ui.install_dialog_title"))
         self.setFixedWidth(500)
         self._setup_ui()
 
@@ -23505,15 +23524,15 @@ class PluginInstallDialog(BaseDialog):
         layout.setSpacing(16)
 
         # 安装方式选择
-        method_label = BodyLabel("安装方式:", self)
+        method_label = BodyLabel(tr("plugin_ui.install_method"), self)
         layout.addWidget(method_label)
 
-        self.npm_radio = RadioButton("从npm安装", self)
+        self.npm_radio = RadioButton(tr("plugin_ui.from_npm"), self)
         self.npm_radio.setChecked(True)
         self.npm_radio.toggled.connect(self._on_method_changed)
         layout.addWidget(self.npm_radio)
 
-        self.local_radio = RadioButton("从本地文件安装", self)
+        self.local_radio = RadioButton(tr("plugin_ui.from_local"), self)
         self.local_radio.toggled.connect(self._on_method_changed)
         layout.addWidget(self.local_radio)
 
@@ -23522,16 +23541,16 @@ class PluginInstallDialog(BaseDialog):
         npm_layout = QVBoxLayout(self.npm_widget)
         npm_layout.setContentsMargins(0, 0, 0, 0)
 
-        npm_label = BodyLabel("npm包名:", self)
+        npm_label = BodyLabel(tr("plugin_ui.npm_package_name"), self)
         npm_layout.addWidget(npm_label)
 
         self.npm_edit = LineEdit(self)
         self.npm_edit.setPlaceholderText(
-            "例如: opencode-skills 或 opencode-skills@0.1.0"
+            tr("plugin_ui.npm_placeholder")
         )
         npm_layout.addWidget(self.npm_edit)
 
-        hint_label = CaptionLabel("支持普通包和scoped包（如@my-org/plugin）", self)
+        hint_label = CaptionLabel(tr("plugin_ui.npm_hint"), self)
         hint_label.setTextColor(QColor(150, 150, 150), QColor(150, 150, 150))
         npm_layout.addWidget(hint_label)
 
@@ -23542,16 +23561,16 @@ class PluginInstallDialog(BaseDialog):
         local_layout = QVBoxLayout(self.local_widget)
         local_layout.setContentsMargins(0, 0, 0, 0)
 
-        local_label = BodyLabel("本地文件:", self)
+        local_label = BodyLabel(tr("plugin_ui.local_file"), self)
         local_layout.addWidget(local_label)
 
         file_layout = QHBoxLayout()
         self.file_edit = LineEdit(self)
-        self.file_edit.setPlaceholderText("选择.js或.ts文件")
+        self.file_edit.setPlaceholderText(tr("plugin_ui.local_placeholder"))
         self.file_edit.setReadOnly(True)
         file_layout.addWidget(self.file_edit)
 
-        self.browse_btn = PushButton("浏览...", self)
+        self.browse_btn = PushButton(tr("plugin_ui.browse_btn"), self)
         self.browse_btn.clicked.connect(self._on_browse_file)
         file_layout.addWidget(self.browse_btn)
 
@@ -23564,11 +23583,11 @@ class PluginInstallDialog(BaseDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self.cancel_btn = PushButton("取消", self)
+        self.cancel_btn = PushButton(tr("common.cancel"), self)
         self.cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self.cancel_btn)
 
-        self.install_btn = PrimaryPushButton("安装", self)
+        self.install_btn = PrimaryPushButton(tr("common.install"), self)
         self.install_btn.clicked.connect(self._on_install)
         btn_layout.addWidget(self.install_btn)
 
@@ -23588,7 +23607,7 @@ class PluginInstallDialog(BaseDialog):
         from PyQt5.QtWidgets import QFileDialog
 
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "选择插件文件", "", "JavaScript/TypeScript Files (*.js *.ts)"
+            self, tr("plugin_ui.select_plugin_file"), "", "JavaScript/TypeScript Files (*.js *.ts)"
         )
         if file_path:
             self.file_edit.setText(file_path)
@@ -23599,7 +23618,7 @@ class PluginInstallDialog(BaseDialog):
             # npm安装
             package_name = self.npm_edit.text().strip()
             if not package_name:
-                InfoBar.error("错误", "请输入npm包名", parent=self)
+                InfoBar.error(tr("common.error"), tr("plugin_ui.enter_npm_name"), parent=self)
                 return
 
             # 解析包名和版本
@@ -23621,22 +23640,22 @@ class PluginInstallDialog(BaseDialog):
             if PluginManager.install_npm_plugin(config, name, version):
                 self.main_window.save_opencode_config()
                 InfoBar.success(
-                    "成功",
-                    f"插件 {package_name} 已添加到配置\n\nOpenCode将在下次启动时自动安装",
+                    tr("common.success"),
+                    tr("plugin_ui.plugin_added", name=package_name),
                     parent=self,
                 )
                 self.accept()
             else:
-                InfoBar.error("失败", "安装插件失败", parent=self)
+                InfoBar.error(tr("common.failed"), tr("plugin_ui.install_failed"), parent=self)
 
         else:
             # 本地文件安装
             file_path = self.file_edit.text().strip()
             if not file_path:
-                InfoBar.error("错误", "请选择插件文件", parent=self)
+                InfoBar.error(tr("common.error"), tr("plugin_ui.select_plugin_file_first"), parent=self)
                 return
 
-            InfoBar.info("提示", "本地插件安装功能暂未实现", parent=self)
+            InfoBar.info(tr("common.info"), tr("plugin_ui.local_not_implemented"), parent=self)
 
 
 class PluginMarketDialog(BaseDialog):
@@ -23645,7 +23664,7 @@ class PluginMarketDialog(BaseDialog):
     def __init__(self, main_window, parent=None):
         super().__init__(parent)
         self.main_window = main_window
-        self.setWindowTitle("插件市场")
+        self.setWindowTitle(tr("plugin_ui.market_title"))
         self.setFixedSize(800, 600)
         self._setup_ui()
         self._load_market()
@@ -23656,13 +23675,13 @@ class PluginMarketDialog(BaseDialog):
         layout.setSpacing(16)
 
         # 标题
-        title_label = SubtitleLabel("预设插件", self)
+        title_label = SubtitleLabel(tr("plugin_ui.preset_plugins"), self)
         layout.addWidget(title_label)
 
         # 插件列表
         self.table = TableWidget(self)
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["插件名称", "分类", "描述", "操作"])
+        self.table.setHorizontalHeaderLabels(tr("plugin_ui.market_headers").split(","))
         self.table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.ResizeToContents
         )
@@ -23683,7 +23702,7 @@ class PluginMarketDialog(BaseDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self.close_btn = PrimaryPushButton("关闭", self)
+        self.close_btn = PrimaryPushButton(tr("common.close"), self)
         self.close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(self.close_btn)
 
@@ -23716,7 +23735,7 @@ class PluginMarketDialog(BaseDialog):
             btn_layout.setSpacing(4)
 
             # 安装按钮
-            install_btn = PrimaryPushButton("安装", btn_widget)
+            install_btn = PrimaryPushButton(tr("common.install"), btn_widget)
             install_btn.setFixedSize(60, 28)
             install_btn.clicked.connect(
                 lambda checked, info=plugin_info: self._on_install_from_market(info)
@@ -23733,12 +23752,12 @@ class PluginMarketDialog(BaseDialog):
         if PluginManager.install_npm_plugin(config, package_name, ""):
             self.main_window.save_opencode_config()
             InfoBar.success(
-                "成功",
-                f"插件 {plugin_info['display_name']} 已添加到配置\n\nOpenCode将在下次启动时自动安装",
+                tr("common.success"),
+                tr("plugin_ui.plugin_added", name=plugin_info['display_name']),
                 parent=self,
             )
         else:
-            InfoBar.error("失败", "安装插件失败", parent=self)
+            InfoBar.error(tr("common.failed"), tr("plugin_ui.install_failed"), parent=self)
 
 
 # ==================== 程序入口 ====================

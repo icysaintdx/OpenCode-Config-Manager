@@ -14,6 +14,7 @@ from typing import Callable, Deque, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .native_providers import _resolve_env_value, _safe_base_url
+from .i18n import tr
 
 
 MONITOR_POLL_INTERVAL_MS = 60000
@@ -237,7 +238,7 @@ class MonitorService:
                     latency_ms=None,
                     ping_ms=None,
                     checked_at=datetime.now(),
-                    message="请求超时",
+                    message=tr("monitor.request_timeout"),
                 )
                 self._record_result(timeout_result)
                 futures.pop(future, None)
@@ -260,25 +261,25 @@ class MonitorService:
 
         if not self._chat_test_enabled:
             if not target.base_url:
-                message = "未配置 baseURL"
+                message = tr("monitor.no_base_url")
             elif ping_ms is not None:
                 status = "operational"
-                message = "对话测试已暂停 (Ping 正常)"
+                message = tr("monitor.chat_test_paused")
             elif origin:
                 status = "error"
-                message = "Ping 失败"
+                message = tr("monitor.ping_failed")
             else:
                 status = "no_config"
-                message = "未配置有效的主机"
+                message = tr("monitor.no_valid_host")
         elif not target.base_url:
-            message = "未配置 baseURL"
+            message = tr("monitor.no_base_url")
         elif not target.api_key:
-            message = "未配置 apiKey"
+            message = tr("monitor.no_api_key")
         else:
             try:
                 url = _build_chat_url(target.base_url)
                 if not url:
-                    raise ValueError("baseURL 无效")
+                    raise ValueError(tr("monitor.base_url_invalid"))
                 payload = json.dumps(
                     {
                         "model": target.model_id,
@@ -301,16 +302,16 @@ class MonitorService:
                 latency_ms = int((time.time() - start) * 1000)
                 if latency_ms <= DEGRADED_THRESHOLD_MS:
                     status = "operational"
-                    message = "正常"
+                    message = tr("monitor.status_normal")
                 else:
                     status = "degraded"
-                    message = f"延迟较高 ({latency_ms}ms)"
+                    message = tr("monitor.latency_high", latency_ms=latency_ms)
             except urllib.error.HTTPError as e:
                 status = "failed"
-                message = "鉴权失败" if e.code in (401, 403) else f"HTTP {e.code}"
+                message = tr("monitor.auth_failed") if e.code in (401, 403) else f"HTTP {e.code}"
             except urllib.error.URLError as e:
                 status = "error"
-                message = f"连接失败: {e.reason}"
+                message = tr("monitor.connection_failed", reason=e.reason)
             except Exception as e:
                 status = "error"
                 message = str(e)[:50]

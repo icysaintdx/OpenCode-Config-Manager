@@ -7,6 +7,7 @@ import time
 import urllib.error
 import urllib.request
 from typing import Callable, List, Optional
+from .i18n import tr
 
 
 GITHUB_REPO = "icysaintdx/OpenCode-Config-Manager"
@@ -88,7 +89,7 @@ class VersionChecker:
         except urllib.error.HTTPError as e:
             error_msg = ""
             if e.code == 403:
-                error_msg = "GitHub API速率限制（403），将在6小时后重试"
+                error_msg = tr("version_checker.rate_limited")
                 print(f"Version check failed: {error_msg}")
                 self.check_interval = 21600
             else:
@@ -96,7 +97,7 @@ class VersionChecker:
                 print(f"Version check failed: {error_msg}")
             self._notify_error(error_msg)
         except urllib.error.URLError as e:
-            error_msg = f"网络错误 - {e.reason}"
+            error_msg = tr("version_checker.network_error", reason=str(e.reason))
             print(f"Version check failed: {error_msg}")
             self._notify_error(error_msg)
         except Exception as e:
