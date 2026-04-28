@@ -74,6 +74,48 @@ class ConfigManager:
         return "".join(result)
 
     @staticmethod
+    def remove_trailing_commas(content: str) -> str:
+        """移除 JSON/JSONC 中对象或数组末尾的多余逗号"""
+        result = []
+        i = 0
+        in_string = False
+        escape_next = False
+
+        while i < len(content):
+            char = content[i]
+
+            if escape_next:
+                result.append(char)
+                escape_next = False
+                i += 1
+                continue
+
+            if char == "\\" and in_string:
+                result.append(char)
+                escape_next = True
+                i += 1
+                continue
+
+            if char == '"' and not escape_next:
+                in_string = not in_string
+                result.append(char)
+                i += 1
+                continue
+
+            if not in_string and char == ",":
+                j = i + 1
+                while j < len(content) and content[j] in " \t\r\n":
+                    j += 1
+                if j < len(content) and content[j] in "]}":
+                    i += 1
+                    continue
+
+            result.append(char)
+            i += 1
+
+        return "".join(result)
+
+    @staticmethod
     def load_json(path: Path) -> Optional[Dict]:
         """加载 JSON/JSONC 文件"""
         try:
@@ -88,7 +130,13 @@ class ConfigManager:
                     # 如果失败，尝试移除注释后再解析 (JSONC)
                     try:
                         stripped_content = ConfigManager.strip_jsonc_comments(content)
-                        return json.loads(stripped_content)
+                        try:
+                            return json.loads(stripped_content)
+                        except json.JSONDecodeError:
+                            cleaned_content = ConfigManager.remove_trailing_commas(
+                                stripped_content
+                            )
+                            return json.loads(cleaned_content)
                     except json.JSONDecodeError as e2:
                         # 详细记录解析失败原因
                         print(f"Load failed {path}:")

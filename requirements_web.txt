@@ -4,8 +4,13 @@
 # Web 框架
 nicegui>=2.0.0
 
+# 鉴权与服务
+PyJWT>=2.8.0
+bcrypt>=4.0.0
+uvicorn>=0.25.0
+
 # HTTP
 requests>=2.25.0
 
 # SSH 远程管理 (可选)
-# paramiko>=3.0.0
+paramiko>=3.0.0
