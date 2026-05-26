@@ -533,7 +533,7 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install nicegui requests pyinstaller
+          pip install nicegui requests bcrypt PyJWT paramiko pyinstaller
       - name: 下载 UPX
         run: |
           Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip" -OutFile upx.zip
@@ -552,6 +552,7 @@ jobs:
             --hidden-import starlette --hidden-import fastapi `
             --hidden-import httptools --hidden-import websockets `
             --hidden-import requests --hidden-import urllib3 --hidden-import certifi `
+            --hidden-import bcrypt --hidden-import jwt --hidden-import paramiko `
             --collect-data nicegui --collect-submodules nicegui `
             --exclude-module torch --exclude-module tensorflow `
             --exclude-module scipy --exclude-module matplotlib `
@@ -591,7 +592,7 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install nicegui requests pyinstaller
+          pip install nicegui requests bcrypt PyJWT paramiko pyinstaller
       - name: PyInstaller 打包
         run: |
           pyinstaller \
@@ -605,6 +606,7 @@ jobs:
             --hidden-import=starlette --hidden-import=fastapi \
             --hidden-import=httptools --hidden-import=websockets \
             --hidden-import=requests --hidden-import=urllib3 --hidden-import=certifi \
+            --hidden-import=bcrypt --hidden-import=jwt --hidden-import=paramiko \
             --collect-data nicegui --collect-submodules nicegui \
             --exclude-module torch --exclude-module tensorflow \
             --exclude-module scipy --exclude-module matplotlib \
@@ -647,7 +649,7 @@ jobs:
       - name: 安装 Python 依赖
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install nicegui requests pyinstaller
+          pip install nicegui requests bcrypt PyJWT paramiko pyinstaller
       - name: PyInstaller 打包
         run: |
           pyinstaller \
