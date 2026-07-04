@@ -3768,6 +3768,9 @@ class ConfigPaths:
     支持 .json 和 .jsonc 扩展名，支持自定义路径
     """
 
+    # 自定义路径持久化文件
+    _CUSTOM_PATHS_FILE = ".occm_custom_paths.json"
+
     # 自定义路径存储（None 表示使用默认路径）
     _custom_opencode_path: Optional[Path] = None
     _custom_ohmyopencode_path: Optional[Path] = None
@@ -3863,6 +3866,7 @@ class ConfigPaths:
     def set_opencode_config(cls, path: Optional[Path]) -> None:
         """设置自定义 OpenCode 配置路径"""
         cls._custom_opencode_path = path
+        cls._persist_custom_paths()
 
     @classmethod
     def get_ohmyopencode_config(cls) -> Path:
@@ -3875,6 +3879,50 @@ class ConfigPaths:
     def set_ohmyopencode_config(cls, path: Optional[Path]) -> None:
         """设置自定义 Oh My OpenCode 配置路径"""
         cls._custom_ohmyopencode_path = path
+        cls._persist_custom_paths()
+
+    @classmethod
+    def _get_settings_path(cls) -> Path:
+        """持久化文件路径"""
+        return cls.get_config_base_dir() / cls._CUSTOM_PATHS_FILE
+
+    @classmethod
+    def _persist_custom_paths(cls) -> None:
+        """将自定义路径持久化到磁盘"""
+        import json
+        data = {}
+        if cls._custom_opencode_path is not None:
+            data["custom_opencode_path"] = str(cls._custom_opencode_path)
+        if cls._custom_ohmyopencode_path is not None:
+            data["custom_ohmyopencode_path"] = str(cls._custom_ohmyopencode_path)
+        if cls._custom_backup_path is not None:
+            data["custom_backup_dir"] = str(cls._custom_backup_path)
+        settings_path = cls._get_settings_path()
+        try:
+            settings_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(settings_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"[OCCM] Failed to persist custom paths: {e}")
+
+    @classmethod
+    def _load_custom_paths(cls) -> None:
+        """从磁盘恢复自定义路径"""
+        import json
+        settings_path = cls._get_settings_path()
+        if not settings_path.exists():
+            return
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("custom_opencode_path"):
+                cls._custom_opencode_path = Path(data["custom_opencode_path"])
+            if data.get("custom_ohmyopencode_path"):
+                cls._custom_ohmyopencode_path = Path(data["custom_ohmyopencode_path"])
+            if data.get("custom_backup_dir"):
+                cls._custom_backup_dir = Path(data["custom_backup_dir"])
+        except Exception as e:
+            print(f"[OCCM] Failed to load custom paths: {e}")
 
     @classmethod
     def is_custom_path(cls, config_type: str) -> bool:
@@ -3896,6 +3944,7 @@ class ConfigPaths:
             cls._custom_ohmyopencode_path = None
         elif config_type == "backup":
             cls._custom_backup_path = None
+        cls._persist_custom_paths()
 
     @classmethod
     def get_claude_settings(cls) -> Path:
@@ -3920,6 +3969,7 @@ class ConfigPaths:
     def set_backup_dir(cls, path: Optional[Path]) -> None:
         """设置自定义备份目录"""
         cls._custom_backup_path = path
+        cls._persist_custom_paths()
 
     @classmethod
     def get_import_path(cls, source_type: str) -> Optional[Path]:
@@ -15615,6 +15665,9 @@ class MainWindow(FluentWindow):
 
         # 检测配置文件冲突（同时存在 .json 和 .jsonc）
         self._check_config_conflicts()
+
+        # 恢复上次保存的自定义路径
+        ConfigPaths._load_custom_paths()
 
         # 加载配置
         self.opencode_config = ConfigManager.load_json(
