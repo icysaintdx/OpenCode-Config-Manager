@@ -23634,18 +23634,18 @@ class PluginPage(BasePage):
             plugins = []
 
         if self._ohmy_enabled:
-            # 禁用：从plugins中移除oh-my-opencode
+            # 禁用：从plugins中移除oh-my-opencode/oh-my-openagent
             new_plugins = []
             for plugin in plugins:
                 if isinstance(plugin, str):
-                    # 去掉连字符后比较
+                    # 去掉连字符后比较（兼容新旧包名）
                     plugin_normalized = plugin.lower().replace("-", "")
-                    if "ohmyopencode" not in plugin_normalized:
+                    if "ohmyopencode" not in plugin_normalized and "ohmyopenagent" not in plugin_normalized:
                         new_plugins.append(plugin)
                 elif isinstance(plugin, dict):
                     plugin_name = plugin.get("name", "") or plugin.get("package", "")
                     plugin_normalized = plugin_name.lower().replace("-", "")
-                    if "ohmyopencode" not in plugin_normalized:
+                    if "ohmyopencode" not in plugin_normalized and "ohmyopenagent" not in plugin_normalized:
                         new_plugins.append(plugin)
                 else:
                     new_plugins.append(plugin)
@@ -23654,7 +23654,7 @@ class PluginPage(BasePage):
             self.show_success("成功", "Oh My OpenCode 已禁用")
         elif self._ohmy_installed:
             # 已安装但未启用：添加到plugins
-            plugins.append("oh-my-opencode")
+            plugins.append("oh-my-openagent")
             config[field_name] = plugins
             self.main_window.save_opencode_config()
             self.show_success("成功", "Oh My OpenCode 已启用")
@@ -23662,7 +23662,7 @@ class PluginPage(BasePage):
             # 未安装：提示安装
             self.show_warning(
                 "提示",
-                "请先通过npm安装oh-my-opencode插件:\nnpm install -g oh-my-opencode",
+                "请先通过npm安装oh-my-openagent插件:\nbun oh-my-opencode install",
             )
 
         # 刷新状态
@@ -23829,8 +23829,8 @@ class PluginPage(BasePage):
         config_path = ConfigPaths.get_ohmyopencode_config()
         ohmy_installed = config_path.exists()  # 配置文件存在 = 已安装
 
-        # 检测启用状态：plugins数组中是否有oh-my-opencode
-        # 注意：需要同时检测 "oh-my-opencode" 和 "ohmyopencode" 两种写法
+        # 检测启用状态：plugins数组中是否有oh-my-opencode/oh-my-openagent
+        # 注意：兼容新旧包名 "oh-my-opencode" 和 "oh-my-openagent"
         # 注意：字段名可能是 "plugins"（复数）或 "plugin"（单数）
         ohmy_enabled = False
         config = self.main_window.opencode_config or {}
@@ -23840,13 +23840,13 @@ class PluginPage(BasePage):
                 if isinstance(plugin, str):
                     # 去掉连字符后比较，兼容两种写法
                     plugin_normalized = plugin.lower().replace("-", "")
-                    if "ohmyopencode" in plugin_normalized:
+                    if "ohmyopencode" in plugin_normalized or "ohmyopenagent" in plugin_normalized:
                         ohmy_enabled = True
                         break
                 elif isinstance(plugin, dict):
                     plugin_name = plugin.get("name", "") or plugin.get("package", "")
                     plugin_normalized = plugin_name.lower().replace("-", "")
-                    if "ohmyopencode" in plugin_normalized:
+                    if "ohmyopencode" in plugin_normalized or "ohmyopenagent" in plugin_normalized:
                         ohmy_enabled = True
                         break
 
